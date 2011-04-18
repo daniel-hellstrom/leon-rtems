@@ -334,6 +334,7 @@ libfs/src/nfsclient/Makefile
 libgnat/Makefile
 libcsupport/Makefile
 libnetworking/Makefile
+libpci/Makefile
 librpc/Makefile
 libmisc/Makefile
 libi2c/Makefile

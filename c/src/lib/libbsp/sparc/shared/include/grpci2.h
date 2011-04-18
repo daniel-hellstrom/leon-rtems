@@ -37,9 +37,6 @@ extern void grpci2_register_drv(void);
 /* When the Host acts as a target on the PCI bus, the PCI BARs of the host's
  * configuration space determine at which PCI address the Host will be accessed
  * at and when accessing a BAR which AMBA address it will be translated to.
- *
- * set pciadr to 0xffffffff, to let driver do defualt configuration for a
- * particular BAR.
  */
 struct grpci2_pcibar_cfg {
 	unsigned int pciadr;	/* PCI address of BAR (BAR content) */

@@ -61,6 +61,7 @@ TMP_LIBS += ../libmisc/libuuid.a
 
 TMP_LIBS += ../libi2c/libi2c.a
 
+TMP_LIBS += ../libpci/libpci.a
 TMP_LIBS += ../libdrvmgr/libdrvmgr.a
 
 if LIBNETWORKING

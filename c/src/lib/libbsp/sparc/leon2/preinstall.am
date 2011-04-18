@@ -235,8 +235,3 @@ $(PROJECT_INCLUDE)/network_interface_add.h: ../../sparc/shared/include/network_i
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/network_interface_add.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/network_interface_add.h
 endif
-
-# Additional drivers, if any
-include $(top_srcdir)/buildfiles/preinstall.am.tc
-include $(top_srcdir)/buildfiles/preinstall.am.tm
-include $(top_srcdir)/buildfiles/preinstall.am.gr_rasta_tmtc

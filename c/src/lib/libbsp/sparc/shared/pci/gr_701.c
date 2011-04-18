@@ -28,6 +28,7 @@
 #include <bsp.h>
 #include <rtems/bspIo.h>
 #include <pci.h>
+#include <pci/access.h>
 
 #include <ambapp.h>
 
@@ -95,6 +96,7 @@ struct gr701_priv {
 	struct amba_bridge_regs		*ambab;
 
 	/* PCI */
+	pci_dev_t			pcidev;
 	unsigned int			bars[5];
 
 	/* IRQ */
@@ -156,10 +158,10 @@ struct rtems_drvmgr_drv_ops gr701_ops =
 	.info = NULL
 };
 
-struct pci_dev_id gr701_ids[] = 
+struct pci_dev_id_match gr701_ids[] = 
 {
-	{PCIID_VENDOR_GAISLER, PCIID_DEVICE_GR_701},
-	{0, 0}		/* Mark end of table */
+	PCIID_DEVVEND(PCIID_VENDOR_GAISLER, PCIID_DEVICE_GR_701),
+	PCIID_END_TABLE /* Mark end of table */
 };
 
 struct pci_drv_info gr701_info =
@@ -228,25 +230,18 @@ int gr701_dev_find(struct ambapp_dev_hdr *dev, int index, int maxdepth, void *ar
 int gr701_hw_init(struct gr701_priv *priv)
 {
 	unsigned int com1;
-	int bus, dev, fun;
 	struct pci_bridge_regs *pcib;
 	struct amba_bridge_regs *ambab;
 	int mst;
-	struct pci_dev_info *devinfo;
 	unsigned int pci_freq_hz;
+	pci_dev_t pcidev = priv->pcidev;
 
-	devinfo = (struct pci_dev_info *)priv->dev->businfo;
-
-	bus = devinfo->bus;
-	dev = devinfo->dev;
-	fun = devinfo->func;
-
-	pci_read_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, &priv->bars[0]);
-	pci_read_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_1, &priv->bars[1]);
-	pci_read_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_2, &priv->bars[2]);
-	pci_read_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_3, &priv->bars[3]);
-	pci_read_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_4, &priv->bars[4]);
-	pci_read_config_byte(bus, dev, fun, PCI_INTERRUPT_LINE, &priv->irqno);
+	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_0, &priv->bars[0]);
+	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_1, &priv->bars[1]);
+	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_2, &priv->bars[2]);
+	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_3, &priv->bars[3]);
+	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_4, &priv->bars[4]);
+	pci_cfg_r8(pcidev, PCI_INTERRUPT_LINE, &priv->irqno);
 
 	if ( (priv->bars[0] == 0) || (priv->bars[1] == 0) ) {
 		/* Not all neccessary space assigned to GR-701 target */
@@ -255,9 +250,9 @@ int gr701_hw_init(struct gr701_priv *priv)
 
 #if 0
 	/* Figure out size of BAR0 */
-	pci_write_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, 0xffffffff);
-	pci_read_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, &tmpbar);
-	pci_write_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, priv->bars[0]);
+	pci_cfg_w32(pcidev, PCI_BASE_ADDRESS_0, 0xffffffff);
+	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_0, &tmpbar);
+	pci_cfg_w32(pcidev, PCI_BASE_ADDRESS_0, priv->bars[0]);
 	tmpbar &= ~0xff; /* Remove lsbits */
 	bar0size = (~tmpbar) + 1;
 #endif
@@ -297,9 +292,9 @@ int gr701_hw_init(struct gr701_priv *priv)
 	priv->bus_maps[1].remote_adr = 0;
 
 	/* Enable I/O and Mem accesses */
-	pci_read_config_dword(bus, dev, fun, PCI_COMMAND, &com1);
+	pci_cfg_r32(pcidev, PCI_COMMAND, &com1);
 	com1 |= PCI_COMMAND_IO | PCI_COMMAND_MEMORY;
-	pci_write_config_dword(bus, dev, fun, PCI_COMMAND, com1);
+	pci_cfg_w32(pcidev, PCI_COMMAND, com1);
 
 	/* Start AMBA PnP scan at first AHB bus */
 	/*ambapp_scan(priv->bars[1] + 0x3f00000,
@@ -326,22 +321,11 @@ int gr701_hw_init(struct gr701_priv *priv)
 
 void gr701_hw_init2(struct gr701_priv *priv)
 {
-	int bus, dev, fun;
-	struct pci_dev_info *devinfo;
-
-	devinfo = (struct pci_dev_info *)priv->dev->businfo;
-
-	bus = devinfo->bus;
-	dev = devinfo->dev;
-	fun = devinfo->func;
-
 	/* install PCI interrupt routine */
-	rtems_drvmgr_interrupt_register(
-		priv->dev, 0, gr701_interrupt, (void *)priv);
+	rtems_drvmgr_interrupt_register(priv->dev, 0, gr701_interrupt, priv);
 
 	/* Clear any old interrupt requests */
-	rtems_drvmgr_interrupt_clear(
-		priv->dev, 0, gr701_interrupt, (void *)priv);
+	rtems_drvmgr_interrupt_clear(priv->dev, 0, gr701_interrupt, priv);
 
 	/* Enable System IRQ so that GR-701 PCI target interrupt goes through.
 	 *
@@ -351,10 +335,10 @@ void gr701_hw_init2(struct gr701_priv *priv)
 	 * and PCI target 2 have not initialized and might therefore drive
 	 * interrupt already when entering init1().
 	 */
-	rtems_drvmgr_interrupt_enable(dev, 0, gr701_interrupt, (void *)priv);
+	rtems_drvmgr_interrupt_enable(priv->dev, 0, gr701_interrupt, priv);
 
 	/* Enable PCI Master (for DMA) */
-	pci_master_enable(bus, dev, fun);
+	pci_master_enable(priv->pcidev);
 }
 
 /* Called when a PCI target is found with the PCI device and vendor ID 
@@ -388,9 +372,12 @@ int gr701_init1(struct rtems_drvmgr_dev_info *dev)
 	priv->prefix[13] = '\0';
 
 	devinfo = (struct pci_dev_info *)dev->businfo;
+	priv->pcidev = devinfo->pcidev;
 	printf("\n\n--- GR-701[%d] ---\n", dev->minor_drv);
-	printf(" PCI BUS: %d, SLOT: %d, FUNCTION: %d\n", devinfo->bus, devinfo->dev, devinfo->func);
-	printf(" PCI VENDOR: 0x%04x, DEVICE: 0x%04x\n\n\n", devinfo->id.vendor, devinfo->id.device);
+	printf(" PCI BUS: 0x%x, SLOT: 0x%x, FUNCTION: 0x%x\n",
+		PCI_DEV_EXPAND(priv->pcidev));
+	printf(" PCI VENDOR: 0x%04x, DEVICE: 0x%04x\n\n\n",
+		devinfo->id.vendor, devinfo->id.device);
 
 	priv->genirq = genirq_init(16);
 	if ( priv->genirq == NULL ) {
@@ -561,19 +548,12 @@ int ambapp_gr701_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvm
 void gr701_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 {
 	struct gr701_priv *priv = dev->priv;
-	struct pci_dev_info *devinfo;
-	int bus, device, fun;
 	int i;
 	unsigned int freq_hz;
 
-	devinfo = (struct pci_dev_info *)priv->dev->businfo;
-
-	bus = devinfo->bus;
-	device = devinfo->dev;
-	fun = devinfo->func;
-
 	/* Print */
-	printf("--- GR-701 [bus %d, dev %d, fun %d] ---\n", bus, device, fun);
+	printf("--- GR-701 [bus 0x%x, dev 0x%x, fun 0x%x] ---\n",
+		PCI_DEV_EXPAND(priv->pcidev));
 	printf(" PCI BAR0:        0x%x\n", priv->bars[0]);
 	printf(" PCI BAR1:        0x%x\n", priv->bars[1]);
 	printf(" IRQ:             %d\n", priv->irqno);

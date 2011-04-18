@@ -75,6 +75,7 @@ struct gr_rasta_adcdac_priv {
 	char				prefix[20];
 
 	/* PCI */
+	pci_dev_t			pcidev;
 	unsigned int			bar0;
 	unsigned int			bar1;
 
@@ -143,10 +144,10 @@ struct rtems_drvmgr_drv_ops gr_rasta_adcdac_ops =
 	.info = NULL
 };
 
-struct pci_dev_id gr_rasta_adcdac_ids[] = 
+struct pci_dev_id_match gr_rasta_adcdac_ids[] = 
 {
-	{PCIID_VENDOR_GAISLER, PCIID_DEVICE_GR_RASTA_ADCDAC},
-	{0, 0}		/* Mark end of table */
+	PCIID_DEVVEND(PCIID_VENDOR_GAISLER, PCIID_DEVICE_GR_RASTA_ADCDAC),
+	PCIID_END_TABLE /* Mark end of table */
 };
 
 struct pci_drv_info gr_rasta_adcdac_info =
@@ -223,23 +224,16 @@ int gr_rasta_adcdac_hw_init1(struct gr_rasta_adcdac_priv *priv)
 {
 	unsigned int data;
 	unsigned int *page0 = NULL;
-	int bus, dev, fun;
-	struct pci_dev_info *devinfo;
 	unsigned char ver;
 	struct ambapp_dev *tmp;
 	int status;
 	struct ambapp_ahb_info *ahb;
 	unsigned int tmpbar, bar0size;
+	pci_dev_t pcidev = priv->pcidev;
 
-	devinfo = (struct pci_dev_info *)priv->dev->businfo;
-
-	bus = devinfo->bus;
-	dev = devinfo->dev;
-	fun = devinfo->func;
-
-	pci_read_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, &priv->bar0);
-	pci_read_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_1, &priv->bar1);
-	pci_read_config_byte(bus, dev, fun, PCI_INTERRUPT_LINE, &priv->irqno);
+	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_0, &priv->bar0);
+	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_1, &priv->bar1);
+	pci_cfg_r8(pcidev, PCI_INTERRUPT_LINE, &priv->irqno);
 
 	if ( (priv->bar0 == 0) || (priv->bar1 == 0) ) {
 		/* Not all neccessary space assigned to GR-RASTA-ADCDAC target */
@@ -247,14 +241,15 @@ int gr_rasta_adcdac_hw_init1(struct gr_rasta_adcdac_priv *priv)
 	}
 
 	/* Figure out size of BAR0 */
-	pci_write_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, 0xffffffff);
-	pci_read_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, &tmpbar);
-	pci_write_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, priv->bar0);
+#warning USE PCI-resources here to get size
+	pci_cfg_w32(pcidev, PCI_BASE_ADDRESS_0, 0xffffffff);
+	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_0, &tmpbar);
+	pci_cfg_w32(pcidev, PCI_BASE_ADDRESS_0, priv->bar0);
 	tmpbar &= ~0xff; /* Remove lsbits */
 	bar0size = (~tmpbar) + 1;
 
 	/* Select version of GR-RASTA-ADCDAC board */
-	pci_read_config_byte(bus, dev, fun, PCI_REVISION_ID, &ver);
+	pci_cfg_r8(pcidev, PCI_REVISION_ID, &ver);
 	switch (ver) {
 		case 0:
 			priv->version = &gr_rasta_adcdac_ver0;
@@ -272,8 +267,8 @@ int gr_rasta_adcdac_hw_init1(struct gr_rasta_adcdac_priv *priv)
 
 #if 0
 	/* set parity error response */
-	pci_read_config_dword(bus, dev, fun, PCI_COMMAND, &data);
-	pci_write_config_dword(bus, dev, fun, PCI_COMMAND, (data|PCI_COMMAND_PARITY));
+	pci_cfg_r32(pcidev, PCI_COMMAND, &data);
+	pci_cfg_w32(pcidev, PCI_COMMAND, (data|PCI_COMMAND_PARITY));
 #endif
 
 	/* Scan AMBA Plug&Play */
@@ -363,17 +358,8 @@ int gr_rasta_adcdac_hw_init1(struct gr_rasta_adcdac_priv *priv)
 
 int gr_rasta_adcdac_hw_init2(struct gr_rasta_adcdac_priv *priv)
 {
-	int bus, dev, fun;
-	struct pci_dev_info *devinfo;
-
-	devinfo = (struct pci_dev_info *)priv->dev->businfo;
-
-	bus = devinfo->bus;
-	dev = devinfo->dev;
-	fun = devinfo->func;
-
 	/* Enable DMA by enabling PCI target as master */
-	pci_master_enable(bus, dev, fun);
+	pci_master_enable(priv->pcidev);
 
 	return DRVMGR_OK;
 }
@@ -410,9 +396,12 @@ int gr_rasta_adcdac_init1(struct rtems_drvmgr_dev_info *dev)
 	priv->prefix[18] = '\0';
 
 	devinfo = (struct pci_dev_info *)dev->businfo;
+	priv->pcidev = devinfo->pcidev;
 	printf("\n\n--- GR-RASTA-ADCDAC[%d] ---\n", dev->minor_drv);
-	printf(" PCI BUS: %d, SLOT: %d, FUNCTION: %d\n", devinfo->bus, devinfo->dev, devinfo->func);
-	printf(" PCI VENDOR: 0x%04x, DEVICE: 0x%04x\n", devinfo->id.vendor, devinfo->id.device);
+	printf(" PCI BUS: 0x%x, SLOT: 0x%x, FUNCTION: 0x%x\n",
+		PCI_DEV_EXPAND(priv->pcidev));
+	printf(" PCI VENDOR: 0x%04x, DEVICE: 0x%04x\n",
+		devinfo->id.vendor, devinfo->id.device);
 
 	priv->genirq = genirq_init(16);
 	if ( priv->genirq == NULL ) {
@@ -599,18 +588,12 @@ int ambapp_rasta_adcdac_get_params(struct rtems_drvmgr_dev_info *dev, struct rte
 void gr_rasta_adcdac_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 {
 	struct gr_rasta_adcdac_priv *priv = dev->priv;
-	struct pci_dev_info *devinfo;
 	int bus, device, fun;
 	int i;
 
-	devinfo = (struct pci_dev_info *)priv->dev->businfo;
-
-	bus = devinfo->bus;
-	device = devinfo->dev;
-	fun = devinfo->func;
-
 	/* Print */
-	printf("--- GR-RASTA-ADCDAC [bus %d, dev %d, fun %d] ---\n", bus, device, fun);
+	printf("--- GR-RASTA-ADCDAC [bus 0x%x, dev 0x%x, fun 0x%x] ---\n",
+		PCI_DEV_EXPAND(priv->pcidev));
 	printf(" PCI BAR0:        0x%x\n", priv->bar0);
 	printf(" PCI BAR1:        0x%x\n", priv->bar1);
 	printf(" IRQ REGS:        0x%x\n", (unsigned int)priv->irq);

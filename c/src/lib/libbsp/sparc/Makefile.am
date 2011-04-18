@@ -28,13 +28,10 @@ EXTRA_DIST += shared/irq/genirq.c
 EXTRA_DIST += shared/include/genirq.h
 
 # PCI bus
-EXTRA_DIST += shared/include/pci.h
 EXTRA_DIST += shared/include/grpci2.h
-EXTRA_DIST += shared/pci/pci.c
-EXTRA_DIST += shared/pci/pcifinddevice.c
 EXTRA_DIST += shared/pci/grpci.c
-EXTRA_DIST += shared/pci/pcif.c
 EXTRA_DIST += shared/pci/grpci2.c
+EXTRA_DIST += shared/pci/pcif.c
 
 # PCI target boards
 EXTRA_DIST += shared/include/gr_rasta_adcdac.h
@@ -132,14 +129,12 @@ EXTRA_DIST += shared/drvmgr/ambapp_bus_grlib.c
 EXTRA_DIST += shared/drvmgr/ambapp_bus_leon2.c
 EXTRA_DIST += shared/drvmgr/ambapp_bus_rmap.c
 EXTRA_DIST += shared/drvmgr/leon2_amba_bus.c
-EXTRA_DIST += shared/drvmgr/pci_bus.c
 EXTRA_DIST += shared/drvmgr/spw_bus.c
 
 EXTRA_DIST += shared/include/drvmgr/ambapp_bus_grlib.h
 EXTRA_DIST += shared/include/drvmgr/ambapp_bus_rmap.h
 EXTRA_DIST += shared/include/drvmgr/ambapp_bus.h
 EXTRA_DIST += shared/include/drvmgr/leon2_amba_bus.h
-EXTRA_DIST += shared/include/drvmgr/pci_bus.h
 EXTRA_DIST += shared/include/drvmgr/spw_bus.h
 EXTRA_DIST += shared/include/drvmgr/spw_bus_ids.h
 

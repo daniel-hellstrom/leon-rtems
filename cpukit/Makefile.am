@@ -12,6 +12,7 @@ SUBDIRS = . score rtems sapi posix itron
 SUBDIRS += libcsupport libblock libfs
 SUBDIRS += libdrvmgr
 SUBDIRS += libnetworking librpc
+SUBDIRS += libpci
 SUBDIRS += libi2c
 SUBDIRS += libmisc
 SUBDIRS += libmd

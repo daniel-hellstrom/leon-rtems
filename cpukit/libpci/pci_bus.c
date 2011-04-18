@@ -22,16 +22,26 @@
  *
  */
 
+#define INSERT_DEV_LAST_IN_BUS_DEVLIST
+
+/* Use PCI Configuration libarary pci_hb RAM device structure to find devices,
+ * undefine to access PCI configuration space directly.
+ */
+#define USE_PCI_CFG_LIB
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
 #include <pci.h>
+#ifdef USE_PCI_CFG_LIB
+#include <pci/cfg.h>
+#endif
+#include <pci/irq.h>
 
 #include <drvmgr/drvmgr.h>
 #include <drvmgr/pci_bus.h>
 
-#define INSERT_DEV_LAST_IN_BUS_DEVLIST
 
 #define DBG(args...)
 /*#define DBG(args...) printk(args)*/
@@ -99,35 +109,47 @@ struct pcibus_priv {
 	struct pcibus_config		*config;
 };
 
-int pcibus_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_info *dev)
+static int compatible(struct pci_dev_id *id, struct pci_dev_id_match *drv)
+{
+	if (((drv->vendor==PCI_ID_ANY) || (id->vendor==drv->vendor)) &&
+	    ((drv->device==PCI_ID_ANY) || (id->device==drv->device)) &&
+	    ((drv->subvendor==PCI_ID_ANY) || (id->subvendor==drv->subvendor)) &&
+	    ((drv->subdevice==PCI_ID_ANY) || (id->subdevice==drv->subdevice)) &&
+	    ((id->class & drv->class_mask) == drv->class))
+		return 1;
+	else
+		return 0;
+}
+
+int pcibus_unite(struct rtems_drvmgr_drv_info *drv,
+			struct rtems_drvmgr_dev_info *dev)
 {
 	struct pci_drv_info *pdrv;
-	struct pci_dev_id *id;
+	struct pci_dev_id_match *drvid;
 	struct pci_dev_info *pci;
 
-	if ( !drv || !dev || !dev->parent )
+	if (!drv || !dev || !dev->parent)
 		return 0;
 
-	if ( (drv->bus_type!=DRVMGR_BUS_TYPE_PCI) || (dev->parent->bus_type != DRVMGR_BUS_TYPE_PCI) ) {
+	if ((drv->bus_type != DRVMGR_BUS_TYPE_PCI) ||
+	     (dev->parent->bus_type != DRVMGR_BUS_TYPE_PCI))
 		return 0;
-	}
 
 	pci = (struct pci_dev_info *)dev->businfo;
-	if ( !pci )
+	if (!pci)
 		return 0;
 
 	pdrv = (struct pci_drv_info *)drv;
-	id = pdrv->ids;
-	if ( !id )
+	drvid = pdrv->ids;
+	if (!drvid)
 		return 0;
-	while( id->vendor != 0 ) {
-		if ( (id->vendor == pci->id.vendor) &&
-		      (id->device == pci->id.device) ) {
+	while (drvid->vendor != 0) {
+		if (compatible(&pci->id, drvid)) {
 			/* Unite device and driver */
-			DBG("DRV 0x%x and DEV 0x%x united\n", (unsigned int)drv, (unsigned int)dev);
+			DBG("DRV %p and DEV %p united\n", drv, dev);
 			return 1;
 		}
-		id++;
+		drvid++;
 	}
 
 	return 0;
@@ -138,14 +160,16 @@ static int pcibus_int_get(struct rtems_drvmgr_dev_info *dev, int index)
 	int irq;
 
 	/* Relative (positive) or absolute (negative) IRQ number */
-	if ( index >= 0 ) {
+	if (index > 0) {
+		/* PCI devices only have one IRQ per function */
+		return -1;
+	} else if (index == 0) {
 		/* IRQ Index relative to Cores base IRQ */
 
 		/* Get Base IRQ */
 		irq = ((struct pci_dev_info *)dev->businfo)->irq;
-		if ( irq <= 0 )
+		if (irq <= 0)
 			return -1;
-		irq += index;
 	} else {
 		/* Absolute IRQ number */
 		irq = -index;
@@ -279,44 +303,92 @@ int pcibus_dev_id_compare(struct pci_dev_info *a, struct pci_dev_info *b)
 	return 1;
 }
 
-int pcibus_for_each(int (*func)(int, int, int, void*), void *arg)
+#ifdef USE_PCI_CFG_LIB
+
+int pcibus_dev_register(struct pci_dev *dev, void *arg)
 {
-	unsigned int d;
-	unsigned char bus,dev,fun,hd;
+	struct rtems_drvmgr_bus_info *pcibus = arg;
+	struct rtems_drvmgr_dev_info *newdev;
+	struct pci_dev_info *pciinfo;
+#ifdef INSERT_DEV_LAST_IN_BUS_DEVLIST
+	struct rtems_drvmgr_dev_info *device;
+#endif
+	pci_dev_t pcidev = dev->busdevfun;
 
-	for (bus=0; bus<BusCountPCI(); bus++) {
-		dev = 0;
-		if ( bus == 0 )
-			dev = 1; /* Skip PCI host bridge */
-		for (; dev<PCI_MAX_DEVICES; dev++) {
+	DBG("PCI DEV REGISTER: %x:%x:%x\n", PCI_DEV_EXPAND(pcidev));
 
-			pci_read_config_byte(bus, dev, 0, PCI_HEADER_TYPE, &hd);
-			hd = (hd & PCI_MULTI_FUNCTION ? PCI_MAX_FUNCTIONS : 1);
-
-			for (fun=0; fun<hd; fun++) {
-				/* 
-				 * The last devfn id/slot is special; must skip it
-				 */
-				if (PCI_MAX_DEVICES-1==dev && PCI_MAX_FUNCTIONS-1 == fun)
-					break;
-
-				pci_read_config_dword(bus, dev, fun, PCI_VENDOR_ID, &d);
-				if ((PCI_INVALID_VENDORDEVICEID == d) || (0 == d))
-					continue;
-
-				DBG("pcibus_for_each: found 0x%08x at %d/%d/%d\n",d,bus,dev,fun);
-				if ( func(bus, dev, fun, arg) == 1 ) {
-					return 1; /* Stopped */
-				}
-
-			}
-		}
+	/* Allocate a device */
+	rtems_drvmgr_alloc_dev(&newdev, 24 + sizeof(struct pci_dev_info));
+	newdev->next = NULL;
+	newdev->parent = pcibus; /* Ourselfs */
+	newdev->minor_drv = 0;
+	newdev->minor_bus = 0;
+	newdev->priv = NULL;
+	newdev->drv = NULL;
+	newdev->name = (char *)(newdev + 1);
+	newdev->next_in_drv = NULL;
+#ifdef INSERT_DEV_LAST_IN_BUS_DEVLIST
+	/* Insert Last in Bus Device Queue */
+	if ( newdev->parent->children ) {
+		device = newdev->parent->children;
+		while ( device->next )
+			device = device->next;
+		device->next_in_bus = newdev;
+	} else {
+		newdev->parent->children = newdev;
 	}
-	/* Scanned all PCI devices */
+	newdev->next_in_bus = NULL;
+#else
+	/* Insert First in Bus Device Queue */
+	newdev->next_in_bus = newdev->parent->children;
+	newdev->parent->children = newdev;
+#endif
+	newdev->bus = NULL;
+
+	/* Init PnP information, Assign Core interfaces with this device */
+	pciinfo = (struct pci_dev_info *)((char *)(newdev + 1) + 24);
+
+	/* Read Device and Vendor */
+	pci_cfg_r16(pcidev, PCI_VENDOR_ID, &pciinfo->id.vendor);
+	pci_cfg_r16(pcidev, PCI_DEVICE_ID, &pciinfo->id.device);
+	pci_cfg_r16(pcidev, PCI_SUBSYSTEM_VENDOR_ID, &pciinfo->id.subvendor);
+	pci_cfg_r16(pcidev, PCI_SUBSYSTEM_ID, &pciinfo->id.subdevice);
+	pci_cfg_r32(pcidev, PCI_CLASS_REVISION, &pciinfo->id.class);
+	pciinfo->rev = pciinfo->id.class & 0xff;
+	pciinfo->id.class = pciinfo->id.class >> 8;
+
+	/* Read IRQ information set by PCI layer */
+	pciinfo->irq = dev->sysirq;
+
+	/* Save Location on PCI bus */
+	pciinfo->pcidev = pcidev;
+
+	/* Connect device with PCI data structure */
+	pciinfo->pci_device = dev;
+
+	/* Connect device with PCI information */
+	newdev->businfo = (void *)pciinfo;
+
+	/* Create Device Name */
+	sprintf(newdev->name, "PCI_%x:%x:%x_%04x:%04x",
+		PCI_DEV_BUS(pcidev), PCI_DEV_SLOT(pcidev), PCI_DEV_FUNC(pcidev),
+		pciinfo->id.vendor, pciinfo->id.device);
+
+	/* Register New Device */
+	rtems_drvmgr_dev_register(newdev);
+
+	/* If device is a bridge we scan the secondary (child) devices */
+	if (dev->flags & PCI_DEV_BRIDGE) {
+		pci_for_each_dev((struct pci_bus *)dev, pcibus_dev_register,
+					pcibus);
+	}
+
 	return 0;
 }
 
-int pcibus_dev_register(int bus, int dev, int func, void *arg)
+#else
+
+int pcibus_dev_register(pci_dev_t pcidev, void *arg)
 {
 	struct rtems_drvmgr_bus_info *pcibus = arg;
 	struct rtems_drvmgr_dev_info *newdev;
@@ -325,17 +397,17 @@ int pcibus_dev_register(int bus, int dev, int func, void *arg)
 	struct rtems_drvmgr_dev_info *device;
 #endif
 
-	DBG("PCI DEV REGISTER: %d:%d:%d\n", bus, dev, func);
+	DBG("PCI DEV REGISTER: %x:%x:%x\n", PCI_DEV_EXPAND(pcidev));
 
 	/* Allocate a device */
-	rtems_drvmgr_alloc_dev(&newdev, sizeof(struct pci_dev_info));
+	rtems_drvmgr_alloc_dev(&newdev, 24 + sizeof(struct pci_dev_info));
 	newdev->next = NULL;
 	newdev->parent = pcibus; /* Ourselfs */
 	newdev->minor_drv = 0;
 	newdev->minor_bus = 0;
 	newdev->priv = NULL;
 	newdev->drv = NULL;
-	newdev->name = malloc(32);
+	newdev->name = (char *)(newdev + 1);
 	newdev->next_in_drv = NULL;
 #ifdef INSERT_DEV_LAST_IN_BUS_DEVLIST
 	/* Insert Last in Bus Device Queue */
@@ -356,24 +428,33 @@ int pcibus_dev_register(int bus, int dev, int func, void *arg)
 	newdev->bus = NULL;
 
 	/* Init PnP information, Assign Core interfaces with this device */
-	pciinfo = (struct pci_dev_info *)(newdev + 1);
+	pciinfo = (struct pci_dev_info *)((char *)(newdev + 1) + 24);
 
 	/* Read Device and Vendor */
-	pci_read_config_word(bus, dev, func, PCI_VENDOR_ID, &pciinfo->id.vendor);
-	pci_read_config_word(bus, dev, func, PCI_DEVICE_ID, &pciinfo->id.device);
+	pci_cfg_r16(pcidev, PCI_VENDOR_ID, &pciinfo->id.vendor);
+	pci_cfg_r16(pcidev, PCI_DEVICE_ID, &pciinfo->id.device);
+	pci_cfg_r16(pcidev, PCI_SUBSYSTEM_VENDOR_ID, &pciinfo->id.subvendor);
+	pci_cfg_r16(pcidev, PCI_SUBSYSTEM_ID, &pciinfo->id.subdevice);
+	pci_cfg_r32(pcidev, PCI_CLASS_REVISION, &pciinfo->id.class);
+	pciinfo->rev = pciinfo->id.class & 0xff;
+	pciinfo->id.class = pciinfo->id.class >> 8;
 
 	/* Read IRQ information set by PCI layer */
-	pci_read_config_byte(bus, dev, func, PCI_INTERRUPT_LINE, &pciinfo->irq);
+	pci_cfg_r8(pcidev, PCI_INTERRUPT_LINE, &pciinfo->irq);
 
 	/* Save Location */
-	pciinfo->bus = bus;
-	pciinfo->dev = dev;
-	pciinfo->func = func;
+	pciinfo->pcidev = pcidev;
+
+	/* There is no way we can know this information this way */
+	pciinfo->pci_device = NULL;
 
 	/* Connect device with PCI information */
 	newdev->businfo = (void *)pciinfo;
 
-	sprintf(newdev->name, "PCI_%d:%d:%d_%04x:%04x", bus, dev, func, pciinfo->id.vendor, pciinfo->id.device);
+	/* Create Device Name */
+	sprintf(newdev->name, "PCI_%d:%d:%d_%04x:%04x",
+		PCI_DEV_BUS(pcidev), PCI_DEV_SLOT(pcidev), PCI_DEV_FUNC(pcidev),
+		pciinfo->id.vendor, pciinfo->id.device);
 
 	/* Register New Device */
 	rtems_drvmgr_dev_register(newdev);
@@ -381,10 +462,16 @@ int pcibus_dev_register(int bus, int dev, int func, void *arg)
 	return 0;
 }
 
+#endif
+
 /* Register all AMBA devices available on the AMBAPP bus */
-int pcibus_devs_register(struct rtems_drvmgr_bus_info *bus)
+static int pcibus_devs_register(struct rtems_drvmgr_bus_info *bus)
 {
-	pcibus_for_each(pcibus_dev_register, bus);
+#ifdef USE_PCI_CFG_LIB
+	pci_for_each_dev(&pci_hb, pcibus_dev_register, bus);
+#else
+	pci_for_each(pcibus_dev_register, bus);
+#endif
 	return DRVMGR_OK;
 }
 
@@ -408,6 +495,10 @@ int pcibus_register(
 	dev->bus->reslist = NULL;
 	dev->bus->mmaps = NULL;
 
+	/* Add resource configuration */
+	if (config->resources)
+		rtems_drvmgr_bus_res_add(dev->bus, config->resources);
+
 	/* Init BUS private structures */
 	priv = (struct pcibus_priv *)(dev->bus + 1);
 	dev->bus->priv = priv;	
@@ -423,11 +514,5 @@ int pcibus_register(
 
 int pcibus_bus_init1(struct rtems_drvmgr_bus_info *bus)
 {
-	struct pcibus_priv *priv = (struct pcibus_priv *)bus->priv;
-
-	/* Add resource configuration */
-	if ( priv->config->resources )
-		rtems_drvmgr_bus_res_add(bus, priv->config->resources);
-
 	return pcibus_devs_register(bus);
 }

@@ -163,6 +163,11 @@ struct rtems_drvmgr_bus_ops {
 #endif
 };
 
+struct rtems_drvmgr_extops {
+	int funcid;
+	void (*func)(void);
+};
+
 /*** Resource definitions ***
  * 
  * Overview of structures:
@@ -235,6 +240,9 @@ struct rtems_drvmgr_bus_info {
 	void				*priv;		/*!< Private data structure used by BUS driver */
 	struct rtems_drvmgr_dev_info	*children;	/*!< Hardware devices on this bus */
 	struct rtems_drvmgr_bus_ops	*ops;		/*!< Bus operations supported by this bus driver */
+#if 0
+	struct rtems_drvmgr_extops	*extops;	/*!< Extra operations */
+#endif
 	int				dev_cnt;	/*!< Number of devices this bus has */
 	struct rtems_drvmgr_bus_res	*reslist;	/*!< Bus resources, head of a linked list of resources. */
 	struct rtems_drvmgr_mmap_entry	*mmaps;		/*!< Memory Map Translation, array of address spaces */
@@ -300,6 +308,9 @@ struct rtems_drvmgr_drv_info {
 	char				*name;		/*!< Name of Driver */
 	int				bus_type;	/*!< Type of Bus this driver supports */
 	struct rtems_drvmgr_drv_ops	*ops;		/*!< Driver operations */
+#if 0
+	struct rtems_drvmgr_extops	*extops;	/*!< Extra Operations */
+#endif
 	unsigned int			dev_cnt;	/*!< Number of devices in dev */
 	unsigned int			dev_priv_size;	/*!< If non-zero DRVMGR will allocate memory for dev->priv */
 };

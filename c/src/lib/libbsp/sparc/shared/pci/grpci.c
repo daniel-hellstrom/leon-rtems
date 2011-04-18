@@ -20,11 +20,14 @@
  *
  */
 
-#include <pci.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <rtems/bspIo.h>
+#include <libcpu/byteorder.h>
+#include <libcpu/access.h>
+#include <pci.h>
+#include <pci/cfg.h>
 
 #include <drvmgr/drvmgr.h>
 #include <drvmgr/ambapp_bus.h>
@@ -115,7 +118,7 @@ struct grpci_priv {
 	unsigned int			pci_conf;
 	unsigned int			pci_conf_end;
 
-	unsigned int			devVend; /* PCI Device and Vendor ID of Host */
+	uint32_t			devVend; /* Host PCI Vendor/Device ID */
 
 	/* PCI Bus layer configuration */
 	struct pcibus_config	config;
@@ -159,139 +162,134 @@ void grpci_register_drv(void)
 	rtems_drvmgr_drv_register(&grpci_info.general);
 }
 
-/*  The configuration access functions uses the DMA functionality of the
- *  AT697 pci controller to be able access all slots
- */
- 
-static inline unsigned int flip_dword (unsigned int l)
-{
-	return ((l&0xff)<<24) | (((l>>8)&0xff)<<16) | (((l>>16)&0xff)<<8)| ((l>>24)&0xff);
-}
-
-int
-grpci_read_config_dword(
-  unsigned char bus,
-  unsigned char slot,
-  unsigned char function,
-  unsigned char offset,
-  unsigned int *val
-)
+int grpci_cfg_r32(pci_dev_t dev, int ofs, uint32_t *val)
 {
 	struct grpci_priv *priv = grpcipriv;
-	volatile unsigned int *pci_conf;
+	volatile uint32_t *pci_conf;
+	unsigned int devfn = PCI_DEV_DEVFUNC(dev);
+	int retval;
+	int bus = PCI_DEV_BUS(dev);
 
-	if (offset & 3) return PCIBIOS_BAD_REGISTER_NUMBER;
+	if (ofs & 3)
+		return PCISTS_EINVAL;
 
-	if (slot > 21) {
+	if (PCI_DEV_SLOT(dev) > 21) {
 		*val = 0xffffffff;
-		return PCIBIOS_SUCCESSFUL;
+		return PCISTS_OK;
 	}
 
 	/* Select bus */
 	priv->regs->cfg_stat = (priv->regs->cfg_stat & ~(0xf<<23)) | (bus<<23);
 
-	pci_conf = (volatile unsigned int *) (priv->pci_conf +
-		((slot<<11) | (function<<8) | offset));
+	pci_conf = (volatile uint32_t *)(priv->pci_conf | (devfn << 8) | ofs);
 
-	if ( priv->bt_enabled ) {
-		*val =  flip_dword(*pci_conf);
+	if (priv->bt_enabled) {
+		*val =  CPU_swap_u32(*pci_conf);
 	} else {
 		*val = *pci_conf;
 	}
 
 	if (priv->regs->cfg_stat & 0x100) {
 		*val = 0xffffffff;
-	}
+		retval = PCISTS_MSTABRT;
+	} else
+		retval = PCISTS_OK;
 
-	DBG("pci_read - bus: %d, dev: %d, fn: %d, off: %d => addr: %x, val: %x\n", bus, slot, function, offset,  (1<<(11+slot) ) | ((function & 7)<<8) |  (offset&0x3f), *val); 
+	DBG("pci_read: [%x:%x:%x] reg: 0x%x => addr: 0x%x, val: 0x%x\n",
+		PCI_DEV_EXPAND(dev), ofs, pci_conf, *val);
 
-	return PCIBIOS_SUCCESSFUL;
+	return retval;
 }
 
 
-int 
-grpci_read_config_word(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned short *val)
+int grpci_cfg_r16(pci_dev_t dev, int ofs, uint16_t *val)
 {
-	unsigned int v;
+	uint32_t v;
+	int retval;
 
-	if (offset & 1) return PCIBIOS_BAD_REGISTER_NUMBER;
+	if (ofs & 1)
+		return PCISTS_EINVAL;
 
-	grpci_read_config_dword(bus, slot, function, offset&~3, &v);
-	*val = 0xffff & (v >> (8*(offset & 3)));
+	retval = grpci_cfg_r32(dev, ofs & ~0x3, &v);
+	*val = 0xffff & (v >> (8*(ofs & 0x3)));
 
-	return PCIBIOS_SUCCESSFUL;
+	return retval;
 }
 
-
-int 
-grpci_read_config_byte(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned char *val)
+int grpci_cfg_r8(pci_dev_t dev, int ofs, uint8_t *val)
 {
-	unsigned int v;
+	uint32_t v;
+	int retval;
 
-	grpci_read_config_dword(bus, slot, function, offset&~3, &v);
+	retval = grpci_cfg_r32(dev, ofs & ~0x3, &v);
 
-	*val = 0xff & (v >> (8*(offset & 3)));
+	*val = 0xff & (v >> (8*(ofs & 3)));
 
-	return PCIBIOS_SUCCESSFUL;
+	return retval;
 }
 
-int
-grpci_write_config_dword(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned int val)
+int grpci_cfg_w32(pci_dev_t dev, int ofs, uint32_t val)
 {
 	struct grpci_priv *priv = grpcipriv;
-	volatile unsigned int *pci_conf;
-	unsigned int value;
+	volatile uint32_t *pci_conf;
+	uint32_t value, devfn = PCI_DEV_DEVFUNC(dev);
+	int bus = PCI_DEV_BUS(dev);
 
-	if (offset & 3 ) return PCIBIOS_BAD_REGISTER_NUMBER;
+	if (ofs & 0x3)
+		return PCISTS_EINVAL;
+
+	if (PCI_DEV_SLOT(dev) > 21)
+		return PCISTS_MSTABRT;
 
 	/* Select bus */
 	priv->regs->cfg_stat = (priv->regs->cfg_stat & ~(0xf<<23)) | (bus<<23);
 
-	pci_conf = (volatile unsigned int *) (priv->pci_conf +
-		((slot<<11) | (function<<8) | (offset & ~3)));
+	pci_conf = (volatile uint32_t *)(priv->pci_conf | (devfn << 8) | ofs);
 
 	if ( priv->bt_enabled ) {
-		value = flip_dword(val);
+		value = CPU_swap_u32(val);
 	} else {
 		value = val;
 	}
 
 	*pci_conf = value;
 
-	DBG("pci write - bus: %d, dev: %d, fn: %d, off: %d => addr: %x, val: %x\n", bus, slot, function, offset, (1<<(11+slot) ) | ((function & 7)<<8) |  (offset&0x3f), value); 
+	DBG("pci_write - [%x:%x:%x] reg: 0x%x => addr: 0x%x, val: 0x%x\n",
+		PCI_DEV_EXPAND(dev), ofs, pci_conf, value);
 
-	return PCIBIOS_SUCCESSFUL;
+	return PCISTS_OK;
 }
 
-
-int 
-grpci_write_config_word(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned short val)
+int grpci_cfg_w16(pci_dev_t dev, int ofs, uint16_t val)
 {
-	unsigned int v;
+	uint32_t v;
+	int retval;
 
-	if (offset & 1) return PCIBIOS_BAD_REGISTER_NUMBER;
+	if (ofs & 1)
+		return PCISTS_EINVAL;
 
-	grpci_read_config_dword(bus, slot, function, offset&~3, &v);
+	retval = grpci_cfg_r32(dev, ofs & ~0x3, &v);
+	if (retval != PCISTS_OK)
+		return retval;
 
-	v = (v & ~(0xffff << (8*(offset&3)))) | ((0xffff&val) << (8*(offset&3)));
+	v = (v & ~(0xffff << (8*(ofs&3)))) | ((0xffff&val) << (8*(ofs&3)));
 
-	return grpci_write_config_dword(bus, slot, function, offset&~3, v);
+	return grpci_cfg_w32(dev, ofs & ~0x3, v);
 }
 
+int grpci_cfg_w8(pci_dev_t dev, int ofs, uint8_t val)
+{
+	uint32_t v;
 
-int 
-grpci_write_config_byte(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned char val) {
-	unsigned int v;
+	grpci_cfg_r32(dev, ofs & ~0x3, &v);
 
-	grpci_read_config_dword(bus, slot, function, offset&~3, &v);
+	v = (v & ~(0xff << (8*(ofs&3)))) | ((0xff&val) << (8*(ofs&3)));
 
-	v = (v & ~(0xff << (8*(offset&3)))) | ((0xff&val) << (8*(offset&3)));
-
-	return grpci_write_config_dword(bus, slot, function, offset&~3, v);
+	return grpci_cfg_w32(dev, ofs & ~0x3, v);
 }
 
-/* Return the assigned system IRQ number that corresponds to the PCI "Interrupt Pin"
- * information from configuration space.
+/* Return the assigned system IRQ number that corresponds to the PCI
+ * "Interrupt Pin" information from configuration space.
  *
  * The IRQ information is stored in the grpci_pci_irq_table configurable
  * by the user.
@@ -299,45 +297,70 @@ grpci_write_config_byte(unsigned char bus, unsigned char slot, unsigned char fun
  * Returns the "system IRQ" for the PCI INTA#..INTD# pin in irq_pin. Returns
  * 0xff if not assigned.
  */
-unsigned char grpci_get_assigned_irq(
-	unsigned char bus,
-	unsigned char slot,
-	unsigned char func,
-	unsigned char irq_pin
-	)
+uint8_t grpci_bus0_irq_map(pci_dev_t dev, int irq_pin)
 {
-	unsigned char sysIrqNr = 0xff; /* not assigned */
+	uint8_t sysIrqNr = 0; /* not assigned */
+	int irq_group;
 
 	if ( (irq_pin >= 1) && (irq_pin <= 4) ) {
+		/* Use default IRQ decoding on PCI BUS0 according slot numbering */
+		irq_group = PCI_DEV_SLOT(dev) & 0x3;
+		irq_pin = ((irq_pin - 1) + irq_group) & 0x3;
 		/* Valid PCI "Interrupt Pin" number */
-		sysIrqNr = grpci_pci_irq_table[irq_pin-1];
+		sysIrqNr = grpci_pci_irq_table[irq_pin];
 	}
 	return sysIrqNr;
 }
 
-const pci_config_access_functions grpci_access_functions = {
-	grpci_read_config_byte,
-	grpci_read_config_word,
-	grpci_read_config_dword,
-	grpci_write_config_byte,
-	grpci_write_config_word,
-	grpci_write_config_dword,
-	grpci_get_assigned_irq
+struct pci_access_drv grpci_access_drv = {
+	.cfg =
+	{
+		grpci_cfg_r8,
+		grpci_cfg_r16,
+		grpci_cfg_r32,
+		grpci_cfg_w8,
+		grpci_cfg_w16,
+		grpci_cfg_w32,
+	},
+	.io =
+	{
+		sparc_ld8,
+		sparc_ld_le16,
+		sparc_ld_le32,
+		sparc_st8,
+		sparc_st_le16,
+		sparc_st_le32,
+	},
+	.translate = NULL,
+};
+
+struct pci_io_ops grpci_io_ops_be =
+{
+	sparc_ld8,
+	sparc_ld_be16,
+	sparc_ld_be32,
+	sparc_st8,
+	sparc_st_be16,
+	sparc_st_be32,
 };
 
 int grpci_hw_init(struct grpci_priv *priv)
 {
 	volatile unsigned int *mbar0, *page0;
-	unsigned int data, addr, mbar0size;
+	uint32_t data, addr, mbar0size;
+	pci_dev_t host = PCI_DEV(0, 0, 0);
 
 	mbar0 = (volatile unsigned int *)priv->pci_area;
 
 	if ( !priv->bt_enabled && ((priv->regs->page0 & PAGE0_BTEN) == PAGE0_BTEN) ) {
 		/* Byte twisting is on, turn it off */
-		grpci_write_config_dword(0, 0, 0, PCI_BASE_ADDRESS_0, 0xffffffff);
-		grpci_read_config_dword(0, 0, 0, PCI_BASE_ADDRESS_0, &addr);
-		grpci_write_config_dword(0, 0, 0, PCI_BASE_ADDRESS_0, flip_dword(0x80000000));    /* Setup bar0 to nonzero value (grpci considers BAR==0 as invalid) */
-		addr = (~flip_dword(addr)+1)>>1;                               /* page0 is accessed through upper half of bar0 */
+		grpci_cfg_w32(host, PCI_BASE_ADDRESS_0, 0xffffffff);
+		grpci_cfg_r32(host, PCI_BASE_ADDRESS_0, &addr);
+		/* Setup bar0 to nonzero value */
+		grpci_cfg_w32(host, PCI_BASE_ADDRESS_0,
+				CPU_swap_u32(0x80000000));
+		/* page0 is accessed through upper half of bar0 */
+		addr = (~CPU_swap_u32(addr)+1)>>1;
 		mbar0size = addr*2;
 		DBG("GRPCI: Size of MBAR0: 0x%x, MBAR0: 0x%x(lower) 0x%x(upper)\n",mbar0size,((unsigned int)mbar0),((unsigned int)mbar0)+mbar0size/2);
 		page0 = &mbar0[mbar0size/8];
@@ -347,24 +370,26 @@ int grpci_hw_init(struct grpci_priv *priv)
 	}
 
 	/* Get the GRPCI Host PCI ID */
-	grpci_read_config_dword(0, 0, 0, PCI_VENDOR_ID, &priv->devVend);
+	grpci_cfg_r32(host, PCI_VENDOR_ID, &priv->devVend);
 
 	/* set 1:1 mapping between AHB -> PCI memory */
 	priv->regs->cfg_stat = (priv->regs->cfg_stat & 0x0fffffff) | priv->pci_area;
 	
 	/* and map system RAM at pci address 0x40000000 */ 
-	grpci_write_config_dword(0, 0, 0, PCI_BASE_ADDRESS_1, SYSTEM_MAINMEM_START);
+	grpci_cfg_w32(host, PCI_BASE_ADDRESS_1, SYSTEM_MAINMEM_START);
 	priv->regs->page1 = SYSTEM_MAINMEM_START;
 
 	/* Translate I/O accesses 1:1 */
 	priv->regs->iomap = priv->pci_io & 0xffff0000;
 
 	/* set as bus master and enable pci memory responses */  
-	grpci_read_config_dword(0, 0, 0, PCI_COMMAND, &data);
+	grpci_cfg_r32(host, PCI_COMMAND, &data);
 	data |= (PCI_COMMAND_MEMORY | PCI_COMMAND_MASTER);
-	grpci_write_config_dword(0, 0, 0, PCI_COMMAND, data);
+	grpci_cfg_w32(host, PCI_COMMAND, data);
 
-	/* unmask all PCI interrupts at PCI Core, not all GRPCI cores support this */
+	/* unmask all PCI interrupts at PCI Core, not all GRPCI cores support
+	 * this
+	 */
 	priv->regs->irq = 0xf0000;
 
 	/* Successful */
@@ -385,8 +410,6 @@ int grpci_init(struct grpci_priv *priv)
 	struct ambapp_apb_info *apb;
 	struct ambapp_ahb_info *ahb;
 	int pin;
-	pci_mem_config pci_mem_cfg;
-	pci_config pci_drv_cfg;
 	union rtems_drvmgr_key_value *value;
 	char keyname[6];
 	struct amba_dev_info *ainfo = priv->dev->businfo;
@@ -450,26 +473,6 @@ int grpci_init(struct grpci_priv *priv)
 		return -3;
 	}
 
-	/* Register the PCI core at the PCI layer */
-
-	/* Prepare PCI driver description */
-	memset(&pci_drv_cfg, 0, sizeof(pci_drv_cfg));
-	pci_drv_cfg.pci_config_addr = 0;
-	pci_drv_cfg.pci_config_data = 0;
-	pci_drv_cfg.pci_functions = &grpci_access_functions;
-
-	/* Prepare memory MAP */
-	memset(&pci_mem_cfg, 0, sizeof(pci_mem_cfg));
-	pci_mem_cfg.pci_mem_start = priv->pci_area;
-	pci_mem_cfg.pci_mem_size = priv->pci_area_end - priv->pci_area;
-	pci_mem_cfg.pci_io_start = priv->pci_io;
-	pci_mem_cfg.pci_io_size = priv->pci_conf - priv->pci_io;
-
-	if ( pci_register_drv(&pci_drv_cfg, &pci_mem_cfg, priv) ) {
-		/* Registration failed */
-		return -4;
-	}
-
 	return 0;
 }
 
@@ -480,6 +483,7 @@ int grpci_init1(struct rtems_drvmgr_dev_info *dev)
 {
 	int status;
 	struct grpci_priv *priv;
+	struct pci_auto_setup grpci_auto_cfg;
 
 	DBG("GRPCI[%d] on bus %s\n", dev->minor_drv, dev->parent->dev->name);
 
@@ -498,21 +502,43 @@ int grpci_init1(struct rtems_drvmgr_dev_info *dev)
 	if ( !priv )
 		return DRVMGR_NOMEM;
 
-	dev->priv = priv;
 	priv->dev = dev;
 	priv->minor = grpci_minor++;
 
 	grpcipriv = priv;
 	status = grpci_init(priv);
-	if ( status ) {
+	if (status) {
 		printf("Failed to initialize grpci driver %d\n", status);
-
-		return -1;
+		return DRVMGR_FAIL;
 	}
 
-	status = init_pci();
-	if ( status ) {
-		printf("Failed to initialize GRPCI core (%d)\n", status);
+
+	/* Register the PCI core at the PCI layers */
+
+	if (priv->bt_enabled) {
+		memcpy(&grpci_access_drv.io, &grpci_io_ops_be,
+						sizeof(grpci_io_ops_be));
+	}
+
+	if (pci_access_drv_register(&grpci_access_drv)) {
+		/* Access routines registration failed */
+		return DRVMGR_FAIL;
+	}
+
+	/* Prepare memory MAP */
+	grpci_auto_cfg.options = 0;
+	grpci_auto_cfg.mem_start = 0;
+	grpci_auto_cfg.mem_size = 0;
+	grpci_auto_cfg.memio_start = priv->pci_area;
+	grpci_auto_cfg.memio_size = priv->pci_area_end - priv->pci_area;
+	grpci_auto_cfg.io_start = priv->pci_io;
+	grpci_auto_cfg.io_size = priv->pci_conf - priv->pci_io;
+	grpci_auto_cfg.irq_map = grpci_bus0_irq_map;
+	grpci_auto_cfg.irq_route = NULL; /* use standard routing */
+	pci_config_register(&grpci_auto_cfg);
+
+	if (pci_config_init()) {
+		/* PCI configuration failed */
 		return DRVMGR_FAIL;
 	}
 

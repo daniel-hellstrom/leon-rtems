@@ -105,10 +105,6 @@ $(PROJECT_INCLUDE)/tlib.h: ../../sparc/shared/include/tlib.h $(PROJECT_INCLUDE)/
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/tlib.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/tlib.h
 
-$(PROJECT_INCLUDE)/pci.h: ../../sparc/shared/include/pci.h $(PROJECT_INCLUDE)/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/pci.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/pci.h
-
 $(PROJECT_INCLUDE)/grpci2.h: ../../sparc/shared/include/grpci2.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grpci2.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/grpci2.h
@@ -246,10 +242,6 @@ $(PROJECT_INCLUDE)/drvmgr/ambapp_bus.h: ../../sparc/shared/include/drvmgr/ambapp
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/drvmgr/ambapp_bus.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/drvmgr/ambapp_bus.h
 
-$(PROJECT_INCLUDE)/drvmgr/pci_bus.h: ../../sparc/shared/include/drvmgr/pci_bus.h $(PROJECT_INCLUDE)/drvmgr/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/drvmgr/pci_bus.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/drvmgr/pci_bus.h
-
 $(PROJECT_INCLUDE)/drvmgr/spw_bus.h: ../../sparc/shared/include/drvmgr/spw_bus.h $(PROJECT_INCLUDE)/drvmgr/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/drvmgr/spw_bus.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/drvmgr/spw_bus.h
@@ -268,11 +260,3 @@ $(PROJECT_INCLUDE)/network_interface_add.h: ../../sparc/shared/include/network_i
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/network_interface_add.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/network_interface_add.h
 endif
-
-# Additional drivers, if any
-include $(top_srcdir)/buildfiles/preinstall.am.tc
-include $(top_srcdir)/buildfiles/preinstall.am.tm
-include $(top_srcdir)/buildfiles/preinstall.am.gr_rasta_tmtc
-include $(top_srcdir)/buildfiles/preinstall.am.slink
-include $(top_srcdir)/buildfiles/preinstall.am.ascs
-include $(top_srcdir)/buildfiles/preinstall.am.satcan

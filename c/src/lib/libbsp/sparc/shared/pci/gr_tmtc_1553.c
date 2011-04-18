@@ -28,6 +28,7 @@
 #include <bsp.h>
 #include <rtems/bspIo.h>
 #include <pci.h>
+#include <pci/access.h>
 
 #include <ambapp.h>
 #include <grlib.h>
@@ -65,6 +66,7 @@ struct gr_tmtc_1553_priv {
 	char				prefix[32];
 
 	/* PCI */
+	pci_dev_t			pcidev;
 	unsigned int			bar0;
 	unsigned int			bar1;
 
@@ -132,10 +134,10 @@ struct rtems_drvmgr_drv_ops gr_tmtc_1553_ops =
 	NULL
 };
 
-struct pci_dev_id gr_tmtc_1553_ids[] = 
+struct pci_dev_id_match gr_tmtc_1553_ids[] = 
 {
-	{PCIID_VENDOR_GAISLER, PCIID_DEVICE_GR_TMTC_1553},
-	{0, 0}		/* Mark end of table */
+	PCIID_DEVVEND(PCIID_VENDOR_GAISLER, PCIID_DEVICE_GR_TMTC_1553),
+	PCIID_END_TABLE /* Mark end of table */
 };
 
 struct pci_drv_info gr_tmtc_1553_info =
@@ -211,36 +213,29 @@ int gr_tmtc_1553_hw_init(struct gr_tmtc_1553_priv *priv)
 {
 	unsigned int data;
 	unsigned int *page0 = NULL;
-	int bus, dev, fun;
-	struct pci_dev_info *devinfo;
 	unsigned char ver;
 	struct ambapp_dev *tmp;
 	int status;
 	struct ambapp_ahb_info *ahb;
 	unsigned int tmpbar, bar0size, pci_freq_hz;
+	pci_dev_t pcidev = priv->pcidev;
 
-	devinfo = (struct pci_dev_info *)priv->dev->businfo;
-
-	bus = devinfo->bus;
-	dev = devinfo->dev;
-	fun = devinfo->func;
-
-	pci_read_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, &priv->bar0);
-	pci_read_config_byte(bus, dev, fun, PCI_INTERRUPT_LINE, &priv->irqno);
+	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_0, &priv->bar0);
+	pci_cfg_r8(pcidev, PCI_INTERRUPT_LINE, &priv->irqno);
 
 	if (priv->bar0 == 0) {
 		return -1;
 	}
 
 	/* Figure out size of BAR0 */
-	pci_write_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, 0xffffffff);
-	pci_read_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, &tmpbar);
-	pci_write_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, priv->bar0);
+	pci_cfg_w32(pcidev, PCI_BASE_ADDRESS_0, 0xffffffff);
+	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_0, &tmpbar);
+	pci_cfg_w32(pcidev, PCI_BASE_ADDRESS_0, priv->bar0);
 	tmpbar &= ~0xff; /* Remove lsbits */
 	bar0size = (~tmpbar) + 1;
 
 	/* Select version of GR-TMTC-1553 board */
-	pci_read_config_byte(bus, dev, fun, PCI_REVISION_ID, &ver);
+	pci_cfg_r8(pcidev, PCI_REVISION_ID, &ver);
 	switch (ver) {
 		case 0:
 			priv->version = &gr_tmtc_1553_ver0;
@@ -352,9 +347,12 @@ int gr_tmtc_1553_init1(struct rtems_drvmgr_dev_info *dev)
 	priv->prefix[21] = '\0';
 
 	devinfo = (struct pci_dev_info *)dev->businfo;
+	priv->pcidev = devinfo->pcidev;
 	printf("\n\n--- GR-TMTC-1553[%d] ---\n", dev->minor_drv);
-	printf(" PCI BUS: %d, SLOT: %d, FUNCTION: %d\n", devinfo->bus, devinfo->dev, devinfo->func);
-	printf(" PCI VENDOR: 0x%04x, DEVICE: 0x%04x\n", devinfo->id.vendor, devinfo->id.device);
+	printf(" PCI BUS: 0x%x, SLOT: 0x%x, FUNCTION: 0x%x\n",
+		PCI_DEV_EXPAND(priv->pcidev));
+	printf(" PCI VENDOR: 0x%04x, DEVICE: 0x%04x\n",
+		devinfo->id.vendor, devinfo->id.device);
 
 	priv->genirq = genirq_init(16);
 	if ( priv->genirq == NULL ) {
@@ -534,18 +532,11 @@ int ambapp_tmtc_1553_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_
 void gr_tmtc_1553_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 {
 	struct gr_tmtc_1553_priv *priv = dev->priv;
-	struct pci_dev_info *devinfo;
-	int bus, device, fun;
 	int i;
 
-	devinfo = (struct pci_dev_info *)priv->dev->businfo;
-
-	bus = devinfo->bus;
-	device = devinfo->dev;
-	fun = devinfo->func;
-
 	/* Print */
-	printf("--- GR-TMTC-1553 [bus %d, dev %d, fun %d] ---\n", bus, device, fun);
+	printf("--- GR-TMTC-1553 [bus 0x%x, dev 0x%x, fun 0x%x] ---\n",
+		PCI_DEV_EXPAND(priv->pcidev));
 	printf(" PCI BAR0:        0x%x\n", priv->bar0);
 	printf(" PCI BAR1:        0x%x\n", priv->bar1);
 	printf(" IRQ REGS:        0x%x\n", (unsigned int)priv->irq);

@@ -78,6 +78,7 @@ struct gr_rasta_io_priv {
 	char				prefix[16];
 
 	/* PCI */
+	pci_dev_t			pcidev;
 	unsigned int			bar0;
 	unsigned int			bar1;
 
@@ -152,11 +153,11 @@ struct rtems_drvmgr_drv_ops gr_rasta_io_ops =
 	.info = NULL
 };
 
-struct pci_dev_id gr_rasta_io_ids[] = 
+struct pci_dev_id_match gr_rasta_io_ids[] = 
 {
-	{PCIID_VENDOR_GAISLER, PCIID_DEVICE_GR_RASTA_IO},
-	{PCIID_VENDOR_GAISLER_OLD, PCIID_DEVICE_GR_RASTA_IO_OLD},
-	{0, 0}		/* Mark end of table */
+	PCIID_DEVVEND(PCIID_VENDOR_GAISLER, PCIID_DEVICE_GR_RASTA_IO),
+	PCIID_DEVVEND(PCIID_VENDOR_GAISLER_OLD, PCIID_DEVICE_GR_RASTA_IO_OLD),
+	PCIID_END_TABLE /* Mark end of table */
 };
 
 struct pci_drv_info gr_rasta_io_info =
@@ -232,23 +233,16 @@ int gr_rasta_io_hw_init(struct gr_rasta_io_priv *priv)
 {
 	unsigned int data;
 	unsigned int *page0 = NULL;
-	int bus, dev, fun;
-	struct pci_dev_info *devinfo;
 	unsigned char ver;
 	struct ambapp_dev *tmp;
 	int status;
 	struct ambapp_ahb_info *ahb;
 	unsigned int tmpbar, bar0size;
+	pci_dev_t pcidev = priv->pcidev;
 
-	devinfo = (struct pci_dev_info *)priv->dev->businfo;
-
-	bus = devinfo->bus;
-	dev = devinfo->dev;
-	fun = devinfo->func;
-
-	pci_read_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, &priv->bar0);
-	pci_read_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_1, &priv->bar1);
-	pci_read_config_byte(bus, dev, fun, PCI_INTERRUPT_LINE, &priv->irqno);
+	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_0, &priv->bar0);
+	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_1, &priv->bar1);
+	pci_cfg_r8(pcidev, PCI_INTERRUPT_LINE, &priv->irqno);
 
 	if ( (priv->bar0 == 0) || (priv->bar1 == 0) ) {
 		/* Not all neccessary space assigned to GR-RASTA-IO target */
@@ -256,14 +250,15 @@ int gr_rasta_io_hw_init(struct gr_rasta_io_priv *priv)
 	}
 
 	/* Figure out size of BAR0 */
-	pci_write_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, 0xffffffff);
-	pci_read_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, &tmpbar);
-	pci_write_config_dword(bus, dev, fun, PCI_BASE_ADDRESS_0, priv->bar0);
+#warning USE PCI-resources here to get size
+	pci_cfg_w32(pcidev, PCI_BASE_ADDRESS_0, 0xffffffff);
+	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_0, &tmpbar);
+	pci_cfg_w32(pcidev, PCI_BASE_ADDRESS_0, priv->bar0);
 	tmpbar &= ~0xff; /* Remove lsbits */
 	bar0size = (~tmpbar) + 1;
 
 	/* Select version of GR-RASTA-IO board */
-	pci_read_config_byte(bus, dev, fun, PCI_REVISION_ID, &ver);
+	pci_cfg_r8(pcidev, PCI_REVISION_ID, &ver);
 	switch (ver) {
 		case 0:
 			priv->version = &gr_rasta_io_ver0;
@@ -284,8 +279,8 @@ int gr_rasta_io_hw_init(struct gr_rasta_io_priv *priv)
 
 #if 0
 	/* set parity error response */
-	pci_read_config_dword(bus, dev, fun, PCI_COMMAND, &data);
-	pci_write_config_dword(bus, dev, fun, PCI_COMMAND, (data|PCI_COMMAND_PARITY));
+	pci_cfg_r32(pcidev, PCI_COMMAND, &data);
+	pci_cfg_w32(pcidev, PCI_COMMAND, (data|PCI_COMMAND_PARITY));
 #endif
 
 	/* Scan AMBA Plug&Play */
@@ -371,19 +366,12 @@ int gr_rasta_io_hw_init(struct gr_rasta_io_priv *priv)
 	return 0;
 }
 
-void gr_rasta_io_hw_init2(struct gr_rasta_io_priv *priv)
+int gr_rasta_io_hw_init2(struct gr_rasta_io_priv *priv)
 {
-	int bus, dev, fun;
-	struct pci_dev_info *devinfo;
-
-	devinfo = (struct pci_dev_info *)priv->dev->businfo;
-
-	bus = devinfo->bus;
-	dev = devinfo->dev;
-	fun = devinfo->func;
-
 	/* Enable DMA by enabling PCI target as master */
-	pci_master_enable(bus, dev, fun);
+	pci_master_enable(priv->pcidev);
+
+	return DRVMGR_OK;
 }
 
 /* Called when a PCI target is found with the PCI device and vendor ID 
@@ -418,9 +406,12 @@ int gr_rasta_io_init1(struct rtems_drvmgr_dev_info *dev)
 	priv->prefix[14] = '\0';
 
 	devinfo = (struct pci_dev_info *)dev->businfo;
+	priv->pcidev = devinfo->pcidev;
 	printf("\n\n--- GR-RASTA-IO[%d] ---\n", dev->minor_drv);
-	printf(" PCI BUS: %d, SLOT: %d, FUNCTION: %d\n", devinfo->bus, devinfo->dev, devinfo->func);
-	printf(" PCI VENDOR: 0x%04x, DEVICE: 0x%04x\n", devinfo->id.vendor, devinfo->id.device);
+	printf(" PCI BUS: 0x%x, SLOT: 0x%x, FUNCTION: 0x%x\n",
+		PCI_DEV_EXPAND(priv->pcidev));
+	printf(" PCI VENDOR: 0x%04x, DEVICE: 0x%04x\n",
+		devinfo->id.vendor, devinfo->id.device);
 
 	priv->genirq = genirq_init(16);
 	if ( priv->genirq == NULL ) {
@@ -474,9 +465,7 @@ int gr_rasta_io_init2(struct rtems_drvmgr_dev_info *dev)
 	 */
 	rtems_drvmgr_interrupt_enable(dev, 0, gr_rasta_io_isr, (void *)priv);
 
-	gr_rasta_io_hw_init2(priv);
-
-	return DRVMGR_OK;
+	return gr_rasta_io_hw_init2(priv);
 }
 
 int ambapp_rasta_io_int_register(
@@ -606,18 +595,11 @@ int ambapp_rasta_io_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_d
 void gr_rasta_io_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 {
 	struct gr_rasta_io_priv *priv = dev->priv;
-	struct pci_dev_info *devinfo;
-	int bus, device, fun;
 	int i;
 
-	devinfo = (struct pci_dev_info *)priv->dev->businfo;
-
-	bus = devinfo->bus;
-	device = devinfo->dev;
-	fun = devinfo->func;
-
 	/* Print */
-	printf("--- GR-RASTA-IO [bus %d, dev %d, fun %d] ---\n", bus, device, fun);
+	printf("--- GR-RASTA-IO [bus 0x%x, dev 0x%x, fun 0x%x] ---\n",
+		PCI_DEV_EXPAND(priv->pcidev));
 	printf(" PCI BAR0:        0x%x\n", priv->bar0);
 	printf(" PCI BAR1:        0x%x\n", priv->bar1);
 	printf(" IRQ REGS:        0x%x\n", (unsigned int)priv->irq);

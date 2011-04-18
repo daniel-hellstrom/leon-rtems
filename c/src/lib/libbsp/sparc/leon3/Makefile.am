@@ -74,12 +74,8 @@ libbsp_a_SOURCES += ../../sparc/shared/timer/tlib.c
 libbsp_a_SOURCES += ../../sparc/shared/timer/tlib_ckinit.c
 
 ### PCI ###
-include_HEADERS += ../../sparc/shared/include/pci.h
 include_HEADERS += ../../sparc/shared/include/grpci2.h
-libbsp_a_SOURCES +=  ../../sparc/shared/pci/pci.c
-libbsp_a_SOURCES +=  ../../sparc/shared/pci/pcifinddevice.c
 libbsp_a_SOURCES += ../../sparc/shared/pci/grpci.c
-libbsp_a_SOURCES +=  ../../sparc/shared/pci/pcif.c
 libbsp_a_SOURCES += ../../sparc/shared/pci/grpci2.c
 
 # PCI target devices
@@ -180,13 +176,11 @@ include_drvmgrdir = $(includedir)/drvmgr
 include_drvmgr_HEADERS = ../../sparc/shared/include/drvmgr/ambapp_bus_grlib.h
 include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/ambapp_bus_rmap.h
 include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/ambapp_bus.h
-include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/pci_bus.h
 include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/spw_bus.h
 include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/spw_bus_ids.h
 libbsp_a_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus.c
 libbsp_a_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus_grlib.c
 libbsp_a_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus_rmap.c
-libbsp_a_SOURCES += ../../sparc/shared/drvmgr/pci_bus.c
 libbsp_a_SOURCES += ../../sparc/shared/drvmgr/spw_bus.c
 
 if HAS_NETWORKING
@@ -228,6 +222,7 @@ libbsp_a_SOURCES += shmsupp/addrconv.c shmsupp/getcfg.c shmsupp/lock.c \
 endif
 
 libbsp_a_LIBADD = ../../../libcpu/@RTEMS_CPU@/cache.rel \
+    ../../../libcpu/@RTEMS_CPU@/access.rel \
     ../../../libcpu/@RTEMS_CPU@/reg_win.rel \
     ../../../libcpu/@RTEMS_CPU@/syscall.rel
 
