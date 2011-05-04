@@ -256,10 +256,12 @@ struct rtems_drvmgr_bus_info {
 /* States of a bus */
 #define BUS_STATE_INIT_FAILED	0x00000001	/* Initialization Failed */
 #define BUS_STATE_LIST_INACTIVE	0x00001000	/* In inactive bus list */
+#define BUS_STATE_DEPEND_FAILED	0x00000004	/* Device init failed */
 
 /* States of a device */
 #define DEV_STATE_INIT_FAILED	0x00000001	/* Initialization Failed */
 #define DEV_STATE_INIT_DONE	0x00000002	/* All init levels completed */
+#define DEV_STATE_DEPEND_FAILED	0x00000004	/* Parent Bus init failed */
 #define DEV_STATE_UNITED	0x00000100	/* Device United with Device Driver */
 #define DEV_STATE_REMOVED	0x00000200	/* Device has been removed (unregistered) */
 #define DEV_STATE_IGNORED	0x00000400	/* Device was ignored according to user's request, the device
@@ -369,10 +371,13 @@ extern int rtems_drvmgr_dev_register(struct rtems_drvmgr_dev_info *dev);
  * \param remove If non-zero the device will be deallocated, and not put into the 
  *               inacitve list.
  */
-extern int rtems_drvmgr_dev_unregister(struct rtems_drvmgr_dev_info *dev, int remove);
+extern int rtems_drvmgr_dev_unregister(struct rtems_drvmgr_dev_info *dev);
 
 /*! Register a bus */
 extern int rtems_drvmgr_bus_register(struct rtems_drvmgr_bus_info *bus);
+
+/*! Unregister a bus */
+extern int rtems_drvmgr_bus_unregister(struct rtems_drvmgr_bus_info *bus);
 
 /*! Allocate a device structure, if no memory available rtems_error_fatal_occurred 
  * is called.

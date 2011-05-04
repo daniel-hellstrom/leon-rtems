@@ -18,5 +18,6 @@ libdrvmgr_a_SOURCES += drvmgr_print.c
 libdrvmgr_a_SOURCES += drvmgr_res.c
 libdrvmgr_a_SOURCES += drvmgr_rw.c
 libdrvmgr_a_SOURCES += drvmgr_translate.c
+libdrvmgr_a_SOURCES += drvmgr_unregister.c
 
 include $(top_srcdir)/automake/local.am

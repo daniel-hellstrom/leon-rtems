@@ -190,19 +190,26 @@ static int do_bus_init(
 {
 	int (*init)(struct rtems_drvmgr_bus_info *);
 
+	/* If bridge device has failed during initialization, the bus is not
+	 * initialized further.
+	 */
+	if (bus->dev->state & DEV_STATE_INIT_FAILED) {
+		bus->state |= BUS_STATE_DEPEND_FAILED;
+		goto inactivate_out;
+	}
+
 	if ( bus->ops && (init=bus->ops->init[level-1]) ) {
 		/* Note: This init1 function may register new devices */
 		if ( (bus->error=init(bus)) != DRVMGR_OK ) {
-			/* An error of some kind during bus
-			 *  initialization 
+			/* An error of some kind during bus initialization.
+			 *
+			 * Child devices and their buses are not inactived
+			 * directly here, instead they will all be catched by
+			 * do_dev_init() and do_bus_init() by checking if
+			 * parent or bridge-device failed. We know that
+			 * initialization will happen later for those devices.
 			 */
-			rtems_drvmgr_list_add_head(&mgr->buses_inactive, bus);
-
-			bus->state |= BUS_STATE_INIT_FAILED;
-			bus->state |= BUS_STATE_LIST_INACTIVE;
-			DBG("do_bus_init(%d): DRV: %s (DEV: %s) failed\n", 
-				level, dev->drv->name, dev->name);
-			return 1;
+			goto inactivate_out;
 		}
 	}
 
@@ -216,6 +223,15 @@ static int do_bus_init(
 	rtems_drvmgr_list_add_tail(&mgr->buses[level], bus);
 
 	return 0;
+
+inactivate_out:
+	bus->state |= BUS_STATE_INIT_FAILED;
+	bus->state |= BUS_STATE_LIST_INACTIVE;
+	rtems_drvmgr_list_add_head(&mgr->buses_inactive, bus);
+
+	DBG("do_bus_init(%d): (DEV: %s) failed\n", level, bus->dev->name);
+
+	return 1;
 }
 
 /* Take device to initialization level 1 */
@@ -234,31 +250,35 @@ static int do_dev_init(
 		memset(dev->priv, 0, dev->drv->dev_priv_size);
 	}
 
+	/* If parent bus has failed during initialization,
+	 * the device is not initialized further.
+	 */
+	if (dev->parent && (dev->parent->state & BUS_STATE_INIT_FAILED)) {
+		dev->state |= DEV_STATE_DEPEND_FAILED;
+		goto inactivate_out;
+	}
+
 	/* Call Driver's Init Routine */
 	if ( dev->drv && (init=dev->drv->ops->init[level-1]) ) {
 		/* Note: This init function may register new devices */
 		if ( (dev->error=init(dev)) != DRVMGR_OK ) {
 			/* An error of some kind has occured in the
-			 * driver/device, the failed device it put into
-			 * a separate list, this way Init2 will not be
-			 * called for this device.
+			 * driver/device, the failed device is put into the
+			 * inactive list, this way Init2,3 and/or 4 will not
+			 * be called for this device.
 			 *
-			 * The device is added to the failed device list
-			 * instead of beeing freed, this is for system
-			 * overview and debugging.
+			 * The device is not removed from the bus (not
+			 * unregistered). The driver can be used to find
+			 * device information and debugging for example even
+			 * if device initialization failed.
+			 *
+			 * Child buses and their devices are not inactived
+			 * directly here, instead they will all be catched by
+			 * do_dev_init() and do_bus_init() by checking if
+			 * parent or bridge-device failed. We know that
+			 * initialization will happen later for those devices.
 			 */
-			rtems_drvmgr_list_add_head(&mgr->devices_inactive, dev);
-			dev->state |= DEV_STATE_INIT_FAILED;
-			dev->state |= DEV_STATE_LIST_INACTIVE;
-
-			if ( dev->drv->dev_priv_size && dev->priv ) {
-				free(dev->priv);
-				dev->priv = NULL;
-			}
-
-			DBG("do_dev_init(%d): DRV: %s (DEV: %s) failed\n",
-				level, dev->drv->name, dev->name);
-			return 1; /* Failed to take into */
+			goto inactivate_out;
 		}
 	}
 
@@ -271,6 +291,16 @@ static int do_dev_init(
 	rtems_drvmgr_list_add_tail(&mgr->devices[level], dev);
 
 	return 0;
+
+inactivate_out:
+	dev->state |= DEV_STATE_INIT_FAILED;
+	dev->state |= DEV_STATE_LIST_INACTIVE;
+	rtems_drvmgr_list_add_head(&mgr->devices_inactive, dev);
+
+	DBG("do_dev_init(%d): DRV: %s (DEV: %s) failed\n",
+		level, dev->drv->name, dev->name);
+
+	return 1; /* Failed to take device into requested level */
 }
 
 /* Register Root device driver */
@@ -489,167 +519,6 @@ united:
 	dev->minor_drv = -1;
 	dev->state |= DEV_STATE_LIST_INACTIVE;
 	rtems_drvmgr_list_add_tail(&mgr->devices_inactive, dev);
-
-	return 0;
-}
-
-/* Unregister a BUS and all it's devices.
- *
- * This procedure is done twice if remove() fails. If a driver
- * depends on another driver, the first removal will fail, hopefully
- * not the second time since the other driver (the one requiring 
- * service from the first) has been removed. This will not work for
- * drivers on a remote bus however.
- */
-int rtems_drvmgr_bus_unregister(struct rtems_drvmgr_bus_info *bus, int remove)
-{
-	struct rtems_driver_manager *mgr = &drv_mgr;
-	int err, removal_iterations;
-	struct rtems_drvmgr_dev_info *subdev;
-	struct rtems_drvmgr_list *list;
-
-	removal_iterations = 2;
-remove_all_children:
-	err = 0;
-	subdev = bus->children;
-	while ( subdev ) {
-		if ( rtems_drvmgr_dev_unregister(subdev, remove) ) {
-			/* An error occured */
-			err++;
-		}
-		subdev = subdev->next_in_bus;
-	}
-
-	if ( err > 0 && (--removal_iterations > 0) ) {
-		/* Try to remove devices once more */
-		goto remove_all_children;
-	} else if ( err > 0 ) {
-		/* Failed to remove all children on the bus. */
-		return -1;
-	}
-
-	if ( bus->ops->remove ) {
-		bus->error = bus->ops->remove(bus);
-		if ( bus->error != DRVMGR_OK )
-			return bus->error;
-	}
-
-	bus->dev->bus = NULL;
-
-	/* Remove bus from bus-list */
-	if ( bus->state & DEV_STATE_LIST_INACTIVE ) {
-		list = &mgr->buses_inactive;
-	} else {
-		list = &mgr->buses[bus->level];
-	}
-	rtems_drvmgr_list_remove(list, bus);
-
-	if ( remove )
-		free(bus);
-
-	return 0;
-}
-
-/* Unregister device, 
- *  - let assigned driver handle deletion
- *  - remove from device list 
- *  - remove from driver list
- *  - remove from bus list
- *  - add to removed list for debugging
- */
-int rtems_drvmgr_dev_unregister(struct rtems_drvmgr_dev_info *dev, int remove)
-{
-	struct rtems_driver_manager *mgr = &drv_mgr;
-	struct rtems_drvmgr_dev_info *subdev, **pprev;
-	struct rtems_drvmgr_list *list;
-	int err;
-
-	if ( dev->state & DEV_STATE_REMOVED )
-		return -1; /* Already removed */
-
-	/* Remove children if this device exports a bus of devices. All 
-	 * children must be removed first as they depend upon the bus
-	 * services this device provide.
-	 */
-	if ( dev->bus ) {
-		err = rtems_drvmgr_bus_unregister(dev->bus, remove);
-		if ( err )
-			return err;
-	}
-
-	/* Remove device by letting assigned driver take care of hardware
-	 * issues
-	 */
-	list = NULL;
-	if ( dev->state & DEV_STATE_LIST_INACTIVE ) {
-		list = &mgr->devices_inactive;
-	} else {
-		list = &mgr->devices[dev->level];
-	}
-
-	if ( (dev->state & DEV_STATE_UNITED) && dev->drv ) {
-		if ( !dev->drv->ops->remove ) {
-			/* No remove function must be considered 
-			 * severe 
-			 */
-			return -1;
-		}
-		dev->error = dev->drv->ops->remove(dev);
-		if ( dev->error != DRVMGR_OK) {
-			/* Failed to remove device */
-			return -1;
-		}
-
-		/* Delete device from driver list */
-		pprev = &dev->drv->dev;
-		subdev = dev->drv->dev;
-		while ( subdev != dev ) {
-			pprev = &subdev->next_in_drv;
-			subdev = subdev->next_in_drv;
-		}
-		*pprev = subdev->next_in_drv;
-		dev->drv->dev_cnt--;
-	}
-
-	dev->state |= DEV_STATE_REMOVED;
-
-	/* Free Device Driver Private memory if allocated previously by
-	 * Driver manager.
-	 */
-	if ( dev->drv->dev_priv_size && dev->priv ) {
-		free(dev->priv);
-		dev->priv = NULL;
-	}
-
-	/* Remove from all lists or move into inactive list */
-	if ( (list != &mgr->devices_inactive) || remove ) {
-		rtems_drvmgr_list_remove(list, dev);
-
-		/* Insert into inactive list if device is not going to 
-		 * be removed 
-		 */
-		if ( !remove ) {
-			rtems_drvmgr_list_add_tail(&mgr->devices_inactive, dev);
-		}
-	}
-
-	/* Remove device from parent bus list */
-	pprev = &dev->parent->children;
-	subdev = dev->parent->children;
-	while ( subdev != dev ) {
-		pprev = &subdev->next_in_bus;
-		subdev = subdev->next_in_bus;
-	}
-	/* Device must be in list */
-	*pprev = subdev->next_in_bus;
-	dev->parent->dev_cnt--;
-
-	/* All references to this device has been removed at this point 
-	 * if remove is non-zero.
-	 */
-	if ( remove ) {
-		free(dev);
-	}
 
 	return 0;
 }
