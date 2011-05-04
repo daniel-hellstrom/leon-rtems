@@ -150,9 +150,9 @@ struct leon2_core drv_mgr_leon2_std_cores[] =
 };
 
 static struct leon2_bus *drv_mgr_leon2_bus_config = NULL;
-static struct rtems_drvmgr_drv_res *drv_mgr_leon2_bus_res = NULL;
+static struct rtems_drvmgr_bus_res *drv_mgr_leon2_bus_res = NULL;
 
-int drv_mgr_leon2_init(struct leon2_bus *bus_config, struct rtems_drvmgr_drv_res *resources)
+int drv_mgr_leon2_init(struct leon2_bus *bus_config, struct rtems_drvmgr_bus_res *resources)
 {
 	/* Save the configuration for later */
 	drv_mgr_leon2_bus_config = bus_config;

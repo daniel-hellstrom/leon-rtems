@@ -45,16 +45,20 @@ struct rtems_drvmgr_drv_reg_func rtems_drvmgr_drivers[] __attribute__((weak)) =
  * so that the user may override it, if the defualt settings are not
  * enough.
  */
-struct rtems_drvmgr_drv_res grlib_drv_resources[] __attribute__((weak)) =
+struct rtems_drvmgr_bus_res grlib_drv_resources __attribute__((weak)) =
 {
-  RES_EMPTY
+  .next = NULL,
+  .resource =
+  {
+    RES_EMPTY,
+  }
 };
 
 /* GRLIB AMBA bus configuration (the LEON3 root bus configuration) */
 struct grlib_config grlib_bus_config = 
 {
   &ambapp_plb,              /* AMBAPP bus setup */
-  &grlib_drv_resources[0],  /* Driver configuration */
+  &grlib_drv_resources,     /* Driver configuration */
 };
 #endif
 

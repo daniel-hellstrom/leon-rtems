@@ -22,7 +22,7 @@ extern "C" {
 
 struct grlib_config {
 	struct ambapp_bus		*abus;
-	struct rtems_drvmgr_drv_res	*resources;
+	struct rtems_drvmgr_bus_res	*resources;
 };
 
 int drv_mgr_grlib_init(struct grlib_config *config);

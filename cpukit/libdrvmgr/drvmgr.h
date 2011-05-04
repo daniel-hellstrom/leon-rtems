@@ -215,7 +215,7 @@ struct rtems_drvmgr_drv_res {
 /*! Bus resource list node */
 struct rtems_drvmgr_bus_res {
 	struct rtems_drvmgr_bus_res	*next;		/*!< Next resource node in list */
-	struct rtems_drvmgr_drv_res	*resource;	/*!< Array of resources, one per device instance */
+	struct rtems_drvmgr_drv_res	resource[];	/*!< Array of resources, one per device instance */
 };
 
 /*! MAP entry. Describes an linear address space translation. Untranslated
@@ -402,7 +402,8 @@ extern int rtems_drvmgr_alloc_bus(struct rtems_drvmgr_bus_info **pbus, int extra
  * \param bus   The Bus to add the resources to.
  * \param res   An array with Driver resources, all together are called bus resources.
  */
-extern int rtems_drvmgr_bus_res_add(struct rtems_drvmgr_bus_info *bus, struct rtems_drvmgr_drv_res *res);
+extern void rtems_drvmgr_bus_res_add(struct rtems_drvmgr_bus_info *bus,
+					struct rtems_drvmgr_bus_res *bres);
 
 /*! Find all the resource keys for a device among all driver resources on a bus. Typically
  *  used by a device driver to get configuration options.

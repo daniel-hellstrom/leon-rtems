@@ -132,7 +132,7 @@ struct spw_bus_drv_info ambapp_bus_drv_rmap =
 	
 };
 
-struct rtems_drvmgr_drv_res **ambapp_rmap_resources = NULL;
+struct rtems_drvmgr_bus_res **ambapp_rmap_resources = NULL;
 int ambapp_rmap_resources_cnt = 0;
 
 void ambapp_rmap_register(void)
@@ -140,7 +140,7 @@ void ambapp_rmap_register(void)
 	rtems_drvmgr_drv_register(&ambapp_bus_drv_rmap.general);
 }
 
-void ambapp_rmap_set_resources(struct rtems_drvmgr_drv_res **resources, int cnt)
+void ambapp_rmap_set_resources(struct rtems_drvmgr_bus_res **resources, int cnt)
 {
 	ambapp_rmap_resources = resources;
 	ambapp_rmap_resources_cnt = cnt;

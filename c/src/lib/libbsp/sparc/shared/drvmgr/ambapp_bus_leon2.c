@@ -168,7 +168,7 @@ int ambapp_leon2_init1(struct rtems_drvmgr_dev_info *dev)
 		config->resources = NULL;
 	} else {
 		DBG("ambapp_leon2_init1: drvRes: 0x%08x\n", (unsigned int)value->ptr);
-		config->resources = (struct rtems_drvmgr_drv_res *)value->ptr;
+		config->resources = (struct rtems_drvmgr_bus_res *)value->ptr;
 	}
 
 	/* Initialize the AMBA Bus */

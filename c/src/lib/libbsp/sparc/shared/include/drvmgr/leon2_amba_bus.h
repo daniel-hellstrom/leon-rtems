@@ -86,7 +86,7 @@ struct leon2_amba_drv_info {
  */
 int drv_mgr_leon2_init(
 	struct leon2_bus *bus_config,
-	struct rtems_drvmgr_drv_res *resources);
+	struct rtems_drvmgr_bus_res *resources);
 
 #ifdef __cplusplus
 }

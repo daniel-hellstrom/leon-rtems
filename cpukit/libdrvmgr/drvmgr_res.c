@@ -29,7 +29,7 @@ int rtems_drvmgr_keys_get(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr
 	node = bus->reslist;
 	while ( node ) {
 		/* Find driver ID in resource array */
-		res = node->resource;
+		res = &node->resource[0];
 		while ( res->drv_id ) {
 			if ( res->drv_id == drv_id ) {
 				/* Found resource matching driver, now check

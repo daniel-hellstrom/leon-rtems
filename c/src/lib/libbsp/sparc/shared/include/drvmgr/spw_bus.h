@@ -62,7 +62,7 @@ struct spw_bus_config {
 	int				maxlen;		/* Maximum length */
 	struct spw_node			*nodes;		/* Bus configuration (SpaceWire nodes available) */
 	char				devName[32];	/* GRSPW Dev name bus is attached to */
-	struct rtems_drvmgr_drv_res	*resources;	/* Driver resouces present on the bus */
+	struct rtems_drvmgr_bus_res	*resources;	/* Driver resouces present on the bus */
 	struct spwbus_virq_config	virq_table[4];	/* Virtual IRQ number to GPIO translation table */
 };
 

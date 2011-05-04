@@ -574,17 +574,10 @@ int rtems_drvmgr_alloc_bus(struct rtems_drvmgr_bus_info **pbus, int extra)
 }
 
 /* Add driver resources to a bus instance */
-int rtems_drvmgr_bus_res_add(struct rtems_drvmgr_bus_info *bus, struct rtems_drvmgr_drv_res *res)
+void rtems_drvmgr_bus_res_add(struct rtems_drvmgr_bus_info *bus,
+				struct rtems_drvmgr_bus_res *bres)
 {
-	struct rtems_drvmgr_bus_res *node;
-
-	node = malloc(sizeof(struct rtems_drvmgr_bus_res));
-	if ( !node )
-		return -1;
-
-	node->next = bus->reslist;
-	node->resource = res;
-	bus->reslist = node;
-
-	return 0;
+	/* insert first in bus resource list */
+	bres->next = bus->reslist;
+	bus->reslist = bres;
 }

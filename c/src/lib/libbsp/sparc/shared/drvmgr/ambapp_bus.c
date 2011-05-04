@@ -640,7 +640,7 @@ int ambapp_dev_register(struct ambapp_dev *dev, int index, int maxpdepth, void *
 }
 
 /* Register all AMBA devices available on the AMBAPP bus */
-rtems_status_code ambapp_ids_register(struct rtems_drvmgr_bus_info *bus)
+int ambapp_ids_register(struct rtems_drvmgr_bus_info *bus)
 {
 	struct ambapp_priv *priv = bus->priv;
 	struct ambapp_bus *abus;
@@ -663,7 +663,7 @@ rtems_status_code ambapp_ids_register(struct rtems_drvmgr_bus_info *bus)
 	ambapp_print(abus->root, 1);
 #endif
 
-	return RTEMS_SUCCESSFUL;
+	return DRVMGR_OK;
 }
 
 /*** DEVICE FUNCTIONS ***/
@@ -696,6 +696,10 @@ int ambapp_bus_register(struct rtems_drvmgr_dev_info *dev, struct ambapp_config 
 	dev->bus->reslist = NULL;
 	dev->bus->mmaps = config->mmaps;
 
+	/* Add resource configuration */
+	if ( priv->config->resources )
+		rtems_drvmgr_bus_res_add(dev->bus, priv->config->resources);
+
 	rtems_drvmgr_bus_register(dev->bus);
 
 	return DRVMGR_OK;
@@ -706,12 +710,6 @@ int ambapp_bus_register(struct rtems_drvmgr_dev_info *dev, struct ambapp_config 
 /* Initialize the bus, register devices on this bus */
 int ambapp_bus_init1(struct rtems_drvmgr_bus_info *bus)
 {
-	struct ambapp_priv *priv = (struct ambapp_priv *)bus->priv;
-
-	/* Add resource configuration */
-	if ( priv->config->resources )
-		rtems_drvmgr_bus_res_add(bus, priv->config->resources);
-
 	/* Initialize the bus, register devices on this bus */
 	return ambapp_ids_register(bus);
 }
