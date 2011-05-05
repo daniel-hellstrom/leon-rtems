@@ -107,14 +107,6 @@ void rtems_drvmgr_print_devs(unsigned int options)
 			printf("\nNO DEVICES FAILED TO INITIALIZE\n");
 	}
 
-	if ( options & DRV_MGR_PRINT_DEVS_REMOVED ) {
-		parg = "\n --- DEVICES REMOVED ---\n";
-		rtems_drvmgr_for_each_dev(&mgr->devices_inactive,
-			DEV_STATE_REMOVED, 0, print_dev_found, &parg);
-		if ( parg != NULL )
-			printf("\nNO DEVICES WERE REMOVED\n");
-	}
-
 	if ( options & DRV_MGR_PRINT_DEVS_IGNORED ) {
 		parg = "\n --- DEVICES IGNORED ---\n";
 		rtems_drvmgr_for_each_dev(&mgr->devices_inactive,
@@ -172,6 +164,7 @@ void rtems_drvmgr_print_mem(void)
 	unsigned int devmem = 0;
 	unsigned int drvmem = 0;
 	unsigned int resmem = 0;
+	unsigned int devprivmem = 0;
 
 	bus = BUS_LIST_HEAD(&mgr->buses[DRVMGR_LEVEL_MAX]);
 	while ( bus ) {
@@ -211,14 +204,18 @@ void rtems_drvmgr_print_mem(void)
 	dev = DEV_LIST_HEAD(&mgr->devices[DRVMGR_LEVEL_MAX]);
 	while ( dev ) {
 		devmem += sizeof(struct rtems_drvmgr_dev_info);
+		if (dev->drv && dev->drv->dev_priv_size>0)
+			devprivmem += dev->drv->dev_priv_size;
 		dev = dev->next;
 	}
 
 	printf(" --- MEMORY USAGE ---\n");
-	printf(" BUS:   %d bytes\n", busmem);
-	printf(" DRV:   %d bytes\n", drvmem);
-	printf(" DEV:   %d bytes\n", devmem);
-	printf(" RES:   %d bytes\n", resmem);
-	printf(" TOTAL: %d bytes\n", busmem+drvmem+devmem+resmem);
+	printf(" BUS:          %d bytes\n", busmem);
+	printf(" DRV:          %d bytes\n", drvmem);
+	printf(" DEV:          %d bytes\n", devmem);
+	printf(" DEV private:  %d bytes\n", devprivmem);
+	printf(" RES:          %d bytes\n", resmem);
+	printf(" TOTAL:        %d bytes\n",
+			busmem + drvmem + devmem + devprivmem + resmem);
 	printf("\n\n");
 }
