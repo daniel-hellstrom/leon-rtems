@@ -120,6 +120,7 @@ struct rtems_drvmgr_drv_ops ambapp_rmap_drv_ops =
 struct spw_bus_drv_info ambapp_bus_drv_rmap = 
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
 		DRIVER_SPW_RMAP_AMBAPP_ID,	/* Driver ID */

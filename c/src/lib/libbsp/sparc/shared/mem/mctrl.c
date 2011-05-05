@@ -76,6 +76,7 @@ struct amba_dev_id mctrl_ids[] =
 struct amba_drv_info mctrl_drv_info =
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
 		DRIVER_AMBAPP_MCTRL_ID,		/* Driver ID */

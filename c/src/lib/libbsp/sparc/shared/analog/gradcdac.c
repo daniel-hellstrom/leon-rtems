@@ -76,6 +76,7 @@ struct amba_dev_id gradcdac_ids[] =
 struct amba_drv_info gradcdac_drv_info =
 {
 	{
+		DRVMGR_OBJ_DRV,				/* Driver */
 		NULL,					/* Next driver */
 		NULL,					/* Device list */
 		DRIVER_AMBAPP_GAISLER_GRADCDAC_ID,	/* Driver ID */

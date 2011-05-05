@@ -210,6 +210,7 @@ static struct amba_dev_id graes_ids[] =
 static struct amba_drv_info graes_drv_info =
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
 		DRIVER_AMBAPP_GAISLER_GRAES_ID,	/* Driver ID */

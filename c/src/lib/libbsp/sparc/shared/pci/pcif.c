@@ -128,6 +128,7 @@ struct amba_dev_id pcif_ids[] =
 struct amba_drv_info pcif_info =
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
 		DRIVER_AMBAPP_GAISLER_PCIF_ID,	/* Driver ID */

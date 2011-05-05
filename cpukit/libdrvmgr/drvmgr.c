@@ -343,6 +343,8 @@ int rtems_drvmgr_drv_register(struct rtems_drvmgr_drv_info *drv)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
 
+	drv->obj_type = DRVMGR_OBJ_DRV;
+
 	/* Put driver into list of registered drivers */
 	rtems_drvmgr_list_add_head(&mgr->drivers, drv);
 
@@ -551,6 +553,7 @@ int rtems_drvmgr_alloc_dev(struct rtems_drvmgr_dev_info **pdev, int extra)
 	}
 	*pdev = dev;
 	memset(dev, 0, size);
+	dev->obj_type = DRVMGR_OBJ_DEV;
 
 	return 0;
 }
@@ -569,6 +572,7 @@ int rtems_drvmgr_alloc_bus(struct rtems_drvmgr_bus_info **pbus, int extra)
 	}
 	*pbus = bus;
 	memset(bus, 0, size);
+	bus->obj_type = DRVMGR_OBJ_BUS;
 
 	return 0;
 }

@@ -57,6 +57,13 @@ struct rtems_drvmgr_drv_info;	/* Device */
 #define DRVMGR_BUS_TYPE_SPW_RMAP 6	/* SpaceWire Network bus */
 #define DRVMGR_BUS_TYPE_AMBAPP_RMAP 7	/* SpaceWire RMAP accessed AMBA Plug & Play bus */
 
+enum {
+ DRVMGR_OBJ_NONE = 0,
+ DRVMGR_OBJ_DRV = 1,
+ DRVMGR_OBJ_BUS = 2,
+ DRVMGR_OBJ_DEV = 3,
+};
+
 /*** Driver indentification ***/ 
 
 /* 64-bit identification integer definition
@@ -234,6 +241,7 @@ struct rtems_drvmgr_mmap_entry {
 
 /*! Bus information. Describes a bus. */
 struct rtems_drvmgr_bus_info {
+	int				obj_type;	/*!< DRVMGR_OBJ_BUS */
 	int				bus_type;	/*!< Type of bus */
 	struct rtems_drvmgr_bus_info	*next;		/*!< Next Bus */
 	struct rtems_drvmgr_dev_info	*dev;		/*!< Bus device, the hardware... */
@@ -271,6 +279,7 @@ struct rtems_drvmgr_bus_info {
 
 /*! Device information */
 struct rtems_drvmgr_dev_info {
+	int				obj_type;	/*!< DRVMGR_OBJ_DEV */
 	struct rtems_drvmgr_dev_info	*next;		/*!< Next device */
 	struct rtems_drvmgr_dev_info	*next_in_bus;	/*!< Next device on the same bus */
 	struct rtems_drvmgr_dev_info	*next_in_drv;	/*!< Next device using the same driver */
@@ -298,11 +307,12 @@ struct rtems_drvmgr_dev_info {
 struct rtems_drvmgr_drv_ops {
 	int	(*init[DRVMGR_LEVEL_MAX])(struct rtems_drvmgr_dev_info *);	/*! Function doing Init Stage 1 of a hardware device */
 	int	(*remove)(struct rtems_drvmgr_dev_info *);	/*! Function called when device instance is to be removed */
-	int	(*info)(struct rtems_drvmgr_dev_info *, int, int);/*! Function called to request information about a device or driver */
+	int	(*info)(struct rtems_drvmgr_dev_info *, void (*print)(char *str), int, char *argv[]);/*! Function called to request information about a device or driver */
 };
 
 /*! Information about a driver used during registration */
 struct rtems_drvmgr_drv_info {
+	int				obj_type;	/*!< DRVMGR_OBJ_DRV */
 	struct rtems_drvmgr_drv_info	*next;		/*!< Next Driver */
 	struct rtems_drvmgr_dev_info	*dev;		/*!< Devices using this driver */
 
@@ -330,6 +340,11 @@ struct rtems_drvmgr_drv_reg_func {
 enum {
 	DRVMGR_OK = 0,
 	DRVMGR_NOMEM = 1,
+	DRVMGR_EIO = 2,
+	DRVMGR_EINVAL = 3,
+	DRVMGR_ENOSYS = 4,
+	DRVMGR_TIMEDOUT = 5,
+	DRVMGR_EBUSY = 6,
 	DRVMGR_FAIL = -1
 };
 

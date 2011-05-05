@@ -87,6 +87,7 @@ struct rtems_drvmgr_drv_ops ambapp_grlib_drv_ops =
 
 struct rtems_drvmgr_drv_info ambapp_bus_drv_grlib = 
 {
+	DRVMGR_OBJ_DRV,			/* Driver */
 	NULL,				/* Next driver */
 	NULL,				/* Device list */
 	DRIVER_GRLIB_AMBAPP_ID,		/* Driver ID */

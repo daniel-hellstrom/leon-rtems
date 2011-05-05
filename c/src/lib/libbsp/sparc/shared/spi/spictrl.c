@@ -193,6 +193,7 @@ struct amba_dev_id spictrl_ids[] =
 struct amba_drv_info spictrl_drv_info =
 {
 	{
+		DRVMGR_OBJ_DRV,				/* Driver */
 		NULL,					/* Next driver */
 		NULL,					/* Device list */
 		DRIVER_AMBAPP_GAISLER_SPICTRL_ID,	/* Driver ID */

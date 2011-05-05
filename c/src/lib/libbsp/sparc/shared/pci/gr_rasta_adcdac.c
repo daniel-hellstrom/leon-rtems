@@ -153,6 +153,7 @@ struct pci_dev_id_match gr_rasta_adcdac_ids[] =
 struct pci_drv_info gr_rasta_adcdac_info =
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
 		DRIVER_PCI_GAISLER_RASTAADCDAC_ID,/* Driver ID */

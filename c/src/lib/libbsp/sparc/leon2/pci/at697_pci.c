@@ -190,6 +190,7 @@ struct leon2_amba_dev_id at697pci_ids[] =
 struct leon2_amba_drv_info at697pci_info =
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
 		DRIVER_LEON2_AMBA_AT697PCI,	/* Driver ID */

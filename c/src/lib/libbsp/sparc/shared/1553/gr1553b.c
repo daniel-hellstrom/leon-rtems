@@ -284,6 +284,7 @@ struct amba_dev_id gr1553_ids[] =
 struct amba_drv_info gr1553_drv_info =
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
 		DRIVER_AMBAPP_GAISLER_GR1553B_ID,/* Driver ID */

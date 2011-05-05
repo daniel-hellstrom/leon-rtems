@@ -356,6 +356,7 @@ struct amba_dev_id spwcuc_ids[] =
 struct amba_drv_info spwcuc_drv_info =
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
 		DRIVER_AMBAPP_GAISLER_SPWCUC_ID,/* Driver ID */

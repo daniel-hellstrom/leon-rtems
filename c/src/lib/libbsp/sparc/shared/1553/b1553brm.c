@@ -287,6 +287,7 @@ struct amba_dev_id b1553brm_ids[] =
 struct amba_drv_info b1553brm_drv_info =
 {
 	{
+		DRVMGR_OBJ_DRV,				/* Driver */
 		NULL,					/* Next driver */
 		NULL,					/* Device list */
 		DRIVER_AMBAPP_GAISLER_B1553BRM_ID,	/* Driver ID */

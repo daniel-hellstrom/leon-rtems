@@ -100,6 +100,7 @@ struct leon2_amba_dev_id ambapp_leon2_ids[] =
 struct leon2_amba_drv_info ambapp_bus_drv_leon2 = 
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
 		DRIVER_LEON2_AMBA_AMBAPP,	/* Driver ID */

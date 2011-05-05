@@ -107,6 +107,7 @@ struct amba_dev_id router_ids[] =
 struct amba_drv_info router_drv_info =
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
 		DRIVER_AMBAPP_GAISLER_SPW_ROUTER_ID,/* Driver ID */

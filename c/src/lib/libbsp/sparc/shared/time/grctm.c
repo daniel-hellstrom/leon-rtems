@@ -396,9 +396,10 @@ struct amba_dev_id grctm_ids[] =
 struct amba_drv_info grctm_drv_info =
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
-		DRIVER_AMBAPP_GAISLER_GRCTM_ID,/* Driver ID */
+		DRIVER_AMBAPP_GAISLER_GRCTM_ID,	/* Driver ID */
 		"GRCTM_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&grctm_ops,

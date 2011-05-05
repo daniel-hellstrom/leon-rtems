@@ -143,6 +143,7 @@ struct pci_dev_id_match gr_tmtc_1553_ids[] =
 struct pci_drv_info gr_tmtc_1553_info =
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
 		DRIVER_PCI_GAISLER_TMTC_1553_ID, /* Driver ID */

@@ -167,6 +167,7 @@ struct pci_dev_id_match gr701_ids[] =
 struct pci_drv_info gr701_info =
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
 		DRIVER_PCI_GAISLER_GR701_ID,	/* Driver ID */

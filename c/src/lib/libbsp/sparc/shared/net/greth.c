@@ -1262,6 +1262,7 @@ struct amba_dev_id greth_ids[] =
 struct amba_drv_info greth_drv_info =
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
 		DRIVER_AMBAPP_GAISLER_GRETH_ID,	/* Driver ID */

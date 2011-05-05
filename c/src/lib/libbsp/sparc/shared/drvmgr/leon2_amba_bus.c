@@ -506,6 +506,7 @@ struct rtems_drvmgr_drv_ops leon2_amba_ops =
 
 struct rtems_drvmgr_drv_info leon2_bus_drv =
 {
+	DRVMGR_OBJ_DRV,			/* Driver */
 	NULL,				/* Next driver */
 	NULL,				/* Device list */
 	DRIVER_LEON2_AMBA_ID,		/* Driver ID */

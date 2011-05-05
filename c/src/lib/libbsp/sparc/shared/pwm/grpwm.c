@@ -197,6 +197,7 @@ struct amba_dev_id grpwm_ids[] =
 struct amba_drv_info grpwm_drv_info =
 {
 	{
+		DRVMGR_OBJ_DRV,				/* Driver */
 		NULL,					/* Next driver */
 		NULL,					/* Device list */
 		DRIVER_AMBAPP_GAISLER_GRPWM_ID,		/* Driver ID */

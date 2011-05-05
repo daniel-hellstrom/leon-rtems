@@ -250,9 +250,10 @@ static struct amba_dev_id grpwrx_ids[] =
 static struct amba_drv_info grpwrx_drv_info =
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
-		DRIVER_AMBAPP_GAISLER_GRPWRX_ID,	/* Driver ID */
+		DRIVER_AMBAPP_GAISLER_GRPWRX_ID,/* Driver ID */
 		"GRPWRX_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&grpwrx_ops,
