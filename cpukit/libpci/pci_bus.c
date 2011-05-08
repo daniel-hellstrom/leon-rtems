@@ -22,8 +22,6 @@
  *
  */
 
-#define INSERT_DEV_LAST_IN_BUS_DEVLIST
-
 /* Use PCI Configuration libarary pci_hb RAM device structure to find devices,
  * undefine to access PCI configuration space directly.
  */
@@ -310,9 +308,7 @@ int pcibus_dev_register(struct pci_dev *dev, void *arg)
 	struct rtems_drvmgr_bus_info *pcibus = arg;
 	struct rtems_drvmgr_dev_info *newdev;
 	struct pci_dev_info *pciinfo;
-#ifdef INSERT_DEV_LAST_IN_BUS_DEVLIST
-	struct rtems_drvmgr_dev_info *device;
-#endif
+
 	pci_dev_t pcidev = dev->busdevfun;
 
 	DBG("PCI DEV REGISTER: %x:%x:%x\n", PCI_DEV_EXPAND(pcidev));
@@ -327,22 +323,6 @@ int pcibus_dev_register(struct pci_dev *dev, void *arg)
 	newdev->drv = NULL;
 	newdev->name = (char *)(newdev + 1);
 	newdev->next_in_drv = NULL;
-#ifdef INSERT_DEV_LAST_IN_BUS_DEVLIST
-	/* Insert Last in Bus Device Queue */
-	if ( newdev->parent->children ) {
-		device = newdev->parent->children;
-		while ( device->next )
-			device = device->next;
-		device->next_in_bus = newdev;
-	} else {
-		newdev->parent->children = newdev;
-	}
-	newdev->next_in_bus = NULL;
-#else
-	/* Insert First in Bus Device Queue */
-	newdev->next_in_bus = newdev->parent->children;
-	newdev->parent->children = newdev;
-#endif
 	newdev->bus = NULL;
 
 	/* Init PnP information, Assign Core interfaces with this device */
@@ -393,9 +373,6 @@ int pcibus_dev_register(pci_dev_t pcidev, void *arg)
 	struct rtems_drvmgr_bus_info *pcibus = arg;
 	struct rtems_drvmgr_dev_info *newdev;
 	struct pci_dev_info *pciinfo;
-#ifdef INSERT_DEV_LAST_IN_BUS_DEVLIST
-	struct rtems_drvmgr_dev_info *device;
-#endif
 
 	DBG("PCI DEV REGISTER: %x:%x:%x\n", PCI_DEV_EXPAND(pcidev));
 
@@ -409,22 +386,6 @@ int pcibus_dev_register(pci_dev_t pcidev, void *arg)
 	newdev->drv = NULL;
 	newdev->name = (char *)(newdev + 1);
 	newdev->next_in_drv = NULL;
-#ifdef INSERT_DEV_LAST_IN_BUS_DEVLIST
-	/* Insert Last in Bus Device Queue */
-	if ( newdev->parent->children ) {
-		device = newdev->parent->children;
-		while ( device->next_in_bus )
-			device = device->next_in_bus;
-		device->next_in_bus = newdev;
-	} else {
-		newdev->parent->children = newdev;
-	}
-	newdev->next_in_bus = NULL;
-#else
-	/* Insert First in Bus Device Queue */
-	newdev->next_in_bus = newdev->parent->children;
-	newdev->parent->children = newdev;
-#endif
 	newdev->bus = NULL;
 
 	/* Init PnP information, Assign Core interfaces with this device */

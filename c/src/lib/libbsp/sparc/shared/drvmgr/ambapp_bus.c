@@ -452,8 +452,6 @@ int ambapp_dev_fixup(struct rtems_drvmgr_dev_info *dev, struct amba_dev_info *pn
 		for(core = 1; core < subcores; core++) {
 			rtems_drvmgr_alloc_dev(&newdev, sizeof(*pnpinfo));
 			memcpy(newdev, dev, sizeof(*newdev));
-			newdev->next_in_bus = newdev->parent->children;
-			newdev->parent->children = newdev;
 			pnpinfo = (struct amba_dev_info *)(newdev+1);
 			memcpy(pnpinfo, pnp, sizeof(*pnp));
 			pnpinfo->info.index = core;
@@ -553,10 +551,6 @@ void ambapp_core_register(
 	newdev->businfo = (void *)pnpinfo;
 
 	ambapp_dev_fixup(newdev, pnpinfo);
-
-	/* Insert device into AMBAPP children devices list */
-	newdev->next_in_bus = newdev->parent->children;
-	newdev->parent->children = newdev;
 
 	/* Register New Device */
 	rtems_drvmgr_dev_register(newdev);

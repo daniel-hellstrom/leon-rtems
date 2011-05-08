@@ -220,8 +220,6 @@ int leon2_amba_dev_register(struct rtems_drvmgr_bus_info *bus, struct leon2_core
 	newdev->drv = NULL;
 	newdev->name = core->name;
 	newdev->next_in_drv = NULL;
-	newdev->next_in_bus = newdev->parent->children;
-	newdev->parent->children = newdev;
 	newdev->bus = NULL;
 
 	/* Register new device */

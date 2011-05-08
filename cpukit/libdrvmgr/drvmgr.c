@@ -18,6 +18,9 @@
 
 #include "drvmgr_internal.h"
 
+/* Insert devices last in bus children list (in registration order) */
+#define INSERT_DEV_LAST_IN_BUS_DEVLIST
+
 /* Enable debugging */
 /*#define DEBUG 1*/
 
@@ -430,6 +433,24 @@ int rtems_drvmgr_dev_register(struct rtems_drvmgr_dev_info *dev)
 	struct rtems_drvmgr_drv_info *drv;
 	struct rtems_drvmgr_bus_info *busdev = dev->parent;
 	struct rtems_drvmgr_key *keys;
+#ifdef INSERT_DEV_LAST_IN_BUS_DEVLIST
+	struct rtems_drvmgr_dev_info *device;
+
+	/* Insert Last in Bus Device Queue */
+	if ( dev->parent->children ) {
+		device = dev->parent->children;
+		while ( device->next_in_bus )
+			device = device->next_in_bus;
+		device->next_in_bus = dev;
+	} else {
+		dev->parent->children = dev;
+	}
+	dev->next_in_bus = NULL;
+#else
+	/* Insert First in Bus Device Queue */
+	dev->next_in_bus = dev->parent->children;
+	dev->parent->children = dev;
+#endif
 
 	/* Init dev */
 	if ( busdev ) {
