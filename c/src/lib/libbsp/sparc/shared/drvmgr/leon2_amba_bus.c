@@ -67,7 +67,6 @@ int leon2_amba_int_mask(
 int leon2_amba_int_unmask(
 	struct rtems_drvmgr_dev_info *dev,
 	int index);
-int leon2_amba_dev_id_compare(struct leon2_amba_dev_info *a, struct leon2_amba_dev_info *b);
 
 /* LEON2 bus operations */
 struct rtems_drvmgr_bus_ops leon2_amba_bus_ops =
@@ -80,7 +79,6 @@ struct rtems_drvmgr_bus_ops leon2_amba_bus_ops =
 	},
 	.remove = NULL,
 	.unite		= leon2_amba_unite,
-	.dev_id_compare = (int(*)(void*,void*)) leon2_amba_dev_id_compare,
 	.int_register	= leon2_amba_int_register,
 	.int_unregister	= leon2_amba_int_unregister,
 	.int_enable	= leon2_amba_int_enable,
@@ -328,11 +326,6 @@ int leon2_amba_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_
 	}
 
 	return 0;
-}
-
-int leon2_amba_dev_id_compare(struct leon2_amba_dev_info *a, struct leon2_amba_dev_info *b)
-{
-	return (a->core_id - b->core_id);
 }
 
 rtems_isr leon2_amba_isr(rtems_vector_number v)

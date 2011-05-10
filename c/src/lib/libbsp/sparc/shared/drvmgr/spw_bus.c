@@ -70,7 +70,6 @@ int spw_bus_int_unregister(struct rtems_drvmgr_dev_info *dev, int index, rtems_d
 int spw_bus_int_enable(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
 int spw_bus_int_disable(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
 int spw_bus_int_clear(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
-int spw_bus_dev_id_compare(struct spw_bus_dev_info *a, struct spw_bus_dev_info *b);
 
 int spw_bus_freq_get(
 	struct rtems_drvmgr_dev_info *dev,
@@ -101,7 +100,6 @@ struct rtems_drvmgr_bus_ops spw_bus_ops =
 			},
 	.remove		= NULL,
 	.unite		= spw_bus_unite,
-	.dev_id_compare = (int(*)(void*,void*)) spw_bus_dev_id_compare,
 	.int_register	= spw_bus_int_register,
 	.int_unregister	= spw_bus_int_unregister,
 	.int_enable	= spw_bus_int_enable,
@@ -426,11 +424,6 @@ int spw_bus_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_inf
 	}
 
 	return 0;
-}
-
-int spw_bus_dev_id_compare(struct spw_bus_dev_info *a, struct spw_bus_dev_info *b)
-{
-	return (a->spwid - b->spwid);
 }
 
 int spw_bus_int_get(struct rtems_drvmgr_dev_info *dev, int index)

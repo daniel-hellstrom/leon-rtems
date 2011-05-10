@@ -1,6 +1,6 @@
 /* Driver Manager Interface Implementation.
  *
- *  COPYRIGHT (c) 2009.
+ *  COPYRIGHT (c) 2009-2011.
  *  Aeroflex Gaisler AB
  *
  *  The license and distribution terms for this file may be
@@ -17,9 +17,6 @@
 #include <drvmgr/drvmgr_confdefs.h>
 
 #include "drvmgr_internal.h"
-
-/* Insert devices last in bus children list (in registration order) */
-#define INSERT_DEV_LAST_IN_BUS_DEVLIST
 
 /* Enable debugging */
 /*#define DEBUG 1*/
@@ -354,51 +351,21 @@ int rtems_drvmgr_drv_register(struct rtems_drvmgr_drv_info *drv)
 	return 0;
 }
 
-/* Get a unique number for a hardware device. Devices of the same type and on the same bus
- * may not have the same number, however device of different type may. This number can be
- * used later to separate devices on a particular bus.
+/* Insert a device into a driver's device list and assign a driver minor number
+ * to the device.
  *
- * This function simply returns the number of devices of the same type currently 
- * registered. If no devices of the same type has been registered 0 is returned...
- * 
+ * The devices are ordered by their minor number (sorted linked list of devices)
+ * the minor number is found by looking for a gap or at the end.
  */
-static int find_bus_minor(
-	struct rtems_drvmgr_dev_info *dev,
-	struct rtems_drvmgr_dev_info *busdev,
-	void *businfo)
-{
-	int cnt = 0;
-	int (*func)(void *a, void *b);
-
-	if ( !busdev || !busdev->parent || !busdev->parent->ops || !busdev->parent->ops->dev_id_compare )
-		return 0;
-	/* Get compare function from Bus driver that the device belongs to */
-	func = busdev->parent->ops->dev_id_compare;
-
-	while ( busdev ) {
-		/* Compare */
-		if ( (dev != busdev) && (func(businfo, busdev->businfo) == 0) ) {
-			cnt++;
-		}
-		busdev = busdev->next_in_bus;
-	}
-	return cnt;
-}
-
-/* Find next minor number for a driver, when the devices are ordered by their
- * minor number (sorted linked list of devices) the minor number is found by
- * looking for a gap or at the end.
- * 
- */
-void rtems_drvmgr_insert_dev_into_drv(
+static void rtems_drvmgr_insert_dev_into_drv(
 	struct rtems_drvmgr_drv_info *drv,
 	struct rtems_drvmgr_dev_info *dev)
 {
-	struct rtems_drvmgr_dev_info *curr, *prev;
+	struct rtems_drvmgr_dev_info *curr, **pprevnext;
 	int minor;
 
 	minor = 0;
-	prev = NULL;
+	pprevnext = &drv->dev;
 	curr = drv->dev;
 
 	while (curr) {
@@ -408,22 +375,72 @@ void rtems_drvmgr_insert_dev_into_drv(
 			break;
 		}
 		minor++;
-		prev = curr;
+		pprevnext = &curr->next_in_drv;
 		curr = curr->next_in_drv;
 	}
-
-	if ( prev == NULL ) {
-		/* First in list */
-		dev->next_in_drv = curr;
-		drv->dev = dev;
-	} else {
-		/* End of list or in middle */
-		dev->next_in_drv = prev->next_in_drv;
-		prev->next_in_drv = dev;
-	}
+	dev->next_in_drv = curr;
+	*pprevnext = dev;
 
 	/* Set minor */
 	dev->minor_drv = minor;
+	drv->dev_cnt++;
+}
+
+/* Insert a device into a bus device list and assign a bus minor number to the
+ * device.
+ *
+ * The devices are ordered by their minor number (sorted linked list of devices)
+ * and by their registeration order if not using the same driver.
+ *
+ * The minor number is found by looking for a gap or at the end.
+ */
+static void rtems_drvmgr_insert_dev_into_bus(
+	struct rtems_drvmgr_bus_info *bus,
+	struct rtems_drvmgr_dev_info *dev)
+{
+	struct rtems_drvmgr_dev_info *curr, **pprevnext;
+	int minor;
+
+	minor = 0;
+	pprevnext = &bus->children;
+	curr = bus->children;
+
+	while (curr) {
+		if (dev->drv && (dev->drv == curr->drv)) {
+			if (minor < curr->minor_bus) {
+				/* Found a gap. Insert new device between prev
+				 * and curr. */
+				break;
+			}
+			minor++;
+		}
+		pprevnext = &curr->next_in_bus;
+		curr = curr->next_in_bus;
+	}
+	dev->next_in_bus = curr;
+	*pprevnext = dev;
+
+	/* Set minor. Devices without driver are given -1 */
+	if (dev->drv == NULL)
+		minor = -1;
+	dev->minor_bus = minor;
+	bus->dev_cnt++;
+}
+
+/* Try to find a driver for a device (unite a device with driver).
+ * a device with a driver
+ */
+static struct rtems_drvmgr_drv_info *rtems_drvmgr_dev_find_drv(
+		struct rtems_drvmgr_dev_info *dev)
+{
+	struct rtems_driver_manager *mgr = &drv_mgr;
+	struct rtems_drvmgr_drv_info *drv;
+
+	/* Try to find a driver that can handle this device */
+	for (drv = DRV_LIST_HEAD(&mgr->drivers); drv; drv = drv->next)
+		if (dev->parent->ops->unite(drv, dev) == 1)
+			return drv;
+	return NULL;
 }
 
 /* Register a device */
@@ -431,117 +448,90 @@ int rtems_drvmgr_dev_register(struct rtems_drvmgr_dev_info *dev)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
 	struct rtems_drvmgr_drv_info *drv;
-	struct rtems_drvmgr_bus_info *busdev = dev->parent;
+	struct rtems_drvmgr_bus_info *bus = dev->parent;
 	struct rtems_drvmgr_key *keys;
-#ifdef INSERT_DEV_LAST_IN_BUS_DEVLIST
-	struct rtems_drvmgr_dev_info *device;
-
-	/* Insert Last in Bus Device Queue */
-	if ( dev->parent->children ) {
-		device = dev->parent->children;
-		while ( device->next_in_bus )
-			device = device->next_in_bus;
-		device->next_in_bus = dev;
-	} else {
-		dev->parent->children = dev;
-	}
-	dev->next_in_bus = NULL;
-#else
-	/* Insert First in Bus Device Queue */
-	dev->next_in_bus = dev->parent->children;
-	dev->parent->children = dev;
-#endif
-
-	/* Init dev */
-	if ( busdev ) {
-		/* Only root device has no parent. */
-		dev->minor_bus = find_bus_minor(dev, busdev->children, dev->businfo);
-		busdev->dev_cnt++;
-	}
+	struct rtems_drvmgr_list *init_list = &mgr->devices_inactive;
 
 	DBG("DEV_REG: %s at bus \"%s\"\n", dev->name, 
-		dev->parent && dev->parent->dev && dev->parent->dev->name ?
-		dev->parent->dev->name : "UNKNOWN");
+		bus && bus->dev && bus->dev->name ? bus->dev->name : "UNKNOWN");
 
 	/* Custom driver assocation? */
-	if ( dev->drv ) {
+	if (dev->drv) {
 		drv = dev->drv;
 		DBG("CUSTOM ASSOCIATION (%s to %s)\n", dev->name, drv->name);
-		goto united;
+	} else {
+		/* Try to find a driver that can handle this device */
+		drv = rtems_drvmgr_dev_find_drv(dev);
 	}
 
-	/* Try to find a driver that can handle this device */
-	drv = DRV_LIST_HEAD(&mgr->drivers);
-	while ( drv ) {
-		if ( busdev->ops->unite(drv, dev) == 1) {
-united:
-			/* United device with driver 
-			 * Put the device on the registered device list 
-			 */
-			dev->state |= DEV_STATE_UNITED;
-			dev->drv = drv;
+	dev->drv = drv;
+	if (!drv) {
+		/* No driver found that can handle this device, put into
+		 * inactive list
+		 */
+		dev->minor_drv = -1;
+		dev->state |= DEV_STATE_LIST_INACTIVE;
+	} else {
+		/* United device with driver.
+		 * Put the device on the registered device list 
+		 */
+		dev->state |= DEV_STATE_UNITED;
 
-			/* Check if user want to skip this core. This is not a
-			 * normal request, however in a multi-processor system
-			 * the two RTEMS instances must not use the same
-			 * devices in a system, not reporting a device to
-			 * it's driver will effectively accomplish this. In a
-			 * non Plug & Play system one can easily avoid this
-			 * problem by not report the core, but in a Plug & Play
-			 * system the bus driver will report all found cores.
+		/* Check if user want to skip this core. This is not a
+		 * normal request, however in a multi-processor system
+		 * the two(or more) RTEMS instances must not use the same
+		 * devices in a system, not reporting a device to
+		 * it's driver will effectively accomplish this. In a
+		 * non Plug & Play system one can easily avoid this
+		 * problem by not report the core, but in a Plug & Play
+		 * system the bus driver will report all found cores.
+		 *
+		 * To stop the two RTEMS instances from using the same
+		 * device the user can simply define a resource entry
+		 * for a certain device but set the keys field to NULL.
+		 */
+		if (rtems_drvmgr_keys_get(dev, &keys) == 0 && keys == NULL) {
+			/* Found Driver resource entry point 
+			 * for this device, it was NULL, this
+			 * indicates to skip the core.
 			 *
-			 * To stop the two RTEMS instances from using the same
-			 * device the user can simply device a resource entry
-			 * for a certain device but set the keys field to NULL.
+			 * We put it into the inactive list
+			 * marking it as ignored.
 			 */
-			if ( rtems_drvmgr_keys_get(dev, &keys) == 0 ) {
-				if ( keys == NULL ) {
-					/* Found Driver resource entry point 
-					 * for this device, it was NULL, this
-					 * indicates to skip the core.
-					 *
-					 * We put it into the inactive list
-					 * marking it as ignored.
-					 */
-					 dev->state |= DEV_STATE_IGNORED;
-					 break;
-				}
-			}
-
+			dev->state |= DEV_STATE_IGNORED;
+		} else {
 			/* Assign Driver Minor number and put into driver's
-			 * device list 
+			 * device list
 			 */
 			rtems_drvmgr_insert_dev_into_drv(drv, dev);
-			drv->dev_cnt++;
 
 			/* Just register device, it will be initialized
 			 * later together with bus.
 			 *
 			 * At the end of the list (breadth first search)
 			 */
-			rtems_drvmgr_list_add_tail(&mgr->devices[0], dev);
+			init_list = &mgr->devices[0];
 
 			DBG("Registered %s (DRV: %s) on %s\n",
 				dev->name, drv->name,
-				dev->parent ? dev->parent->dev->name:
-				"NO PARENT" );
-
-			/* Trigger Device initialization if not root device */
-			if ( dev->parent ) {
-				drvmgr_init_update();
-			}
-
-			return 0;
+				bus ? bus->dev->name: "NO PARENT");
 		}
-		drv = drv->next;
 	}
 
-	/* No driver found that can handle this device, put into inactive
-	 * list
-	 */
-	dev->minor_drv = -1;
-	dev->state |= DEV_STATE_LIST_INACTIVE;
-	rtems_drvmgr_list_add_tail(&mgr->devices_inactive, dev);
+	rtems_drvmgr_list_add_tail(init_list, dev);
+
+	if (bus) {
+		/* Assign Bus Minor number and put into bus device list
+		 * unless root device.
+		 */
+		rtems_drvmgr_insert_dev_into_bus(bus, dev);
+
+		/* Trigger Device initialization if not root device and
+		 * has a driver
+		 */
+		if (dev->drv)
+			drvmgr_init_update();
+	}
 
 	return 0;
 }

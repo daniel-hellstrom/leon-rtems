@@ -55,7 +55,6 @@ int ambapp_int_clear(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_
 int ambapp_int_mask(struct rtems_drvmgr_dev_info *dev, int index);
 int ambapp_int_unmask(struct rtems_drvmgr_dev_info *dev, int index);
 int ambapp_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params);
-int ambapp_dev_id_compare(struct amba_dev_info *a, struct amba_dev_info *b);
 int ambapp_bus_freq_get(
 	struct rtems_drvmgr_dev_info *dev,
 	int options,
@@ -72,7 +71,6 @@ struct rtems_drvmgr_bus_ops ambapp_bus_ops =
 	},
 	.remove		= ambapp_bus_remove,
 	.unite		= ambapp_unite,
-	.dev_id_compare = (int(*)(void*,void*)) ambapp_dev_id_compare,
 	.int_register	= ambapp_int_register,
 	.int_unregister	= ambapp_int_unregister,
 	.int_enable	= ambapp_int_enable,
@@ -129,13 +127,6 @@ int ambapp_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_info
 	}
 
 	return 0;
-}
-
-int ambapp_dev_id_compare(struct amba_dev_info *a, struct amba_dev_info *b)
-{
-	if ( (a->id.vendor == b->id.vendor) && (a->id.device == b->id.device) )
-		return 0;
-	return 1;
 }
 
 static int ambapp_int_get(struct rtems_drvmgr_dev_info *dev, int index)

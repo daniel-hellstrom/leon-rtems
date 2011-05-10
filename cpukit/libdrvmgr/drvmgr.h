@@ -135,7 +135,6 @@ struct rtems_drvmgr_bus_ops {
 	int	(*init[DRVMGR_LEVEL_MAX])(struct rtems_drvmgr_bus_info *);
 	int	(*remove)(struct rtems_drvmgr_bus_info *);
 	int	(*unite)(struct rtems_drvmgr_drv_info *, struct rtems_drvmgr_dev_info *);	/*!< Unite Hardware Device with Driver */
-	int	(*dev_id_compare)(void *a, void *b);						/*!< Compare hardware devices from bus information */
 
 	/* Functions called indirectly from drivers */
 	int	(*int_register)(struct rtems_drvmgr_dev_info *, int index, rtems_drvmgr_isr isr, void *arg);

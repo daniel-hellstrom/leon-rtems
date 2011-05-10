@@ -77,8 +77,6 @@ int pcibus_freq_get(
 
 int pcibus_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params);
 
-int pcibus_dev_id_compare(struct pci_dev_info *a, struct pci_dev_info *b);
-
 struct rtems_drvmgr_bus_ops pcibus_ops =
 {
 	.init		= 
@@ -90,7 +88,6 @@ struct rtems_drvmgr_bus_ops pcibus_ops =
 			},
 	.remove		= NULL,
 	.unite		= pcibus_unite,
-	.dev_id_compare = (int(*)(void*,void*)) pcibus_dev_id_compare,
 	.int_register	= pcibus_int_register,
 	.int_unregister	= pcibus_int_unregister,
 	.int_enable	= pcibus_int_enable,
@@ -292,13 +289,6 @@ int pcibus_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus
 	params->dev_prefix = NULL;
 
 	return 0;
-}
-
-int pcibus_dev_id_compare(struct pci_dev_info *a, struct pci_dev_info *b)
-{
-	if ( (a->id.vendor == b->id.vendor) && (a->id.device == b->id.device) )
-		return 0; /* Match */
-	return 1;
 }
 
 #ifdef USE_PCI_CFG_LIB
