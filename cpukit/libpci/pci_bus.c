@@ -321,8 +321,15 @@ int pcibus_dev_register(struct pci_dev *dev, void *arg)
 	/* Read Device and Vendor */
 	pci_cfg_r16(pcidev, PCI_VENDOR_ID, &pciinfo->id.vendor);
 	pci_cfg_r16(pcidev, PCI_DEVICE_ID, &pciinfo->id.device);
-	pci_cfg_r16(pcidev, PCI_SUBSYSTEM_VENDOR_ID, &pciinfo->id.subvendor);
-	pci_cfg_r16(pcidev, PCI_SUBSYSTEM_ID, &pciinfo->id.subdevice);
+	/* Devices have subsytem device and vendor ID */
+	if ((dev->flags & PCI_DEV_BRIDGE) == 0) {
+		pci_cfg_r16(pcidev, PCI_SUBSYSTEM_VENDOR_ID,
+							&pciinfo->id.subvendor);
+		pci_cfg_r16(pcidev, PCI_SUBSYSTEM_ID, &pciinfo->id.subdevice);
+	} else {
+		pciinfo->id.subvendor = 0;
+		pciinfo->id.subdevice = 0;
+	}
 	pci_cfg_r32(pcidev, PCI_CLASS_REVISION, &pciinfo->id.class);
 	pciinfo->rev = pciinfo->id.class & 0xff;
 	pciinfo->id.class = pciinfo->id.class >> 8;
