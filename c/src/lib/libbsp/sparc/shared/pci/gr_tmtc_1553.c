@@ -67,11 +67,9 @@ struct gr_tmtc_1553_priv {
 
 	/* PCI */
 	pci_dev_t			pcidev;
-	unsigned int			bar0;
-	unsigned int			bar1;
+	struct pci_dev_info		*devinfo;
 
 	/* IRQ */
-	unsigned char			irqno;            /* GR-TMTC-1553 System IRQ */
 	genirq_t			genirq;
 
 	struct gr_tmtc_1553_ver         *version;
@@ -218,26 +216,13 @@ int gr_tmtc_1553_hw_init(struct gr_tmtc_1553_priv *priv)
 	struct ambapp_dev *tmp;
 	int status;
 	struct ambapp_ahb_info *ahb;
-	unsigned int tmpbar, bar0size, pci_freq_hz;
+	unsigned int pci_freq_hz;
 	pci_dev_t pcidev = priv->pcidev;
-
-	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_0, &priv->bar0);
-	pci_cfg_r8(pcidev, PCI_INTERRUPT_LINE, &priv->irqno);
-
-	if (priv->bar0 == 0) {
-		return -1;
-	}
-
-	/* Figure out size of BAR0 */
-	pci_cfg_w32(pcidev, PCI_BASE_ADDRESS_0, 0xffffffff);
-	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_0, &tmpbar);
-	pci_cfg_w32(pcidev, PCI_BASE_ADDRESS_0, priv->bar0);
-	tmpbar &= ~0xff; /* Remove lsbits */
-	bar0size = (~tmpbar) + 1;
+	struct pci_dev_info *devinfo = priv->devinfo;
+	uint32_t bar0, bar0_size;
 
 	/* Select version of GR-TMTC-1553 board */
-	pci_cfg_r8(pcidev, PCI_REVISION_ID, &ver);
-	switch (ver) {
+	switch (devinfo->rev) {
 		case 0:
 			priv->version = &gr_tmtc_1553_ver0;
 			break;
@@ -245,9 +230,9 @@ int gr_tmtc_1553_hw_init(struct gr_tmtc_1553_priv *priv)
 			return -2;
 	}
 
-	printf(" PCI BAR[0]: 0x%x, BAR[1]: 0x%x, IRQ: %d\n\n\n", priv->bar0, priv->bar1, priv->irqno);
-
-	page0 = (unsigned int *)(priv->bar0 + bar0size/2); 
+	bar0 = devinfo->resources[0].address;
+	bar0_size = devinfo->resources[0].size;
+	page0 = (unsigned int *)(bar0 + bar0_size/2); 
 
 	/* Point PAGE0 to start of board address map. RAM at 0xff000000, APB at 0xffc00000, IOAREA at 0xfff000000 */
 	/* XXX We assume little endian host with byte twisting enabled here */
@@ -257,7 +242,7 @@ int gr_tmtc_1553_hw_init(struct gr_tmtc_1553_priv *priv)
 
 	/* AMBA MAP bar0 (in CPU) ==> 0x80000000(remote amba address) */
 	priv->amba_maps[0].size = 0x1000000;
-	priv->amba_maps[0].local_adr = priv->bar0;
+	priv->amba_maps[0].local_adr = bar0;
 	priv->amba_maps[0].remote_adr = 0xff000000;
 	
 	/* Addresses not matching with map be untouched */
@@ -272,7 +257,7 @@ int gr_tmtc_1553_hw_init(struct gr_tmtc_1553_priv *priv)
 
 	/* Start AMBA PnP scan at first AHB bus */
 	ambapp_scan(&priv->abus,
-		priv->bar0 + (priv->version->amba_ioarea & ~0xff000000),
+		bar0 + (priv->version->amba_ioarea & ~0xff000000),
 		NULL, &priv->amba_maps[0]);
 
 	/* Frequency is the hsame as the PCI bus frequency */
@@ -318,10 +303,13 @@ int gr_tmtc_1553_init1(struct rtems_drvmgr_dev_info *dev)
 	struct gr_tmtc_1553_priv *priv;
 	struct pci_dev_info *devinfo;
 	int status;
+	uint32_t bar0, bar0_size;
 
 	/* PCI device does not have the IRQ line register, when PCI autoconf configures it the configuration
 	 * is forgotten. We take the IRQ number from the PCI Host device (AMBA device), this works as long
 	 * as PCI-IRQs are ored together on the bus.
+	 *
+	 * Note that this only works on LEON.
 	 */
 	((struct pci_dev_info *)dev->businfo)->irq = ((struct amba_dev_info *)dev->parent->dev->businfo)->info.irq; 
 	
@@ -347,13 +335,21 @@ int gr_tmtc_1553_init1(struct rtems_drvmgr_dev_info *dev)
 	priv->prefix[20] = '/';
 	priv->prefix[21] = '\0';
 
-	devinfo = (struct pci_dev_info *)dev->businfo;
+	priv->devinfo = devinfo = (struct pci_dev_info *)dev->businfo;
 	priv->pcidev = devinfo->pcidev;
+	bar0 = devinfo->resources[0].address;
+	bar0_size = devinfo->resources[0].size;
 	printf("\n\n--- GR-TMTC-1553[%d] ---\n", dev->minor_drv);
 	printf(" PCI BUS: 0x%x, SLOT: 0x%x, FUNCTION: 0x%x\n",
 		PCI_DEV_EXPAND(priv->pcidev));
 	printf(" PCI VENDOR: 0x%04x, DEVICE: 0x%04x\n",
 		devinfo->id.vendor, devinfo->id.device);
+	printf(" PCI BAR[0]: 0x%x - 0x%x\n", bar0, bar0 + bar0_size - 1);
+	printf(" IRQ: %d\n\n\n", devinfo->irq);
+
+	/* all neccessary space assigned to GR-TMTC-1553 target? */
+	if (bar0_size == 0)
+		return DRVMGR_ENORES;
 
 	priv->genirq = genirq_init(16);
 	if ( priv->genirq == NULL ) {
@@ -533,15 +529,20 @@ int ambapp_tmtc_1553_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_
 void gr_tmtc_1553_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 {
 	struct gr_tmtc_1553_priv *priv = dev->priv;
+	struct pci_dev_info *devinfo = priv->devinfo;
 	int i;
+	uint32_t bar0, bar0_size;
 
 	/* Print */
 	printf("--- GR-TMTC-1553 [bus 0x%x, dev 0x%x, fun 0x%x] ---\n",
 		PCI_DEV_EXPAND(priv->pcidev));
-	printf(" PCI BAR0:        0x%x\n", priv->bar0);
-	printf(" PCI BAR1:        0x%x\n", priv->bar1);
+
+	bar0 = devinfo->resources[0].address;
+	bar0_size = devinfo->resources[0].size;
+
+	printf(" PCI BAR[0]: 0x%x - 0x%x\n", bar0, bar0 + bar0_size - 1);
 	printf(" IRQ REGS:        0x%x\n", (unsigned int)priv->irq);
-	printf(" IRQ:             %d\n", priv->irqno);
+	printf(" IRQ:             %d\n", devinfo->irq);
 	printf(" FREQ:            %d Hz\n", priv->version->amba_freq_hz);
 	printf(" IMASK:           0x%08x\n", priv->irq->mask[0]);
 	printf(" IPEND:           0x%08x\n", priv->irq->ipend);

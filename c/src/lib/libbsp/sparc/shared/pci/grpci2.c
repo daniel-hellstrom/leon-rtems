@@ -210,6 +210,20 @@ unsigned char grpci2_pci_irq_table[4] =
 	/* INTD# */	GRPCI2_INTD_SYSIRQ
 };
 
+/* Start of workspace/dynamical area */
+extern unsigned int _end;
+#define DMA_START ((unsigned int) &_end)
+
+/* Default BAR mapping, set BAR0 256MB 1:1 mapped base of CPU RAM */
+struct grpci2_pcibar_cfg grpci2_default_bar_mapping[6] = {
+	/* BAR0 */ {DMA_START, DMA_START, 0x10000000},
+	/* BAR1 */ {0, 0, 0},
+	/* BAR2 */ {0, 0, 0},
+	/* BAR3 */ {0, 0, 0},
+	/* BAR4 */ {0, 0, 0},
+	/* BAR5 */ {0, 0, 0},
+};
+
 /* Driver private data struture */
 struct grpci2_priv {
 	struct rtems_drvmgr_dev_info	*dev;
@@ -218,6 +232,8 @@ struct grpci2_priv {
 	char				irq_mode; /* IRQ Mode from CAPSTS REG */
 	char				bt_enabled;
 	unsigned int			irq_mask;
+
+	struct grpci2_pcibar_cfg	*barcfg;
 
 	unsigned int			pci_area;
 	unsigned int			pci_area_end;
@@ -466,6 +482,75 @@ uint8_t grpci2_bus0_irq_map(pci_dev_t dev, int irq_pin)
 	return sysIrqNr;
 }
 
+int grpci2_translate(uint32_t *address, int type, int dir)
+{
+	uint32_t adr, start, end;
+	struct grpci2_priv *priv = grpci2priv;
+	int i;
+
+	if (type == 1) {
+		/* I/O */
+		if (dir != 0) {
+			/* The PCI bus can not access the CPU bus from I/O
+			 * because GRPCI2 core does not support I/O BARs
+			 */
+			return -1;
+		}
+
+		/* We have got a PCI IO BAR address that the CPU want to access.
+		 * Check that it is within the PCI I/O window, I/O adresses
+		 * are NOT mapped 1:1 with GRPCI2 driver... translation needed.
+		 */
+		adr = *(uint32_t *)address;
+		if (adr < 0x100 || adr > 0x10000)
+			return -1;
+		*address = adr + priv->pci_io;
+	} else {
+		/* MEMIO and MEM.
+		 * Memory space is mapped 1:1 so no translation is needed.
+		 * Check that address is within accessible windows.
+		 */
+		adr = *(uint32_t *)address;
+		if (dir == 0) {
+			/* PCI BAR to AMBA-CPU address.. check that it is
+			 * located within GRPCI2 PCI Memory Window
+			 * adr = PCI address.
+			 */
+			if (adr < priv->pci_area || adr >= priv->pci_area_end)
+				return -1;
+		} else {
+			/* We have a CPU address and want to get access to it
+			 * from PCI space, typically when doing DMA into CPU
+			 * RAM. The GRPCI2 core may have multiple target BARs
+			 * that PCI masters can access, the BARs are user
+			 * configurable in the following ways:
+			 *  BAR_SIZE, PCI_BAR Address and MAPPING (AMBA ADR)
+			 *
+			 * The below code tries to find a BAR for which the
+			 * AMBA bar may have been mapped onto, and translate
+			 * the AMBA-CPU address into a PCI address using the
+			 * given mapping.
+			 *
+			 * adr = AMBA address.
+			 */
+			for(i=0; i<6; i++) {
+				start = priv->barcfg[i].ahbadr;
+				end = priv->barcfg[i].ahbadr +
+					priv->barcfg[i].barsize;
+				if (adr >= start && adr < end) {
+					/* BAR match: Translate address */
+					*address = (adr - start) +
+						priv->barcfg[i].pciadr;
+					return 0;
+				}
+			}
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 struct pci_access_drv grpci2_access_drv = {
 	.cfg =
 	{
@@ -485,7 +570,7 @@ struct pci_access_drv grpci2_access_drv = {
 		sparc_st_le16,
 		sparc_st_le32,
 	},
-	.translate = NULL,
+	.translate = grpci2_translate,
 };
 
 struct pci_io_ops grpci2_io_ops_be =
@@ -524,14 +609,14 @@ void grpci2_err_isr(int irqno, struct grpci2_priv *priv)
 	}
 }
 
-int grpci2_hw_init(struct grpci2_priv *priv, struct grpci2_pcibar_cfg *barcfg)
+int grpci2_hw_init(struct grpci2_priv *priv)
 {
-	unsigned int ahbadr, pciadr, bar_sz;
 	struct grpci2_regs *regs = priv->regs;
 	int i;
 	uint8_t capptr;
-	uint32_t data, addr, mbar0size, io_map;
+	uint32_t data, addr, mbar0size, io_map, ahbadr, pciadr, size;
 	pci_dev_t host = PCI_DEV(0, 0, 0);
+	struct grpci2_pcibar_cfg *barcfg = priv->barcfg;
 
 	/* Reset any earlier setup */
 	regs->ctrl = 0;
@@ -561,36 +646,18 @@ int grpci2_hw_init(struct grpci2_priv *priv, struct grpci2_pcibar_cfg *barcfg)
 	io_map = (io_map & ~0x1) | (priv->bt_enabled ? 1 : 0);
 	grpci2_cfg_w32(host, capptr+CAP9_IOMAP_OFS, io_map);
 
-	/* Setup the Host's PCI Target BARs for others to access.
-	 *
-	 * MAP BAR0 to Main memory for targets to access host's memory on DMA
-	 * trasactions, PCI <-> AHB address is not translated (1:1). The other
-	 * BARs are disabled by default.
-	 *
-	 * The user may override the configuration with "tgtBarCfg" resource,
-	 * BARs that are defined with PCI address 0xffffffff are ignored
-	 * (default used).
-	 */
+	/* Setup the Host's PCI Target BARs for others to access (DMA) */
 	for (i=0; i<6; i++) {
-		if (i == 0) {
-			pciadr = (unsigned int)grpci2_hw_init & 0xf0000000;
-			ahbadr = pciadr;
-			bar_sz = 0x10000000; /* Guess 256Mb */
-		} else {
-			/* Default is to disable BAR */
-			pciadr = 0;
-			ahbadr = 0;
-			bar_sz = 0;
-		}
-		/* Let user Override default configuration, alignment must
-		 * be correct
-		 */
-		if (barcfg && (barcfg[i].pciadr != 0xffffffff)) {
-			pciadr = barcfg[i].pciadr;
-			ahbadr = barcfg[i].ahbadr;
-			bar_sz = ((pciadr - 1) & ~pciadr) + 1;
-		}
-		grpci2_cfg_w32(host, capptr+CAP9_BARSIZE_OFS+i*4, bar_sz);
+		/* Make sure address is properly aligned */
+		size = ~(barcfg[i].barsize-1);
+		barcfg[i].pciadr &= size;
+		barcfg[i].ahbadr &= size;
+
+		pciadr = barcfg[i].pciadr;
+		ahbadr = barcfg[i].ahbadr;
+		size |= PCI_BASE_ADDRESS_MEM_PREFETCH;
+
+		grpci2_cfg_w32(host, capptr+CAP9_BARSIZE_OFS+i*4, size);
 		grpci2_cfg_w32(host, capptr+CAP9_BAR_OFS+i*4, ahbadr);
 		grpci2_cfg_w32(host, PCI_BASE_ADDRESS_0+i*4, pciadr);
 	}
@@ -689,9 +756,9 @@ int grpci2_init(struct grpci2_priv *priv)
 	/* Let user Configure the 6 target BARs */
 	value = rtems_drvmgr_dev_key_get(priv->dev, "tgtBarCfg", KEY_TYPE_POINTER);
 	if (value)
-		barcfg = value->ptr;
+		priv->barcfg = value->ptr;
 	else
-		barcfg = NULL;
+		priv->barcfg = grpci2_default_bar_mapping;
 
 	/* This driver only support HOST systems, we check that it can act as a 
 	 * PCI Master and that it is in the Host slot. */
@@ -699,7 +766,7 @@ int grpci2_init(struct grpci2_priv *priv)
 		return -2; /* Target not supported */
 
 	/* Init the PCI Core */
-	if (grpci2_hw_init(priv, barcfg))
+	if (grpci2_hw_init(priv))
 		return -3;
 
 	/* Install PCI Error interrupt handler */
@@ -763,8 +830,8 @@ int grpci2_init1(struct rtems_drvmgr_dev_info *dev)
 	grpci2_auto_cfg.mem_size = 0;
 	grpci2_auto_cfg.memio_start = priv->pci_area;
 	grpci2_auto_cfg.memio_size = priv->pci_area_end - priv->pci_area;
-	grpci2_auto_cfg.io_start = priv->pci_io;
-	grpci2_auto_cfg.io_size = priv->pci_conf - priv->pci_io;
+	grpci2_auto_cfg.io_start = 0x100; /* avoid PCI address 0 */
+	grpci2_auto_cfg.io_size = 0x10000 - 0x100; /* lower 64kB I/O 16 */
 	grpci2_auto_cfg.irq_map = grpci2_bus0_irq_map;
 	grpci2_auto_cfg.irq_route = NULL; /* use standard routing */
 	pci_config_register(&grpci2_auto_cfg);

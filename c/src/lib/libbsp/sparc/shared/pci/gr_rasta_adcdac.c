@@ -46,6 +46,13 @@
 #define DBG(x...) 
 #endif
 
+/* Determines which PCI address the AHB masters will access, it should be
+ * set so that the masters can access the CPU RAM. Default is base of CPU RAM,
+ * CPU RAM is mapped 1:1 to PCI space.
+ */
+extern unsigned int _RAM_START;
+#define AHBMST2PCIADR (_RAM_START & 0xf0000000)
+
 /* PCI ID */
 #define PCIID_VENDOR_GAISLER		0x1AC8
 #define PCIID_DEVICE_GR_RASTA_ADCDAC	0x0014
@@ -76,11 +83,10 @@ struct gr_rasta_adcdac_priv {
 
 	/* PCI */
 	pci_dev_t			pcidev;
-	unsigned int			bar0;
-	unsigned int			bar1;
+	struct pci_dev_info		*devinfo;
+	uint32_t			ahbmst2pci_map;
 
 	/* IRQ */
-	unsigned char			irqno;            /* GR-RASTA-ADCDAC System IRQ */
 	genirq_t			genirq;
 
 	/* GR-RASTA-ADCDAC */
@@ -229,29 +235,12 @@ int gr_rasta_adcdac_hw_init1(struct gr_rasta_adcdac_priv *priv)
 	struct ambapp_dev *tmp;
 	int status;
 	struct ambapp_ahb_info *ahb;
-	unsigned int tmpbar, bar0size;
 	pci_dev_t pcidev = priv->pcidev;
-
-	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_0, &priv->bar0);
-	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_1, &priv->bar1);
-	pci_cfg_r8(pcidev, PCI_INTERRUPT_LINE, &priv->irqno);
-
-	if ( (priv->bar0 == 0) || (priv->bar1 == 0) ) {
-		/* Not all neccessary space assigned to GR-RASTA-ADCDAC target */
-		return -1;
-	}
-
-	/* Figure out size of BAR0 */
-#warning USE PCI-resources here to get size
-	pci_cfg_w32(pcidev, PCI_BASE_ADDRESS_0, 0xffffffff);
-	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_0, &tmpbar);
-	pci_cfg_w32(pcidev, PCI_BASE_ADDRESS_0, priv->bar0);
-	tmpbar &= ~0xff; /* Remove lsbits */
-	bar0size = (~tmpbar) + 1;
+	struct pci_dev_info *devinfo = priv->devinfo;
+	uint32_t bar0, bar0_size;
 
 	/* Select version of GR-RASTA-ADCDAC board */
-	pci_cfg_r8(pcidev, PCI_REVISION_ID, &ver);
-	switch (ver) {
+	switch (devinfo->rev) {
 		case 0:
 			priv->version = &gr_rasta_adcdac_ver0;
 			break;
@@ -259,9 +248,9 @@ int gr_rasta_adcdac_hw_init1(struct gr_rasta_adcdac_priv *priv)
 			return -2;
 	}
 
-	printf(" PCI BAR[0]: 0x%x, BAR[1]: 0x%x, IRQ: %d\n\n\n", priv->bar0, priv->bar1, priv->irqno);
-
-	page0 = (unsigned int *)(priv->bar0 + bar0size/2); 
+	bar0 = devinfo->resources[0].address;
+	bar0_size = devinfo->resources[0].size;
+	page0 = (unsigned int *)(bar0 + bar0_size/2); 
 
 	/* Point PAGE0 to start of Plug and Play information */
 	*page0 = priv->version->amba_ioarea & 0xf0000000;
@@ -275,15 +264,15 @@ int gr_rasta_adcdac_hw_init1(struct gr_rasta_adcdac_priv *priv)
 	/* Scan AMBA Plug&Play */
 
 	/* AMBA MAP bar0 (in CPU) ==> 0x80000000(remote amba address) */
-	priv->amba_maps[0].size = 0x10000000;
-	priv->amba_maps[0].local_adr = priv->bar0;
+	priv->amba_maps[0].size = bar0_size/2;
+	priv->amba_maps[0].local_adr = bar0;
 	priv->amba_maps[0].remote_adr = 0x80000000;
 
 	/* AMBA MAP bar1 (in CPU) ==> 0x40000000(remote amba address) */
-	priv->amba_maps[1].size = 0x10000000;
-	priv->amba_maps[1].local_adr = priv->bar1;
+	priv->amba_maps[1].size = devinfo->resources[1].size;
+	priv->amba_maps[1].local_adr = devinfo->resources[1].address;
 	priv->amba_maps[1].remote_adr = 0x40000000;
-	
+
 	/* Addresses not matching with map be untouched */
 	priv->amba_maps[2].size = 0xfffffff0;
 	priv->amba_maps[2].local_adr = 0;
@@ -298,7 +287,7 @@ int gr_rasta_adcdac_hw_init1(struct gr_rasta_adcdac_priv *priv)
 	/*ambapp_scan(priv->bar0 + (priv->version->amba_ioarea & ~0xf0000000),
 		NULL, &priv->amba_maps[0], NULL, &priv->abus.root, NULL);*/
 	ambapp_scan(&priv->abus,
-		priv->bar0 + (priv->version->amba_ioarea & ~0xf0000000),
+		bar0 + (priv->version->amba_ioarea & ~0xf0000000),
 		NULL, &priv->amba_maps[0]);
 
 	/* Initialize Frequency of AMBA bus */
@@ -315,7 +304,11 @@ int gr_rasta_adcdac_hw_init1(struct gr_rasta_adcdac_priv *priv)
 	}
 	priv->grpci = (struct grpci_regs *)((struct ambapp_apb_info *)tmp->devinfo)->start;
 
-	priv->grpci->cfg_stat = (priv->grpci->cfg_stat & 0x0fffffff) | 0x40000000;    /* Set GRPCI mmap 0x4 */
+	/* Set GRPCI mmap so that AMBA masters can access CPU-RAM over
+	 * the PCI window.
+	 */
+	priv->grpci->cfg_stat = (priv->grpci->cfg_stat & 0x0fffffff) |
+				priv->ahbmst2pci_map & 0xf0000000;
 	priv->grpci->page1 = 0x40000000;
 
 	/* Find IRQ controller */
@@ -373,6 +366,8 @@ int gr_rasta_adcdac_init1(struct rtems_drvmgr_dev_info *dev)
 	struct gr_rasta_adcdac_priv *priv;
 	struct pci_dev_info *devinfo;
 	int status;
+	uint32_t bar0, bar1, bar0_size, bar1_size;
+	union rtems_drvmgr_key_value *value;
 
 	priv = malloc(sizeof(struct gr_rasta_adcdac_priv));
 	if ( !priv )
@@ -396,13 +391,37 @@ int gr_rasta_adcdac_init1(struct rtems_drvmgr_dev_info *dev)
 	priv->prefix[17] = '/';
 	priv->prefix[18] = '\0';
 
-	devinfo = (struct pci_dev_info *)dev->businfo;
+	priv->devinfo = devinfo = (struct pci_dev_info *)dev->businfo;
 	priv->pcidev = devinfo->pcidev;
+	bar0 = devinfo->resources[0].address;
+	bar0_size = devinfo->resources[0].size;
+	bar1 = devinfo->resources[1].address;
+	bar1_size = devinfo->resources[1].size;
 	printf("\n\n--- GR-RASTA-ADCDAC[%d] ---\n", dev->minor_drv);
 	printf(" PCI BUS: 0x%x, SLOT: 0x%x, FUNCTION: 0x%x\n",
 		PCI_DEV_EXPAND(priv->pcidev));
 	printf(" PCI VENDOR: 0x%04x, DEVICE: 0x%04x\n",
 		devinfo->id.vendor, devinfo->id.device);
+	printf(" PCI BAR[0]: 0x%x - 0x%x\n", bar0, bar0 + bar0_size - 1);
+	printf(" PCI BAR[1]: 0x%x - 0x%x\n", bar1, bar1 + bar1_size - 1);
+	printf(" IRQ: %d\n\n\n", devinfo->irq);
+
+	/* all neccessary space assigned to GR-RASTA-ADCDAC target? */
+	if ((bar0_size == 0) || (bar1_size == 0))
+		return DRVMGR_ENORES;
+
+	/* Let user override which PCI address the AHB masters of the
+	 * RASTA-ADCDAC board access when doing DMA to CPU RAM. The AHB masters
+	 * access the PCI Window of the AMBA bus, the MSB 4-bits of that address
+	 * is translated according this config option before the address
+	 * goes out on the PCI bus.
+	 * Only the 4 MSB bits have an effect;
+	 */
+	value = rtems_drvmgr_dev_key_get(priv->dev, "ahbmst2pci", KEY_TYPE_INT);
+	if (value)
+		priv->ahbmst2pci_map = value->i;
+	else
+		priv->ahbmst2pci_map = AHBMST2PCIADR; /* default */
 
 	priv->genirq = genirq_init(16);
 	if ( priv->genirq == NULL ) {
@@ -589,16 +608,24 @@ int ambapp_rasta_adcdac_get_params(struct rtems_drvmgr_dev_info *dev, struct rte
 void gr_rasta_adcdac_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 {
 	struct gr_rasta_adcdac_priv *priv = dev->priv;
-	int bus, device, fun;
+	struct pci_dev_info *devinfo = priv->devinfo;
 	int i;
+	uint32_t bar0, bar1, bar0_size, bar1_size;
 
 	/* Print */
 	printf("--- GR-RASTA-ADCDAC [bus 0x%x, dev 0x%x, fun 0x%x] ---\n",
 		PCI_DEV_EXPAND(priv->pcidev));
-	printf(" PCI BAR0:        0x%x\n", priv->bar0);
-	printf(" PCI BAR1:        0x%x\n", priv->bar1);
+
+	bar0 = devinfo->resources[0].address;
+	bar0_size = devinfo->resources[0].size;
+	bar1 = devinfo->resources[1].address;
+	bar1_size = devinfo->resources[1].size;
+
+	printf(" PCI BAR[0]: 0x%x - 0x%x\n", bar0, bar0 + bar0_size - 1);
+	printf(" PCI BAR[1]: 0x%x - 0x%x\n", bar1, bar1 + bar1_size - 1);
 	printf(" IRQ REGS:        0x%x\n", (unsigned int)priv->irq);
-	printf(" IRQ:             %d\n", priv->irqno);
+	printf(" IRQ:             %d\n", devinfo->irq);
+	printf(" PCI REVISION:    %d\n", devinfo->rev);
 	printf(" FREQ:            %d Hz\n", priv->version->amba_freq_hz);
 	printf(" IMASK:           0x%08x\n", priv->irq->mask[0]);
 	printf(" IPEND:           0x%08x\n", priv->irq->ipend);

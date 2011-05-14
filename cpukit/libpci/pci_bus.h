@@ -69,11 +69,32 @@ struct pci_dev_id_match {
 #define PCIID_DEVVEND(vendor, device) {vendor,device,PCI_ID_ANY,PCI_ID_ANY,0,0}
 #define PCIID_END_TABLE {0,0,0,0,0,0}
 
+enum {
+	/* A Device has up to 6 BARs and an optional ROM BAR */
+	PCIDEV_RES_BAR1 = 0,
+	PCIDEV_RES_BAR2 = 1,
+	PCIDEV_RES_BAR3 = 2,
+	PCIDEV_RES_BAR4 = 3,
+	PCIDEV_RES_BAR5 = 4,
+	PCIDEV_RES_BAR6 = 5,
+	PCIDEV_RES_ROM  = 6,
+};
+/* Maximum Number of Resources of a device */
+#define PCIDEV_RES_CNT (PCIDEV_RES_ROM + 1)
+
+/* IO, MEMIO or MEM resource. Can be BAR, ROM or Bridge Window */
+struct pcibus_res {
+	uint32_t		address; /* Base Address, CPU accessible */
+	uint32_t		size;    /* 0=Unimplemented, 0!=Resource Size */
+	struct pci_res		*res;    /* PCI-layer resource */
+};
+
 struct pci_dev_info {
 	struct pci_dev_id	id;
 	uint8_t			rev;
 	uint8_t			irq; /* 0 = NO IRQ */
 	pci_dev_t		pcidev;
+	struct pcibus_res	resources[PCIDEV_RES_CNT];
 	struct pci_dev		*pci_device;
 };
 

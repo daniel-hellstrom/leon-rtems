@@ -97,10 +97,9 @@ struct gr701_priv {
 
 	/* PCI */
 	pci_dev_t			pcidev;
-	unsigned int			bars[5];
+	struct pci_dev_info		*devinfo;	
 
 	/* IRQ */
-	unsigned char			irqno;            /* GR-701 System IRQ */
 	genirq_t			genirq;
 	int				interrupt_cnt;
 
@@ -236,46 +235,25 @@ int gr701_hw_init(struct gr701_priv *priv)
 	int mst;
 	unsigned int pci_freq_hz;
 	pci_dev_t pcidev = priv->pcidev;
-
-	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_0, &priv->bars[0]);
-	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_1, &priv->bars[1]);
-	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_2, &priv->bars[2]);
-	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_3, &priv->bars[3]);
-	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_4, &priv->bars[4]);
-	pci_cfg_r8(pcidev, PCI_INTERRUPT_LINE, &priv->irqno);
-
-	if ( (priv->bars[0] == 0) || (priv->bars[1] == 0) ) {
-		/* Not all neccessary space assigned to GR-701 target */
-		return -1;
-	}
-
-#if 0
-	/* Figure out size of BAR0 */
-	pci_cfg_w32(pcidev, PCI_BASE_ADDRESS_0, 0xffffffff);
-	pci_cfg_r32(pcidev, PCI_BASE_ADDRESS_0, &tmpbar);
-	pci_cfg_w32(pcidev, PCI_BASE_ADDRESS_0, priv->bars[0]);
-	tmpbar &= ~0xff; /* Remove lsbits */
-	bar0size = (~tmpbar) + 1;
-#endif
-
-	printf(" PCI BAR[0]: 0x%x, BAR[1]: 0x%x, IRQ: %d\n", priv->bars[0], priv->bars[1], priv->irqno);
+	struct pci_dev_info *devinfo = priv->devinfo;
 
 	/* Set up PCI ==> AMBA */
-	priv->pcib = pcib = (void *)priv->bars[0];
+	priv->pcib = pcib = (void *)devinfo->resources[0].address;
 	pcib->bar0 = 0xfc000000;
 
 	/* Set up GR701 AMBA Masters connection to PCI */
-	priv->ambab = ambab = (struct amba_bridge_regs *)(priv->bars[1] + 0x400);
+	priv->ambab = ambab = (struct amba_bridge_regs *)(
+		devinfo->resources[1].address + 0x400);
 
 	/* Init all msters, max 16 */
 	for (mst=0; mst<16; mst++) {
 		ambab->ambabars[mst] = 0x40000000;
-		if ( READ_REG(&ambab->ambabars[mst]) != 0x40000000)
+		if (READ_REG(&ambab->ambabars[mst]) != 0x40000000)
 			break;
 	}
 
 	priv->amba_maps[0].size = 0x04000000;
-	priv->amba_maps[0].local_adr = priv->bars[1];
+	priv->amba_maps[0].local_adr = devinfo->resources[1].address;
 	priv->amba_maps[0].remote_adr = 0xfc000000;
 
 	/* Mark end of table */
@@ -300,8 +278,8 @@ int gr701_hw_init(struct gr701_priv *priv)
 	/* Start AMBA PnP scan at first AHB bus */
 	/*ambapp_scan(priv->bars[1] + 0x3f00000,
 		NULL, &priv->amba_maps[0], NULL, &priv->abus.root, NULL);*/
-	ambapp_scan(&priv->abus, priv->bars[1] + 0x3f00000, NULL,
-			&priv->amba_maps[0]);
+	ambapp_scan(&priv->abus, devinfo->resources[1].address + 0x3f00000,
+			NULL, &priv->amba_maps[0]);
 
 	/* Frequency is the same as the PCI bus frequency */
 	rtems_drvmgr_freq_get(priv->dev, NULL, &pci_freq_hz);
@@ -349,6 +327,7 @@ int gr701_init1(struct rtems_drvmgr_dev_info *dev)
 {
 	struct gr701_priv *priv;
 	struct pci_dev_info *devinfo;
+	uint32_t bar0, bar1, bar0_size, bar1_size;
 
 	priv = malloc(sizeof(struct gr701_priv));
 	if ( !priv )
@@ -372,13 +351,24 @@ int gr701_init1(struct rtems_drvmgr_dev_info *dev)
 	priv->prefix[12] = '/';
 	priv->prefix[13] = '\0';
 
-	devinfo = (struct pci_dev_info *)dev->businfo;
+	priv->devinfo = devinfo = (struct pci_dev_info *)dev->businfo;
 	priv->pcidev = devinfo->pcidev;
+	bar0 = devinfo->resources[0].address;
+	bar0_size = devinfo->resources[0].size;
+	bar1 = devinfo->resources[1].address;
+	bar1_size = devinfo->resources[1].size;
 	printf("\n\n--- GR-701[%d] ---\n", dev->minor_drv);
 	printf(" PCI BUS: 0x%x, SLOT: 0x%x, FUNCTION: 0x%x\n",
 		PCI_DEV_EXPAND(priv->pcidev));
 	printf(" PCI VENDOR: 0x%04x, DEVICE: 0x%04x\n\n\n",
 		devinfo->id.vendor, devinfo->id.device);
+	printf(" PCI BAR[0]: 0x%x - 0x%x\n", bar0, bar0 + bar0_size - 1);
+	printf(" PCI BAR[1]: 0x%x - 0x%x\n", bar1, bar1 + bar1_size - 1);
+	printf(" IRQ: %d\n\n\n", devinfo->irq);
+
+	/* all neccessary space assigned to GR-701 target? */
+	if ((bar0_size == 0) || (bar1_size == 0))
+		return DRVMGR_ENORES;
 
 	priv->genirq = genirq_init(16);
 	if ( priv->genirq == NULL ) {
@@ -549,15 +539,22 @@ int ambapp_gr701_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvm
 void gr701_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 {
 	struct gr701_priv *priv = dev->priv;
+	struct pci_dev_info *devinfo = priv->devinfo;
 	int i;
 	unsigned int freq_hz;
+	uint32_t bar0, bar1, bar0_size, bar1_size;
 
 	/* Print */
 	printf("--- GR-701 [bus 0x%x, dev 0x%x, fun 0x%x] ---\n",
 		PCI_DEV_EXPAND(priv->pcidev));
-	printf(" PCI BAR0:        0x%x\n", priv->bars[0]);
-	printf(" PCI BAR1:        0x%x\n", priv->bars[1]);
-	printf(" IRQ:             %d\n", priv->irqno);
+	bar0 = devinfo->resources[0].address;
+	bar0_size = devinfo->resources[0].size;
+	bar1 = devinfo->resources[1].address;
+	bar1_size = devinfo->resources[1].size;
+
+	printf(" PCI BAR[0]: 0x%x - 0x%x\n", bar0, bar0 + bar0_size - 1);
+	printf(" PCI BAR[1]: 0x%x - 0x%x\n", bar1, bar1 + bar1_size - 1);
+	printf(" IRQ:             %d\n", devinfo->irq);
 
 	/* Frequency is the same as the PCI bus frequency */
 	rtems_drvmgr_freq_get(dev, 0, &freq_hz);

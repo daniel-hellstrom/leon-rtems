@@ -59,10 +59,21 @@ struct pci_access_drv {
 	/* I/O Access operations */
 	struct pci_io_ops io;
 
-	/* Translate from PCI address to CPU address (dir=0) The address
-	 * will be used to perform I/O access or memory access by caller.
+	/* Translate from PCI address to CPU address (dir=0). Translate
+	 * CPU address to PCI address (dir!=0). The address will can be
+	 * used to perform I/O access or memory access by CPU or PCI DMA
+	 * peripheral.
+	 *
+	 * address    In/Out. CPU address or PCI address.
+	 * type       Access type. 1=I/O, 2=MEMIO, 3=MEM
+	 * dir        Translate direction. 0=PCI-to-CPU, 0!=CPU-to-PCI,
+	 *
+	 * Return Value
+	 *  0   = Success
+	 *  -1  = Requested Address not mapped into other address space
+	 *        i.e. not accessible
 	 */
-	int (*translate)(void **address, int type, int dir);
+	int (*translate)(uint32_t *address, int type, int dir);
 };
 
 /* Access Routines valid after a PCI-Access-Driver has registered */
@@ -126,9 +137,15 @@ extern void pci_io_w16(uint32_t adr, uint16_t data);
 extern void pci_io_w32(uint32_t adr, uint32_t data);
 
 /* Get Translate PCI address into CPU accessible address */
-static inline int pci_address(void **address, int type)
+static inline int pci_pci2cpu(uint32_t *address, int type)
 {
 	return pci_access_ops.translate(address, type, 0);
+}
+
+/* Get Translate CPU accessible address into PCI DMA address */
+static inline int pci_cpu2pci(uint32_t *address, int type)
+{
+	return pci_access_ops.translate(address, type, 1);
 }
 
 /*** Read a register over PCI Memory Space ***/

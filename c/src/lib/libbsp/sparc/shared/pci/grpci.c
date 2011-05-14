@@ -111,6 +111,9 @@ struct grpci_priv {
 	int				irq;
 	int				minor;
 
+	uint32_t			bar1_pci_adr;
+	uint32_t			bar1_size;
+
 	int				bt_enabled;
 	unsigned int			pci_area;
 	unsigned int			pci_area_end;
@@ -313,6 +316,57 @@ uint8_t grpci_bus0_irq_map(pci_dev_t dev, int irq_pin)
 	return sysIrqNr;
 }
 
+int grpci_translate(uint32_t *address, int type, int dir)
+{
+	uint32_t adr;
+	struct grpci_priv *priv = grpcipriv;
+
+	if (type == 1) {
+		/* I/O */
+		if (dir != 0) {
+			/* The PCI bus can not access the CPU bus from I/O
+			 * because GRPCI core does not support I/O BARs
+			 */
+			return -1;
+		}
+
+		/* We have got a PCI BAR address that the CPU want to access...
+		 * Check that it is within the PCI I/O window, I/O adresses
+		 * are mapped 1:1 with GRPCI driver... no translation needed.
+		 */
+		adr = *(uint32_t *)address;
+		if (adr < priv->pci_io || adr >= priv->pci_conf)
+			return -1;
+	} else {
+		/* MEMIO and MEM.
+		 * Memory space is mapped 1:1 so no translation is needed.
+		 * Check that address is within accessible windows.
+		 */
+		adr = *(uint32_t *)address;
+		if (dir == 0) {
+			/* PCI BAR to AMBA-CPU address.. check that it is
+			 * located within GRPCI PCI Memory Window
+			 * adr = PCI address.
+			 */
+			if (adr < priv->pci_area || adr >= priv->pci_area_end)
+				return -1;
+		} else {
+			/* We have a CPU address and want to get access to it
+			 * from PCI space, typically when doing DMA into CPU
+			 * RAM. The GRPCI core has two target BARs that PCI
+			 * masters can access, we check here that the address
+			 * is accessible from PCI.
+			 * adr = AMBA address.
+			 */
+			if (adr < priv->bar1_pci_adr ||
+			    adr >= (priv->bar1_pci_adr + priv->bar1_size))
+				return -1;
+		}
+	}
+
+	return 0;
+}
+
 struct pci_access_drv grpci_access_drv = {
 	.cfg =
 	{
@@ -332,7 +386,7 @@ struct pci_access_drv grpci_access_drv = {
 		sparc_st_le16,
 		sparc_st_le32,
 	},
-	.translate = NULL,
+	.translate = grpci_translate,
 };
 
 struct pci_io_ops grpci_io_ops_be =
@@ -375,10 +429,16 @@ int grpci_hw_init(struct grpci_priv *priv)
 
 	/* set 1:1 mapping between AHB -> PCI memory */
 	priv->regs->cfg_stat = (priv->regs->cfg_stat & 0x0fffffff) | priv->pci_area;
-	
-	/* and map system RAM at pci address 0x40000000 */ 
-	grpci_cfg_w32(host, PCI_BASE_ADDRESS_1, SYSTEM_MAINMEM_START);
-	priv->regs->page1 = SYSTEM_MAINMEM_START;
+
+	/* determine size of target BAR1 */
+	grpci_cfg_w32(host, PCI_BASE_ADDRESS_1, 0xffffffff);
+	grpci_cfg_r32(host, PCI_BASE_ADDRESS_1, &addr);
+	priv->bar1_size = (~(addr & ~0xf)) + 1;
+
+	/* and map system RAM at pci address 0x40000000 */
+	priv->bar1_pci_adr &= priv->bar1_size - 1; /* Fix alignment of BAR1 */
+	grpci_cfg_w32(host, PCI_BASE_ADDRESS_1, priv->bar1_pci_adr);
+	priv->regs->page1 = priv->bar1_pci_adr;
 
 	/* Translate I/O accesses 1:1 */
 	priv->regs->iomap = priv->pci_io & 0xffff0000;
@@ -462,6 +522,15 @@ int grpci_init(struct grpci_priv *priv)
 	value = rtems_drvmgr_dev_key_get(priv->dev, "byteTwisting", KEY_TYPE_INT);
 	if ( value )
 		priv->bt_enabled = value->i;
+
+	/* Use GRPCI target BAR1 to map CPU RAM to PCI, this is to make it
+	 * possible for PCI peripherals to do DMA directly to CPU memory.
+	 */
+	value = rtems_drvmgr_dev_key_get(priv->dev, "tgtbar1", KEY_TYPE_INT);
+	if (value)
+		priv->bar1_pci_adr = value->i;
+	else
+		priv->bar1_pci_adr = SYSTEM_MAINMEM_START; /* default */
 
 	/* This driver only support HOST systems, we check for HOST */
 	if ( !(priv->regs->cfg_stat & CFGSTAT_HOST) ) {

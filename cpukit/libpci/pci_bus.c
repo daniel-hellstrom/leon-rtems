@@ -298,6 +298,9 @@ int pcibus_dev_register(struct pci_dev *dev, void *arg)
 	struct rtems_drvmgr_bus_info *pcibus = arg;
 	struct rtems_drvmgr_dev_info *newdev;
 	struct pci_dev_info *pciinfo;
+	int i, type;
+	struct pcibus_res *pcibusres;
+	struct pci_res *pcires;
 
 	pci_dev_t pcidev = dev->busdevfun;
 
@@ -342,6 +345,24 @@ int pcibus_dev_register(struct pci_dev *dev, void *arg)
 
 	/* Connect device with PCI data structure */
 	pciinfo->pci_device = dev;
+
+	/* Build resources so that PCI device drivers doesn't have to scan
+	 * configuration space themselves, also the address is translated
+	 * into CPU accessible addresses.
+	 */
+	for(i=0; i<PCIDEV_RES_CNT; i++) {
+		pcibusres = &pciinfo->resources[i];
+		pcires = &dev->resources[i];
+		type = pcires->flags & PCI_RES_TYPE_MASK;
+		if (type == 0 || (pcires->flags & PCI_RES_FAIL))
+			continue; /* size=0 */
+
+		pcibusres->address = pcires->start;
+		if (pci_pci2cpu(&pcibusres->address, type))
+			continue; /* size=0 */
+		pcibusres->res = pcires;
+		pcibusres->size = pcires->end - pcires->start;
+	}
 
 	/* Connect device with PCI information */
 	newdev->businfo = (void *)pciinfo;
