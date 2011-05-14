@@ -344,6 +344,7 @@ enum {
 	DRVMGR_ENOSYS = 4,
 	DRVMGR_TIMEDOUT = 5,
 	DRVMGR_EBUSY = 6,
+	DRVMGR_ENORES = 7,	/* Not enough resources */
 	DRVMGR_FAIL = -1
 };
 
