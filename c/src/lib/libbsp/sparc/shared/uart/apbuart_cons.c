@@ -17,6 +17,9 @@
  *   created
  */
 
+/* On small systems undefine APBUART_INFO to avoid sprintf get dragged in */
+#define APBUART_INFO
+
 /******************* Driver manager interface ***********************/
 #include <bsp.h>
 #include <rtems/libio.h>
@@ -70,12 +73,21 @@ void apbuart_dbg_out_char(struct console_dev *, char c);
 void apbuart_isr(int irqno, void *arg);
 
 int apbuart_init1(struct rtems_drvmgr_dev_info *dev);
+#ifdef APBUART_INFO
+static int apbuart_info(
+	struct rtems_drvmgr_dev_info *dev,
+	void (*print_line)(void *p, char *str),
+	void *p, int, char *argv[]);
+#define APBUART_INFO_FUNC apbuart_info
+#else
+#define APBUART_INFO_FUNC NULL
+#endif
 
 struct rtems_drvmgr_drv_ops apbuart_ops = 
 {
 	.init = {apbuart_init1, NULL, NULL, NULL},
 	.remove = NULL,
-	.info = NULL
+	.info = APBUART_INFO_FUNC
 };
 
 static struct amba_dev_id apbuart_ids[] =
@@ -236,6 +248,45 @@ int apbuart_init1(struct rtems_drvmgr_dev_info *dev)
 
 	return DRVMGR_OK;
 }
+
+#ifdef APBUART_INFO
+static int apbuart_info(
+	struct rtems_drvmgr_dev_info *dev,
+	void (*print_line)(void *p, char *str),
+	void *p, int argc, char *argv[])
+{
+	struct apbuart_priv *priv = dev->priv;
+	char *str1;
+	char buf[64];
+
+	if (dev->priv == NULL)
+		return -DRVMGR_EINVAL;
+
+	if (priv->mode == TERMIOS_POLLED)
+		str1 = "TERMIOS_POLLED";
+	else if (priv->mode == TERMIOS_TASK_DRIVEN)
+		str1 = "TERMIOS_TASK_DRIVEN";
+	else if (priv->mode == TERMIOS_TASK_DRIVEN)
+		str1 = "TERMIOS_TASK_DRIVEN";
+	else
+		str1 = "BAD MODE";
+
+	sprintf(buf, "UART Mode:   %s", str1);
+	print_line(p, buf);
+	if (priv->condev.fsname) {
+		sprintf(buf, "FS Name:     %s", priv->condev.fsname);
+		print_line(p, buf);
+	}
+	sprintf(buf, "STATUS REG:  0x%x", priv->regs->status);
+	print_line(p, buf);
+	sprintf(buf, "CTRL REG:    0x%x", priv->regs->ctrl);
+	print_line(p, buf);
+	sprintf(buf, "SCALER REG:  0x%x", priv->regs->scaler);
+	print_line(p, buf);
+
+	return DRVMGR_OK;
+}
+#endif
 
 /* This routine transmits a character, it will busy-wait until on character
  * fits in the APBUART Transmit FIFO
