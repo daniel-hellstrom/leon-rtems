@@ -82,14 +82,8 @@ struct rtems_drvmgr_bus_ops ambapp_bus_ops =
 	.freq_get	= ambapp_bus_freq_get,
 };
 
-struct leon3_isr_handler {
-	void (*handler)(int irq, void *arg);
-	void *arg;
-};
-
 struct ambapp_priv {
 	struct ambapp_config		*config;
-	struct leon3_isr_handler	isrs[32];
 };
 
 int ambapp_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_info *dev)
@@ -335,7 +329,7 @@ int ambapp_int_unmask(
 
 	if ( priv->config->ops->int_unmask ) {
 		/* Let device override driver default */
-		return priv->config->ops->int_mask(dev, irq);
+		return priv->config->ops->int_unmask(dev, irq);
 	} else {
 		return -1;
 	}
