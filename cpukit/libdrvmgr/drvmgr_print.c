@@ -219,3 +219,113 @@ void rtems_drvmgr_print_mem(void)
 			busmem + drvmem + devmem + devprivmem + resmem);
 	printf("\n\n");
 }
+
+static void print_info(void *p, char *str)
+{
+	printf("  ");
+	puts(str);
+}
+
+void rtems_drvmgr_info_dev(struct rtems_drvmgr_dev_info *dev)
+{
+	char *name;
+	if (!dev)
+		return;
+
+	printf("-- DEVICE %p --\n", dev);
+
+	if (dev->name)
+		name = dev->name;
+	else
+		name = "(NULL)";
+	printf("  PARENT BUS:  %p\n", dev->parent);
+	printf("  NAME:        %s\n", name);
+	printf("  STATE:       0x%08x\n", dev->state);
+	printf("  INIT LEVEL:  %d\n", dev->level);
+	printf("  ERROR:       %d\n", dev->error);
+	printf("  MINOR BUS:   %d\n", dev->minor_bus);
+	if (dev->drv) {
+		printf("  MINOR DRV:   %d\n", dev->minor_drv);
+		printf("  DRIVER:      %p (%s)\n", dev->drv, dev->drv->name);
+		printf("  PRIVATE:     %p\n", dev->priv);
+	}
+
+	printf("  --- DEVICE INFO FROM BUS DRIVER ---\n");
+	if (dev->parent->ops->info_dev)
+		dev->parent->ops->info_dev(dev, print_info, NULL);
+	else
+		printf("  !! Bus doesn't implement info_dev func !!\n");
+
+	if (dev->drv) {
+		printf("  --- DEVICE INFO FROM DEVICE DRIVER ---\n");
+		if (dev->drv->ops->info)
+			dev->drv->ops->info(dev, print_info, NULL, 0, 0);
+		else
+			printf("  !! Driver doesn't implement info func !!\n");
+	}
+}
+
+void rtems_drvmgr_info_bus(struct rtems_drvmgr_bus_info *bus)
+{
+	/* NOT IMPLEMENTED */
+}
+
+void rtems_drvmgr_info_drv(struct rtems_drvmgr_drv_info *drv)
+{
+	/* NOT IMPLEMENTED */
+}
+
+void (*info_obj[3])(void *obj) = {
+	/* DRVMGR_OBJ_DRV */ (void (*)(void *))rtems_drvmgr_info_drv,
+	/* DRVMGR_OBJ_BUS */ (void (*)(void *))rtems_drvmgr_info_bus,
+	/* DRVMGR_OBJ_DEV */ (void (*)(void *))rtems_drvmgr_info_dev,
+};
+
+/* Get information about a device/bus/driver */
+void rtems_drvmgr_info(void *id)
+{
+	int obj_type;
+	void (*func)(void *);
+
+	if (!id)
+		return;
+	obj_type = *(int *)id;
+	if ((obj_type < DRVMGR_OBJ_DRV) || (obj_type > DRVMGR_OBJ_DEV))
+		return;
+	func = info_obj[obj_type - 1];
+	func(id);
+}
+
+void rtems_drvmgr_info_devs_on_bus(struct rtems_drvmgr_bus_info *bus)
+{
+	struct rtems_drvmgr_dev_info *dev;
+
+	/* Print All Devices on Bus */
+	printf("\n\n  -= All Devices on BUS %p =-\n\n", bus);
+	dev = bus->children;
+	while (dev) {
+		rtems_drvmgr_info_dev(dev);
+		puts("");
+		dev = dev->next_in_bus;
+	}
+
+	/* This device provides a bus, print the bus */
+	dev = bus->children;
+	while (dev) {
+		if (dev->bus)
+			rtems_drvmgr_info_devs_on_bus(dev->bus);
+		dev = dev->next_in_bus;
+	}
+}
+
+void rtems_drvmgr_info_devs(void)
+{
+	struct rtems_driver_manager *mgr = &drv_mgr;
+	struct rtems_drvmgr_dev_info *dev;
+
+	/* Print device information of all devices and their child devices */
+	printf(" --- Device information ---\n");
+	dev = mgr->root_dev;
+	rtems_drvmgr_info_devs_on_bus(dev->bus);
+	printf("\n\n");
+}

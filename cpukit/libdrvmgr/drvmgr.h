@@ -149,6 +149,10 @@ struct rtems_drvmgr_bus_ops {
 	int	(*get_params)(struct rtems_drvmgr_dev_info *, struct rtems_drvmgr_bus_params *);
 	/* Get Frequency of Bus */
 	int	(*freq_get)(struct rtems_drvmgr_dev_info*, int, unsigned int*);
+	/*! Function called to request information about a device. The bus
+	 *  driver interpret the bus-specific information about the device.
+	 */
+	void	(*info_dev)(struct rtems_drvmgr_dev_info *, void (*print)(void *p, char *str), void *p);
 
 #ifdef DRV_MGR_BUS_RW
 	/* Read I/O functions */
@@ -306,7 +310,7 @@ struct rtems_drvmgr_dev_info {
 struct rtems_drvmgr_drv_ops {
 	int	(*init[DRVMGR_LEVEL_MAX])(struct rtems_drvmgr_dev_info *);	/*! Function doing Init Stage 1 of a hardware device */
 	int	(*remove)(struct rtems_drvmgr_dev_info *);	/*! Function called when device instance is to be removed */
-	int	(*info)(struct rtems_drvmgr_dev_info *, void (*print)(char *str), int, char *argv[]);/*! Function called to request information about a device or driver */
+	int	(*info)(struct rtems_drvmgr_dev_info *, void (*print)(void *p, char *str), void *p, int, char *argv[]);/*! Function called to request information about a device or driver */
 };
 
 /*! Information about a driver used during registration */
@@ -775,6 +779,11 @@ extern void rtems_drvmgr_print_buses(void);
  * Only accounts for data structures. Not for the text size.
  */
 extern void rtems_drvmgr_print_mem(void);
+
+/* Print information about a driver manager object (device, driver, bus) */
+extern void rtems_drvmgr_info(void *id);
+
+extern void rtems_drvmgr_info_devs(void);
 
 #ifdef __cplusplus
 }
