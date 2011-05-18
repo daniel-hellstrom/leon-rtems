@@ -20,6 +20,9 @@
  *
  */
 
+/* On small systems undefine AMBAPPBUS_INFO to avoid sprintf get dragged in */
+#define AMBAPPBUS_INFO
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -59,6 +62,7 @@ int ambapp_bus_freq_get(
 	struct rtems_drvmgr_dev_info *dev,
 	int options,
 	unsigned int *freq_hz);
+void ambapp_dev_info(struct rtems_drvmgr_dev_info *, void (*print)(void *p, char *str), void *p);
 
 struct rtems_drvmgr_bus_ops ambapp_bus_ops =
 {
@@ -80,6 +84,9 @@ struct rtems_drvmgr_bus_ops ambapp_bus_ops =
 	.int_unmask	= ambapp_int_unmask,
 	.get_params	= ambapp_get_params,
 	.freq_get	= ambapp_bus_freq_get,
+#ifdef AMBAPPBUS_INFO
+	.info_dev	= ambapp_dev_info,
+#endif
 };
 
 struct ambapp_priv {
@@ -415,6 +422,110 @@ int ambapp_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus
 		return -1;
 	}
 }
+
+#ifdef AMBAPPBUS_INFO
+void ambapp_dev_info(
+	struct rtems_drvmgr_dev_info *dev,
+	void (*print_line)(void *p, char *str),
+	void *p)
+{
+	struct amba_dev_info *devinfo;
+	struct ambapp_core *core;
+	char buf[64];
+	int ver, i;
+	char *str1, *str2, *str3;
+	unsigned int ahbmst_freq, ahbslv_freq, apbslv_freq;
+
+	if (!dev)
+		return;
+
+	devinfo = (struct amba_dev_info *)dev->businfo;
+	if (!devinfo)
+		return;
+	core = &devinfo->info;
+
+	print_line(p, "AMBA PnP DEVICE");
+
+	str1 = ambapp_vendor_id2str(devinfo->id.vendor);
+	if (str1 == NULL)
+		str1 = "unknown";
+	sprintf(buf, "VENDOR ID:   0x%04x  (%s)", devinfo->id.vendor, str1);
+	print_line(p, buf);
+
+	str1 = ambapp_device_id2str(devinfo->id.vendor, devinfo->id.device);
+	if (str1 == NULL)
+		str1 = "unknown";
+	sprintf(buf, "DEVICE ID:   0x%04x  (%s)", devinfo->id.device, str1);
+	print_line(p, buf);
+
+	ahbmst_freq = ahbslv_freq = apbslv_freq = 0;
+	ver = 0;
+	str1 = str2 = str3 = "";
+	if (core->ahb_mst) {
+		str1 = "AHBMST ";
+		ver = core->ahb_mst->ver;
+		ambapp_bus_freq_get(dev, DEV_AHB_MST, &ahbmst_freq);
+	}
+	if (core->ahb_slv) {
+		str2 = "AHBSLV ";
+		ver = core->ahb_slv->ver;
+		ambapp_bus_freq_get(dev, DEV_AHB_SLV, &ahbslv_freq);
+	}
+	if (core->apb_slv) {
+		str3 = "APBSLV";
+		ver = core->apb_slv->ver;
+		ambapp_bus_freq_get(dev, DEV_APB_SLV, &apbslv_freq);
+	}
+
+	sprintf(buf, "IRQ:         %d", ambapp_int_get(dev, 0), ver);
+	print_line(p, buf);
+
+	sprintf(buf, "VERSION:     0x%x", ver);
+	print_line(p, buf);
+
+	sprintf(buf, "ambapp_core: %p", core);
+	print_line(p, buf);
+
+	sprintf(buf, "interfaces:  %s%s%s", str1, str2, str3);
+	print_line(p, buf);
+
+	if (ahbmst_freq != 0) {
+		sprintf(buf, "AHBMST FREQ: %dkHz", ahbmst_freq/1000);
+		print_line(p, buf);
+	}
+
+	if (ahbslv_freq != 0) {
+		sprintf(buf, "AHBSLV FREQ: %dkHz", ahbslv_freq/1000);
+		print_line(p, buf);
+	}
+
+	if (apbslv_freq != 0) {
+		sprintf(buf, "APBSLV FREQ: %dkHz", apbslv_freq/1000);
+		print_line(p, buf);
+	}
+
+	if (core->ahb_slv) {
+		for(i=0; i<4; i++) {
+			if (core->ahb_slv->type[i] == AMBA_TYPE_AHBIO)
+				str1 = " ahbio";
+			else if (core->ahb_slv->type[i] == AMBA_TYPE_MEM)
+				str1 = "ahbmem";
+			else
+				continue;
+			sprintf(buf, " %s[%d]:  0x%08lx-0x%08lx", str1, i,
+				core->ahb_slv->start[i],
+				core->ahb_slv->start[i]+core->ahb_slv->mask[i]-1);
+			print_line(p, buf);
+		}
+	}
+	if (core->apb_slv) {
+		sprintf(buf, "       apb:  0x%08lx-0x%08lx",
+			core->apb_slv->start,
+			core->apb_slv->start + core->apb_slv->mask - 1);
+		print_line(p, buf);
+	}
+}
+#endif
 
 /* Fix device in last stage */
 int ambapp_dev_fixup(struct rtems_drvmgr_dev_info *dev, struct amba_dev_info *pnp)

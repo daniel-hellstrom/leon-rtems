@@ -27,6 +27,9 @@
  */
 #define USE_PCI_CFG_LIB
 
+/* On small systems undefine PCIBUS_INFO to avoid sprintf get dragged in */
+#define PCIBUS_INFO
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -77,6 +80,11 @@ int pcibus_freq_get(
 
 int pcibus_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params);
 
+void pcibus_dev_info(
+	struct rtems_drvmgr_dev_info *dev,
+	void (*print_line)(void *p, char *str),
+	void *p);
+
 struct rtems_drvmgr_bus_ops pcibus_ops =
 {
 	.init		= 
@@ -97,6 +105,9 @@ struct rtems_drvmgr_bus_ops pcibus_ops =
 	.int_unmask	= NULL,
 	.get_params	= pcibus_get_params,
 	.freq_get	= pcibus_freq_get,
+#ifdef PCIBUS_INFO
+	.info_dev	= pcibus_dev_info,
+#endif
 };
 
 struct pcibus_priv {
@@ -290,6 +301,84 @@ int pcibus_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus
 
 	return 0;
 }
+
+#ifdef PCIBUS_INFO
+void pcibus_dev_info(
+	struct rtems_drvmgr_dev_info *dev,
+	void (*print_line)(void *p, char *str),
+	void *p)
+{
+	struct pci_dev_info *devinfo;
+	struct pcibus_res *pcibusres;
+	struct pci_res *res;
+	char buf[64];
+	int i;
+	char *str1, *res_types[3] = {" IO16", "  MEM", "MEMIO"};
+	uint32_t pcistart;
+
+	if (!dev)
+		return;
+
+	devinfo = (struct pci_dev_info *)dev->businfo;
+	if (!devinfo)
+		return;
+
+	if ((devinfo->id.class >> 8) == PCI_CLASS_BRIDGE_PCI)
+		print_line(p, "PCI BRIDGE DEVICE");
+	else
+		print_line(p, "PCI DEVICE");
+	sprintf(buf, "LOCATION:    BUS:SLOT:FUNCTION [%x:%x:%x]",
+			PCI_DEV_EXPAND(devinfo->pcidev));
+	print_line(p, buf);
+	sprintf(buf, "PCIID        0x%lx", (uint32_t)devinfo->pcidev);
+	print_line(p, buf);
+	sprintf(buf, "VENDOR ID:   %04x", devinfo->id.vendor);
+	print_line(p, buf);
+	sprintf(buf, "DEVICE ID:   %04x", devinfo->id.device);
+	print_line(p, buf);
+	sprintf(buf, "SUBVEN ID:   %04x", devinfo->id.subvendor);
+	print_line(p, buf);
+	sprintf(buf, "SUBDEV ID:   %04x", devinfo->id.subdevice);
+	print_line(p, buf);
+	sprintf(buf, "CLASS:       %lx", devinfo->id.class);
+	print_line(p, buf);
+	sprintf(buf, "REVISION:    %x", devinfo->rev);
+	print_line(p, buf);
+	sprintf(buf, "IRQ:         %d", devinfo->irq);
+	print_line(p, buf);
+	sprintf(buf, "PCIDEV ptr:  %p", devinfo->pci_device);
+	print_line(p, buf);
+
+	/* List Resources */
+	print_line(p, "RESOURCES");
+	for (i=0; i<PCIDEV_RES_CNT; i++) {
+		pcibusres = &devinfo->resources[i];
+
+		str1 = "  RES";
+		pcistart = -1;
+		res = pcibusres->res;
+		if (res && (res->flags & PCI_RES_TYPE_MASK)) {
+			str1 = res_types[(res->flags & PCI_RES_TYPE_MASK) - 1];
+			if (res->flags & PCI_RES_IO32)
+				str1 = " IO32";
+			pcistart = res->start;
+		}
+
+		if (res && (res->flags & PCI_RES_FAIL)) {
+			sprintf(buf, " %s[%d]:  NOT ASSIGNED", str1, i);
+			print_line(p, buf);
+			continue;
+		}
+		if (!pcibusres->size)
+			continue;
+
+		sprintf(buf, " %s[%d]:  %08lx-%08lx [PCIADR %lx]",
+			str1, i, pcibusres->address,
+			pcibusres->address + pcibusres->size - 1, pcistart);
+		print_line(p, buf);
+	}
+}
+#endif
 
 #ifdef USE_PCI_CFG_LIB
 
