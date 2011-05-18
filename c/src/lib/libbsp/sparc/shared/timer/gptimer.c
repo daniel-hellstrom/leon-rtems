@@ -1,3 +1,41 @@
+/*  This file contains the driver for the GRLIB GPTIMER timers port. The driver
+ *  is implemented by using the tlib.c simple timer layer and the Driver
+ *  Manager.
+ *
+ *  The Driver can be configured using driver resources:
+ *
+ *  - timerStart  Timer Index if first Timer, this parameters is typically used
+ *                in AMP systems for resource allocation. The Timers before
+ *                timerStart will not be accessed.
+ *  - timerCnt    Number of timers that the driver will use, this parameters is
+ *                typically used in AMP systems for resource allocation between
+ *                OS instances.
+ *  - prescaler   Base prescaler, normally set by bootloader but can be
+ *                overridden. The default scaler reload value set by bootloader
+ *                is so that Timers operate in 1MHz. Setting the prescaler to a
+ *                lower value increase the accuracy of the timers but shortens
+ *                the time until underflow happens.
+ *  - clockTimer  Used to select a particular timer to be the system clock
+ *                timer. This is useful when multiple GPTIMERs cores are
+ *                available, or in AMP systems. By default the TLIB selects the
+ *                first timer registered as system clock timer.
+ *
+ *  COPYRIGHT (c) 2010.
+ *  Aeroflex Gaisler.
+ *
+ *  The license and distribution terms for this file may be
+ *  found in the file LICENSE in this distribution or at
+ *  http://www.rtems.com/license/LICENSE.
+ *
+ *  2010-09-27, Daniel Hellstrom <daniel@gaisler.com>
+ *   created
+ */
+
+/* On small systems undefine GPTIMER_INFO to avoid sprintf get dragged in,
+ * user only for debugging anyway
+ */
+#define GPTIMER_INFO
+
 #include <rtems.h>
 #include <stdlib.h>
 #include <drvmgr/drvmgr.h>
@@ -7,6 +45,10 @@
 #ifdef RTEMS_DRVMGR_STARTUP
 #include <leon.h>
 volatile LEON3_Timer_Regs_Map *LEON3_Timer_Regs = 0;
+#endif
+
+#ifdef GPTIMER_INFO
+#include <stdio.h>
 #endif
 
 struct gptimer_timer_regs {
@@ -96,12 +138,21 @@ struct tlib_drv gptimer_tlib_drv;
 int gptimer_device_init(struct gptimer_priv *priv);
 
 int gptimer_init1(struct rtems_drvmgr_dev_info *dev);
+#ifdef GPTIMER_INFO
+static int gptimer_info(
+	struct rtems_drvmgr_dev_info *dev,
+	void (*print_line)(void *p, char *str),
+	void *p, int, char *argv[]);
+#define GTIMER_INFO_FUNC gptimer_info
+#else
+#define GTIMER_INFO_FUNC NULL
+#endif
 
 struct rtems_drvmgr_drv_ops gptimer_ops =
 {
 	.init = {gptimer_init1, NULL, NULL, NULL},
 	.remove = NULL,
-	.info = NULL
+	.info = GTIMER_INFO_FUNC,
 };
 
 struct amba_dev_id gptimer_ids[] =
@@ -227,7 +278,7 @@ int gptimer_init1(struct rtems_drvmgr_dev_info *dev)
 		timer = &priv->timers[i];
 		timer->index = i;
 		timer->tindex = i + timer_start;
-		timer->tregs = &regs->timer[timer->tindex];
+		timer->tregs = &regs->timer[(int)timer->tindex];
 		timer->tdev.drv = &gptimer_tlib_drv;
 
 		/* Stop Timer */
@@ -266,6 +317,47 @@ int gptimer_init1(struct rtems_drvmgr_dev_info *dev)
 
 	return DRVMGR_OK;
 }
+
+#ifdef GPTIMER_INFO
+static int gptimer_info(
+	struct rtems_drvmgr_dev_info *dev,
+	void (*print_line)(void *p, char *str),
+	void *p, int argc, char *argv[])
+{
+	struct gptimer_priv *priv = dev->priv;
+	struct gptimer_timer *timer;
+	char buf[64];
+	int i;
+
+	if (priv == NULL || argc != 0)
+		return -DRVMGR_EINVAL;
+
+	sprintf(buf, "Timer Count: %d", priv->timer_cnt);
+	print_line(p, buf);
+	sprintf(buf, "REGS:        0x%08x", (unsigned int)priv->regs);
+	print_line(p, buf);
+	sprintf(buf, "BASE SCALER: %d", priv->regs->scaler_reload);
+	print_line(p, buf);
+	sprintf(buf, "BASE FREQ:   %dkHz", priv->base_freq / 1000);
+	print_line(p, buf);
+	sprintf(buf, "SeparateIRQ: %s", priv->separate_interrupt ? "YES":"NO");
+	print_line(p, buf);
+
+	for (i=0; i<priv->timer_cnt; i++) {
+		timer = &priv->timers[i];
+		sprintf(buf, " - TIMER HW Index %d -", timer->tindex);
+		print_line(p, buf);
+		sprintf(buf, " TLIB Index: %d", timer->index);
+		print_line(p, buf);
+		sprintf(buf, " RELOAD REG: %d", timer->tregs->reload);
+		print_line(p, buf);
+		sprintf(buf, " CTRL REG:   %d", timer->tregs->ctrl);
+		print_line(p, buf);
+	}
+
+	return DRVMGR_OK;
+}
+#endif
 
 static inline struct gptimer_priv *priv_from_timer(struct gptimer_timer *t)
 {
