@@ -297,7 +297,7 @@ int grpci2_cfg_r32(pci_dev_t dev, int ofs, uint32_t *val)
 
 	if ((unsigned int)ofs & 0xffffff03) {
 		retval = PCISTS_EINVAL;
-		goto out;
+		goto out2;
 	}
 
 	if (PCI_DEV_SLOT(dev) > 15) {
@@ -347,6 +347,7 @@ out:
 	DBG("pci_read: [%x:%x:%x] reg: 0x%x => addr: 0x%x, val: 0x%x  (%d)\n",
 		PCI_DEV_EXPAND(dev), ofs, pci_conf, *val, retval);
 
+out2:
 	return retval;
 }
 
