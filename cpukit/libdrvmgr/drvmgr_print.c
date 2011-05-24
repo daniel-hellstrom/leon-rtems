@@ -220,6 +220,53 @@ void rtems_drvmgr_print_mem(void)
 	printf("\n\n");
 }
 
+/* Print the memory usage */
+void rtems_drvmgr_summary(void)
+{
+	struct rtems_driver_manager *mgr = &drv_mgr;
+	struct rtems_drvmgr_bus_info *bus;
+	struct rtems_drvmgr_dev_info *dev;
+	struct rtems_drvmgr_drv_info *drv;
+	int i, buscnt = 0, devcnt = 0, drvcnt = 0;
+
+	printf(" --- SUMMARY ---\n");
+
+	drv = DRV_LIST_HEAD(&mgr->drivers);
+	while (drv) {
+		drvcnt++;
+		drv = drv->next;
+	}
+	printf(" NUMBER OF DRIVERS:               %d\n", drvcnt);
+
+	for (i=0; i<=DRVMGR_LEVEL_MAX; i++) {
+		buscnt = 0;
+		bus = BUS_LIST_HEAD(&mgr->buses[i]);
+		while (bus) {
+			buscnt++;
+			bus = bus->next;
+		}
+		if (buscnt > 0) {
+			printf(" NUMBER OF BUSES IN LEVEL[%d]:     %d\n",
+				i, buscnt);
+		}
+	}
+
+	for (i=0; i<=DRVMGR_LEVEL_MAX; i++) {
+		devcnt = 0;
+		dev = DEV_LIST_HEAD(&mgr->devices[i]);
+		while (dev) {
+			devcnt++;
+			dev = dev->next;
+		}
+		if (devcnt > 0) {
+			printf(" NUMBER OF DEVS IN LEVEL[%d]:      %d\n",
+				i, devcnt);
+		}
+	}
+
+	printf("\n\n");
+}
+
 static void print_info(void *p, char *str)
 {
 	printf("  ");

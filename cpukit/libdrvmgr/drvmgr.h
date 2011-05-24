@@ -35,9 +35,9 @@ extern void _DRV_Manager_initialization(void);
 /* Add support for I/O register and memory READ/WRITE functions. */
 #define DRV_MGR_BUS_RW
 
-struct rtems_drvmgr_dev_info;	/* Driver */
+struct rtems_drvmgr_dev_info;	/* Device */
 struct rtems_drvmgr_bus_info;	/* Bus */
-struct rtems_drvmgr_drv_info;	/* Device */
+struct rtems_drvmgr_drv_info;	/* Driver */
 
 /*** List Interface shortcuts ***/
 #define BUS_LIST_HEAD(list) LIST_HEAD(list, struct rtems_drvmgr_bus_info)
@@ -766,6 +766,9 @@ extern void rtems_drvmgr_print_drvs(int show_devs);
 					DRV_MGR_PRINT_DEVS_REMOVED |\
 					DRV_MGR_PRINT_DEVS_IGNORED)
 
+/*! Print number of devices, buses and drivers */
+extern void rtems_drvmgr_summary(void);
+
 /*! Print devices with certain condictions met according to 'options' */
 extern void rtems_drvmgr_print_devs(unsigned int options);
 
@@ -780,9 +783,25 @@ extern void rtems_drvmgr_print_buses(void);
  */
 extern void rtems_drvmgr_print_mem(void);
 
-/* Print information about a driver manager object (device, driver, bus) */
+/*! Print information about a driver manager object (device, driver, bus) */
 extern void rtems_drvmgr_info(void *id);
 
+/*! Get information about a device */
+extern void rtems_drvmgr_info_dev(struct rtems_drvmgr_dev_info *dev);
+
+/*! Get information about a bus */
+extern void rtems_drvmgr_info_bus(struct rtems_drvmgr_bus_info *bus);
+
+/*! Get information about a driver */
+extern void rtems_drvmgr_info_drv(struct rtems_drvmgr_drv_info *drv);
+
+/*! Get information about a device/bus/driver */
+extern void rtems_drvmgr_info(void *id);
+
+/*! Get information about all devices on a bus */
+extern void rtems_drvmgr_info_devs_on_bus(struct rtems_drvmgr_bus_info *bus);
+
+/*! Get information about all devices in the system (on all buses) */
 extern void rtems_drvmgr_info_devs(void);
 
 #ifdef __cplusplus
