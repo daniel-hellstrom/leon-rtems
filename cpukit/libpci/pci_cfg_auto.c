@@ -384,12 +384,17 @@ void pci_find_devs(struct pci_bus *bus)
 
 			dev->busdevfun = pcidev;
 			dev->bus = bus;
+			PCI_CFG_R16(pcidev, PCI_VENDOR_ID, &dev->vendor);
+			PCI_CFG_R16(pcidev, PCI_DEVICE_ID, &dev->device);
+			PCI_CFG_R32(pcidev, PCI_CLASS_REVISION, &dev->classrev);
 
 			if (tmp == PCI_CLASS_BRIDGE_PCI) {
 				DBG("Found PCI-PCI Bridge 0x%x at "
 				    "(bus %x, slot %x, func %x)\n",
 				    id, bus, slot, func);
 				dev->flags = PCI_DEV_BRIDGE;
+				dev->subvendor = 0;
+				dev->subdevice = 0;
 				bridge = (struct pci_bus *)dev;
 				bridge->num = bus->sord + 1;
 				bridge->pri = bus->num;
@@ -416,6 +421,12 @@ void pci_find_devs(struct pci_bus *bus)
 			} else {
 				/* Disable Cardbus CIS Pointer */
 				PCI_CFG_W32(pcidev, PCI_CARDBUS_CIS, 0);
+
+				/* Devices have subsytem device and vendor ID */
+				PCI_CFG_R16(pcidev, PCI_SUBSYSTEM_VENDOR_ID,
+							&dev->subvendor);
+				PCI_CFG_R16(pcidev, PCI_SUBSYSTEM_ID,
+							&dev->subdevice);
 			}
 
 			/* Stop if not a multi-function device */
@@ -952,6 +963,8 @@ int pci_config_auto(void)
 	pci_bus_cnt = pci_hb.sord + 1;
 	if (pci_hb.devs == NULL)
 		return 0;
+
+	pci_system_type = PCI_SYSTEM_HOST;
 
 	/* Find all resources (MEM/MEMIO/IO BARs) of all devices/functions
 	 * on all buses.

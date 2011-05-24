@@ -162,9 +162,10 @@ int pci_cfg_static_init_bus(struct pci_bus *bus)
 /* Assume that user has defined static setup array in pci_hb */
 int pci_config_static(void)
 {
-	pci_cfg_static_init_bus(&pci_hb);
-
 	pci_bus_cnt = pci_hb.sord + 1;
+	pci_system_type = PCI_SYSTEM_HOST;
+
+	pci_cfg_static_init_bus(&pci_hb);
 
 	return 0;
 }

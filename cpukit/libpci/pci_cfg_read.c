@@ -25,6 +25,7 @@ extern struct pci_bus pci_hb;
 int pci_config_read(void)
 {
 	pci_bus_cnt = 0;
+	pci_system_type = PCI_SYSTEM_HOST;
 	printk("PCI READ CONFIGURATION: NOT IMPLEMENTED\n");
 	return -1;
 }

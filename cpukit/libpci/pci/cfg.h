@@ -20,6 +20,19 @@ extern int pci_bus_count(void);
  */
 extern uint32_t pci_invalid_address;
 
+/* PCI System type can be used to determine system for drivers. Normally 
+ * the system is Host, but the peripheral configuration library also supports
+ * being PCI peripheral not allowed to access configuration space.
+ *
+ * The active configuration Library set this variable.
+ */
+enum {
+	PCI_SYSTEM_NONE = 0,
+	PCI_SYSTEM_HOST = 1,
+	PCI_SYSTEM_PERIPHERAL = 2,
+};
+extern int pci_system_type;
+
 /* Configure PCI devices and bridges, and setup the RAM data structures
  * describing the PCI devices currently present in the system.
  *
@@ -131,6 +144,11 @@ struct pci_dev {
 	pci_dev_t	busdevfun;
 	uint8_t		flags;
 	uint8_t		sysirq;
+	uint16_t	vendor;
+	uint16_t	device;
+	uint16_t	subvendor;
+	uint16_t	subdevice;
+	uint32_t	classrev;
 
 	/* static configuration settings */
 	uint16_t	command;
@@ -161,5 +179,6 @@ struct pci_bus {
 #include <pci/cfg_auto.h>
 #include <pci/cfg_static.h>
 #include <pci/cfg_read.h>
+#include <pci/cfg_peripheral.h>
 
 #endif

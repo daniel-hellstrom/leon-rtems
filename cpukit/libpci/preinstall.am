@@ -43,6 +43,10 @@ $(PROJECT_INCLUDE)/pci/cfg_static.h: pci/cfg_static.h $(PROJECT_INCLUDE)/pci/$(d
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/pci/cfg_static.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/pci/cfg_static.h
 
+$(PROJECT_INCLUDE)/pci/cfg_peripheral.h: pci/cfg_peripheral.h $(PROJECT_INCLUDE)/pci/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/pci/cfg_peripheral.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/pci/cfg_peripheral.h
+
 $(PROJECT_INCLUDE)/pci/cfg_read.h: pci/cfg_read.h $(PROJECT_INCLUDE)/pci/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/pci/cfg_read.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/pci/cfg_read.h

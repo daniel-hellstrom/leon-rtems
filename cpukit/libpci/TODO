@@ -1,0 +1,5 @@
+* Command line interface to PCI
+    pci ls [bus:dev:fun|PCIID]      List one or all devices
+    pci {r|w}{8|16|32} bus:dev:fun  Configuration space access
+    pci {r|w}{8|16|32} ID           Configuration space access using PCIID
+    pci config                      Print current configuration for static lib

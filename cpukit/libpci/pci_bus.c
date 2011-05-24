@@ -411,20 +411,12 @@ int pcibus_dev_register(struct pci_dev *dev, void *arg)
 	pciinfo = (struct pci_dev_info *)((char *)(newdev + 1) + 24);
 
 	/* Read Device and Vendor */
-	pci_cfg_r16(pcidev, PCI_VENDOR_ID, &pciinfo->id.vendor);
-	pci_cfg_r16(pcidev, PCI_DEVICE_ID, &pciinfo->id.device);
-	/* Devices have subsytem device and vendor ID */
-	if ((dev->flags & PCI_DEV_BRIDGE) == 0) {
-		pci_cfg_r16(pcidev, PCI_SUBSYSTEM_VENDOR_ID,
-							&pciinfo->id.subvendor);
-		pci_cfg_r16(pcidev, PCI_SUBSYSTEM_ID, &pciinfo->id.subdevice);
-	} else {
-		pciinfo->id.subvendor = 0;
-		pciinfo->id.subdevice = 0;
-	}
-	pci_cfg_r32(pcidev, PCI_CLASS_REVISION, &pciinfo->id.class);
-	pciinfo->rev = pciinfo->id.class & 0xff;
-	pciinfo->id.class = pciinfo->id.class >> 8;
+	pciinfo->id.vendor = dev->vendor;
+	pciinfo->id.device = dev->device;
+	pciinfo->id.subvendor = dev->subvendor;
+	pciinfo->id.subdevice = dev->subdevice;
+	pciinfo->rev = dev->classrev & 0xff;
+	pciinfo->id.class = (dev->classrev >> 8) & 0xffffff;
 
 	/* Read IRQ information set by PCI layer */
 	pciinfo->irq = dev->sysirq;
@@ -501,11 +493,19 @@ int pcibus_dev_register(pci_dev_t pcidev, void *arg)
 	/* Read Device and Vendor */
 	pci_cfg_r16(pcidev, PCI_VENDOR_ID, &pciinfo->id.vendor);
 	pci_cfg_r16(pcidev, PCI_DEVICE_ID, &pciinfo->id.device);
-	pci_cfg_r16(pcidev, PCI_SUBSYSTEM_VENDOR_ID, &pciinfo->id.subvendor);
-	pci_cfg_r16(pcidev, PCI_SUBSYSTEM_ID, &pciinfo->id.subdevice);
 	pci_cfg_r32(pcidev, PCI_CLASS_REVISION, &pciinfo->id.class);
 	pciinfo->rev = pciinfo->id.class & 0xff;
 	pciinfo->id.class = pciinfo->id.class >> 8;
+
+	/* Devices have subsytem device and vendor ID */
+	if ((pciinfo->id.class >> 8) != PCI_CLASS_BRIDGE_PCI) {
+		pci_cfg_r16(pcidev, PCI_SUBSYSTEM_VENDOR_ID,
+							&pciinfo->id.subvendor);
+		pci_cfg_r16(pcidev, PCI_SUBSYSTEM_ID, &pciinfo->id.subdevice);
+	} else {
+		pciinfo->id.subvendor = 0;
+		pciinfo->id.subdevice = 0;
+	}
 
 	/* Read IRQ information set by PCI layer */
 	pci_cfg_r8(pcidev, PCI_INTERRUPT_LINE, &pciinfo->irq);

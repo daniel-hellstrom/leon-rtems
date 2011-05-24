@@ -2242,6 +2242,7 @@ rtems_fs_init_functions_t    rtems_fs_init_helper =
     #define PCI_LIB_AUTO 1
     #define PCI_LIB_STATIC 2
     #define PCI_LIB_READ 3
+    #define PCI_LIB_PERIPHERAL 4
     #if CONFIGURE_PCI_LIB == PCI_LIB_AUTO
       #define PCI_CFG_AUTO_LIB
       #include <pci/cfg.h>
@@ -2253,13 +2254,17 @@ rtems_fs_init_functions_t    rtems_fs_init_helper =
       #include <pci/cfg.h>
       #define PCI_LIB_INIT pci_config_static
       #define PCI_LIB_CONFIG NULL
-      /* Let user define PCI Host bridge (struct pci_bus pci_hb) */
+      /* Let user define PCI configuration (struct pci_bus pci_hb) */
     #elif CONFIGURE_PCI_LIB == PCI_LIB_READ
       #define PCI_CFG_READ_LIB
       #include <pci/cfg.h>
       #define PCI_LIB_INIT pci_config_read
       #define PCI_LIB_CONFIG NULL
       struct pci_bus pci_hb;
+    #elif CONFIGURE_PCI_LIB == PCI_LIB_PERIPHERAL
+      #define PCI_LIB_INIT pci_config_peripheral
+      #define PCI_LIB_CONFIG NULL
+      /* Let user define PCI configuration (struct pci_bus pci_hb) */
     #else
       #error NO PCI LIBRARY DEFINED
     #endif

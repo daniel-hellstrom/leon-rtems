@@ -76,6 +76,11 @@ void pci_cfg_print_device(struct pci_dev *dev, char *prefix)
 	printf("%s.busdevfun = 0x%04x,\n", prefix, dev->busdevfun);
 	printf("%s.flags = 0x%x,\n", prefix, dev->flags);
 	printf("%s.sysirq = %d,\n", prefix, dev->sysirq);
+	printf("%s.vendor = 0x%04x,\n", prefix, dev->vendor);
+	printf("%s.device = 0x%04x,\n", prefix, dev->device);
+	printf("%s.subvendor = 0x%04x,\n", prefix, dev->subvendor);
+	printf("%s.subdevice = 0x%04x,\n", prefix, dev->subdevice);
+	printf("%s.classrev = 0x%08x,\n", prefix, dev->classrev);
 	printf("%s.command = 0,\n", prefix);
 }
 
