@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <pci.h>
 #include <pci/cfg.h>
 #include <pci/access.h>
@@ -23,6 +24,12 @@
 #include "internal.h"
 
 static void usage(void);
+
+struct shell_pci_modifier {
+  char *name;
+  int (*func)(int argc, char *argv[], struct shell_pci_modifier *mod);
+  int data;
+};
 
 static unsigned long get_pciid_from_string(char *arg)
 {
@@ -62,93 +69,20 @@ static unsigned long get_pciid_from_string(char *arg)
   return pciid;
 }
 
-/* General info, root bus, number of devices etc. */
-void show_drvmgr_info(void)
+/* Print current PCI configuration that can be used in a static/peripheral PCI
+ * configuration setup.
+ */
+int shell_pci_pcfg(int argc, char *argv[], struct shell_pci_modifier *mod)
 {
-  rtems_drvmgr_summary();
-}
+  if (argc != 2)
+    return -1;
 
-int shell_drvmgr_topo(int argc, char *argv[])
-{
-  rtems_drvmgr_print_topo();
-  return 0;
-}
-
-int shell_drvmgr_short(int argc, char *argv[])
-{
-  puts(" Not implemented");
-  return 0;
-}
-
-int shell_drvmgr_info(int argc, char *argv[])
-{
-  void *obj;
-
-  /* Get ID from string */
-  if (argc < 3)
-    return -2;
-  obj = get_obj_adr(argv[2]);
-  if (!obj)
-    return -3;
-
-  rtems_drvmgr_info(obj);
+  pci_cfg_print();
 
   return 0;
 }
 
-int shell_drvmgr_remove(int argc, char *argv[])
-{
-  puts(" Not implemented");
-  return 0;
-}
-
-int shell_drvmgr_parent(int argc, char *argv[])
-{
-  void *obj;
-  int obj_type;
-  struct rtems_drvmgr_dev_info *dev;
-  struct rtems_drvmgr_bus_info *bus;
-
-  /* Get ID from string */
-  if (argc < 3)
-    return -2;
-  obj = get_obj_adr(argv[2]);
-  if (!obj)
-    return -3;
-
-  obj_type = *(int *)obj;
-  if (obj_type == DRVMGR_OBJ_BUS) {
-    bus = obj;
-    if (!bus->dev) {
-      puts(" bus has no bridge device");
-    } else if(!bus->dev->parent) {
-      puts(" bridge device has no parent");
-    } else {
-      dev = bus->dev;
-      printf(" BUSID=%p\n", dev->parent);
-    }
-  } else if (obj_type == DRVMGR_OBJ_DEV) {
-    dev = obj;
-    if (!dev->parent) {
-      puts(" device has no parent bus");
-    } else {
-      printf(" BUSID=%p\n", dev->parent);
-    }
-  } else {
-    puts(" ID is not a device or bus");
-    return 1;
-  }
-
-  return 0;
-}
-
-int shell_drvmgr_drv(int argc, char *argv[])
-{
-  puts(" Not implemented");
-  return 0;
-}
-
-int shell_pci_ls(int argc, char *argv[])
+int shell_pci_ls(int argc, char *argv[], struct shell_pci_modifier *mod)
 {
   unsigned long pciid;
 
@@ -159,7 +93,7 @@ int shell_pci_ls(int argc, char *argv[])
     return -1;
   } else {
     pciid = get_pciid_from_string(argv[2]);
-    if (pciid == ~0)
+    if ((pciid & 0xffff0000) != 0)
       return -1;
 
     pci_print_dev((pci_dev_t)pciid);
@@ -167,90 +101,218 @@ int shell_pci_ls(int argc, char *argv[])
   return 0;
 }
 
-int shell_pci_r8(int argc, char *argv[])
+int shell_pci_rX(unsigned long pciid, int offset, int size)
 {
-  unsigned long pciid, offset;
-  uint8_t data;
+  uint8_t data8;
+  uint16_t data16;
+  uint32_t data32;
   int result;
 
-  if (argc != 4) {
-    return -1;
+  switch(size) {
+    case 1:
+      result = pci_cfg_r8(pciid, offset, &data8);
+      if (result == PCISTS_OK)
+        printf(" r08[0x%02x]: 0x%02x  DEC=%d\n", offset, data8, data8);
+      break;
+
+    case 2:
+      result = pci_cfg_r16(pciid, offset, &data16);
+      if (result == PCISTS_OK)
+        printf(" r16[0x%02x]: 0x%04x  DEC=%d\n", offset, data16, data16);
+      break;
+
+    case 4:
+      result = pci_cfg_r32(pciid, offset, &data32);
+      if (result == PCISTS_OK)
+        printf(" r32[0x%02x]: 0x%08lx  DEC=%lu\n", offset, data32, data32);
+      break;
+
+    default:
+      return PCISTS_EINVAL;
   }
+  return result;
+}
+
+int shell_pci_wX(unsigned long pciid, int offset, uint32_t data, int size)
+{
+  uint8_t data8;
+  uint16_t data16;
+  int result;
+
+  switch(size) {
+    case 1:
+      if (data > 0xff)
+        return PCISTS_EINVAL;
+      data8 = data & 0xff;
+      result = pci_cfg_w8(pciid, offset, data8);
+      if (result == PCISTS_OK)
+        printf(" w08[0x%02x]: 0x%02x  DEC=%d\n", offset, data8, data8);
+      break;
+
+    case 2:
+      if (data > 0xffff)
+        return PCISTS_EINVAL;
+      data16 = data & 0xffff;
+      result = pci_cfg_w16(pciid, offset, data16);
+      if (result == PCISTS_OK)
+        printf(" w16[0x%02x]: 0x%04x  DEC=%d\n", offset, data16, data16);
+      break;
+
+    case 4:
+      result = pci_cfg_w32(pciid, offset, data);
+      if (result == PCISTS_OK)
+        printf(" w32[0x%02x]: 0x%08lx  DEC=%lu\n", offset, data, data);
+      break;
+
+    default:
+      return PCISTS_EINVAL;
+  }
+  return result;
+}
+
+int shell_pci_read(int argc, char *argv[], struct shell_pci_modifier *mod)
+{
+  unsigned long pciid, offset;
+  int result, size;
+
+  if (argc != 4)
+    return -1;
 
   pciid = get_pciid_from_string(argv[2]);
-  if (pciid == ~0)
+  if ((pciid & 0xffff0000) != 0)
     return -1;
 
-  offset = strtoul(dev_str, NULL, 0);
-  if (offset == ULONG_MAX)
+  offset = strtoul(argv[3], NULL, 0);
+  if (offset > 256)
     return -1;
 
-  result = pci_cfg_r8(pciid, offset, &data);
+  size = mod->data;
+  result = shell_pci_rX(pciid, offset, size);
   switch (result) {
     default:
-    case 
-    
+    case PCISTS_OK:
+      break;
+
+    case PCISTS_ERR:
+    case PCISTS_EINVAL:
+      puts(" Bad input argument\n");
+      return PCISTS_EINVAL;
+
+    case PCISTS_MSTABRT:
+      puts(" Master abort while reading configuration space");
+      return PCISTS_MSTABRT;
   }
 
+  return 0;
+}
+
+int shell_pci_write(int argc, char *argv[], struct shell_pci_modifier *mod)
+{
+  unsigned long pciid, offset;
+  int result, size;
+  uint32_t data;
+
+  if (argc != 5)
+    return -1;
+
+  pciid = get_pciid_from_string(argv[2]);
+  if ((pciid & 0xffff0000) != 0)
+    return -1;
+
+  offset = strtoul(argv[3], NULL, 0);
+  if (offset > 256)
+    return -1;
+
+  data = strtoul(argv[4], NULL, 0);
+  if (data == ULONG_MAX && errno == ERANGE)
+    return -1;
+
+  size = mod->data;
+  result = shell_pci_wX(pciid, offset, data, size);
+  switch (result) {
+    default:
+    case PCISTS_OK:
+      break;
+
+    case PCISTS_ERR:
+    case PCISTS_EINVAL:
+      puts(" Bad input argument\n");
+      return PCISTS_EINVAL;
+
+    case PCISTS_MSTABRT:
+      puts(" Master abort while reading configuration space");
+      return PCISTS_MSTABRT;
+  }
+  return 0;
+}
+
+int shell_pci_pciid(int argc, char *argv[], struct shell_pci_modifier *mod)
+{
+  unsigned long pciid;
+
+  if (argc != 3)
+    return -1;
+
+  pciid = get_pciid_from_string(argv[2]);
+  if ((pciid & 0xffff0000) != 0)
+    return -1;
+
+  printf(" PCIID: 0x%lx [%x:%x:%x]\n", pciid, PCI_DEV_EXPAND(pciid));
   return 0;
 }
 
 const char pci_usage_str[] =
  " usage:\n"
- "  pci ls [PCIID]                     List one or all devices\n"
+ "  pci ls [bus:dev:fun|PCIID]         List one or all devices\n"
+ "  pci r{8|16|32} bus:dev:fun OFS     Configuration space read\n"
  "  pci r{8|16|32} PCIID OFS           Configuration space read\n"
  "                                     access by PCIID\n"
- "  pci config                         Print current PCI config for\n"
+ "  pci w{8|16|32} bus:dev:fun OFS D   Configuration space write\n"
+ "  pci w{8|16|32} PCIID OFS D         Configuration space write\n"
+ "                                     access by PCIID\n"
+ "  pci pciid bus:dev:fun              Print PCIID for bus:dev:fun\n"
+ "  pci pciid PCIID                    Print bus:dev:fun for PCIID\n"
+ "  pci pcfg                           Print current PCI config for\n"
  "                                     static configuration library\n"
  "  pci --help\n";
 
-#if 0
- "  pci ls [bus:dev:fun|PCIID]         List one or all devices\n"
- "  pci {r|w}{8|16|32} bus:dev:fun OFS Configuration space access\n"
-#endif
- 
 static void usage(void)
 {
   puts(pci_usage_str);
 }
 
-int shell_pci_usage(int argc, char *argv[])
+int shell_pci_usage(int argc, char *argv[], struct shell_pci_modifier *mod)
 {
   usage();
   return 0;
 }
 
-struct shell_pci_modifier {
-  char *name;
-  int (*func)(int argc, char *argv[], pci_dev_t dev, int ofs);
-  int option;
-};
-
 #define GET_PCIID 1
 #define GET_PCIOFS 2
-#define MODIFIER_NUM 8
+#define MODIFIER_NUM 10
 static struct shell_pci_modifier shell_pci_modifiers[MODIFIER_NUM] =
 {
   {"ls", shell_pci_ls, 0},
-  {"r8", shell_pci_r8, GET_PCIID|GET_PCIOFS},
-  {"r16", shell_pci_r16, GET_PCIID|GET_PCIOFS},
-  {"r32", shell_pci_r32, GET_PCIID|GET_PCIOFS},
-  {"w8", shell_pci_w8, GET_PCIID|GET_PCIOFS},
-  {"w16", shell_pci_w16, GET_PCIID|GET_PCIOFS},
-  {"w32", shell_pci_w32, GET_PCIID|GET_PCIOFS},
-  {"config", shell_pci_config, 0},
+  {"r8", shell_pci_read, 1},
+  {"r16", shell_pci_read, 2},
+  {"r32", shell_pci_read, 4},
+  {"w8", shell_pci_write, 1},
+  {"w16", shell_pci_write, 2},
+  {"w32", shell_pci_write, 4},
+  {"pciid", shell_pci_pciid, 0},
+  {"pcfg", shell_pci_pcfg, 0},
   {"--help", shell_pci_usage},
 };
 
 struct shell_pci_modifier *shell_pci_find_modifier(char *name)
 {
-  struct shell_drvmgr_modifier *mod;
+  struct shell_pci_modifier *mod;
   int i;
 
   if (name == NULL)
     return NULL;
 
-  for (i=0, mod=&shell_drvmgr_modifiers[0]; i<MODIFIER_NUM; i++, mod++) {
+  for (i=0, mod=&shell_pci_modifiers[0]; i<MODIFIER_NUM; i++, mod++) {
     if (strcmp(name, mod->name) == 0)
       return mod;
   }
@@ -263,27 +325,14 @@ int rtems_shell_main_pci(
   char *argv[]
 )
 {
-  struct shell_drvmgr_modifier *mod;
+  struct shell_pci_modifier *mod;
   int rc;
 
   if (argc < 2) {
     usage();
     rc = 0;
-  } else if ((mod=shell_drvmgr_find_modifier(argv[1])) != NULL) {
-    argi = 2;
-    if (mod->option & GET_PCIID) {
-      if (argc <= argi) {
-        rc = -1;
-      } else {
-        get_pciid_from_string
-        argi++;
-      }
-    }
-    if ((rc == 0) && (mod->option & GET_PCIOFS)) {
-      
-    }
-  
-    rc = mod->func(argc, argv);
+  } else if ((mod=shell_pci_find_modifier(argv[1])) != NULL) {
+    rc = mod->func(argc, argv, mod);
   } else {
     rc = -1;
   }
