@@ -45,6 +45,12 @@ extern int pci_config_init(void);
  */
 extern void pci_config_register(void *config);
 
+/* Print current PCI configuration (C-code) to terminal, can be used in
+ * static and peripheral PCI configuration library. The configuration is
+ * taken from the current configuration library setup.
+ */
+extern void pci_cfg_print(void);
+
 struct pci_bus; /* Bridge Device and secondary bus information */
 struct pci_dev; /* Device/function */
 struct pci_res; /* Resource: BAR, ROM or Bridge Window */

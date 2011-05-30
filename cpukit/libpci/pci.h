@@ -305,6 +305,12 @@ extern int pci_init(void);
  */
 extern void pci_print(void);
 
+/* Print current configuration of a single PCI device by reading PCI
+ * configuration space
+ */
+extern void pci_print_dev(pci_dev_t dev);
+extern void pci_print_device(int bus, int slot, int function);
+
 /* Function iterates over all PCI buses/devices/functions and calls
  * func(PCIDEV,arg) for each present device. The iteration is stopped if
  * func() returns non-zero result the same result is returned. As long
