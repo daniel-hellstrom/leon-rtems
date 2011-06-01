@@ -1,0 +1,23 @@
+
+Driver INFO routines
+====================
+
+APBUART
+-------
+ - BAUD RATE
+ - Stopbits etc.
+ - Stats, send/received chars
+ - number of interrupts
+
+GPTIMER
+-------
+  - Number of Timers
+  - BASE SCALER
+  - SCALERs
+  - separate IRQ or not
+
+GRPCI2
+------
+ - PCI Windows/AREAS
+ - target BARs, and sizes
+ - IRQ table
