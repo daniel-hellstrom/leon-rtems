@@ -225,6 +225,34 @@ $(PROJECT_INCLUDE)/genirq.h: ../../sparc/shared/include/genirq.h $(PROJECT_INCLU
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/genirq.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/genirq.h
 
+$(PROJECT_INCLUDE)/grascs.h: ../../sparc/shared/include/grascs.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grascs.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/grascs.h
+
+$(PROJECT_INCLUDE)/satcan.h: ../../sparc/shared/include/satcan.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/satcan.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/satcan.h
+
+$(PROJECT_INCLUDE)/canmux.h: ../../sparc/shared/include/canmux.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/canmux.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/canmux.h
+
+$(PROJECT_INCLUDE)/grslink.h: ../../sparc/shared/include/grslink.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grslink.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/grslink.h
+
+$(PROJECT_INCLUDE)/gr_rasta_tmtc.h: ../../sparc/shared/include/gr_rasta_tmtc.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr_rasta_tmtc.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr_rasta_tmtc.h
+
+$(PROJECT_INCLUDE)/grtc.h: ../../sparc/shared/include/grtc.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grtc.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/grtc.h
+
+$(PROJECT_INCLUDE)/grtm.h: ../../sparc/shared/include/grtm.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grtm.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/grtm.h
+
 $(PROJECT_INCLUDE)/drvmgr/$(dirstamp):
 	@$(MKDIR_P) $(PROJECT_INCLUDE)/drvmgr
 	@: > $(PROJECT_INCLUDE)/drvmgr/$(dirstamp)

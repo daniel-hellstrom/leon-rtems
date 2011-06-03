@@ -158,6 +158,16 @@ include_HEADERS += ../../sparc/shared/include/genirq.h
 libbsp_a_SOURCES += ../../sparc/shared/irq/genirq.c \
 	../../sparc/shared/irq/irq-shared.c
 
+# TM/TC
+include_HEADERS += ../../sparc/shared/include/gr_rasta_tmtc.h
+include_HEADERS += ../../sparc/shared/include/grtc.h
+include_HEADERS += ../../sparc/shared/include/grtm.h
+libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_rasta_tmtc.c
+libbsp_a_SOURCES += ../../sparc/shared/tmtc/grtc.c
+libbsp_a_SOURCES += ../../sparc/shared/tmtc/grtc_rmap.c
+libbsp_a_SOURCES += ../../sparc/shared/tmtc/grtm.c
+libbsp_a_SOURCES += ../../sparc/shared/tmtc/grtm_rmap.c
+
 # Driver Manager
 include_drvmgrdir = $(includedir)/drvmgr
 include_drvmgr_HEADERS = ../../sparc/shared/include/drvmgr/ambapp_bus.h
@@ -217,11 +227,6 @@ libbsp_a_LIBADD += leon_smc91111.rel
 endif
 
 libbsp_a_LIBADD += drvmgr.rel
-
-# Additional drivers, if any
-include $(top_srcdir)/buildfiles/Makefile.am.tc
-include $(top_srcdir)/buildfiles/Makefile.am.tm
-include $(top_srcdir)/buildfiles/Makefile.am.gr_rasta_tmtc
 
 EXTRA_DIST = times
 

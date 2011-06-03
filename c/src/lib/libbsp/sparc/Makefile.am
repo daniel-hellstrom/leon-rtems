@@ -138,14 +138,23 @@ EXTRA_DIST += shared/include/drvmgr/leon2_amba_bus.h
 EXTRA_DIST += shared/include/drvmgr/spw_bus.h
 EXTRA_DIST += shared/include/drvmgr/spw_bus_ids.h
 
+# GR712
+EXTRA_DIST += shared/ascs/grascs.c
+EXTRA_DIST += shared/include/grascs.h
+EXTRA_DIST += shared/can/satcan.c
+EXTRA_DIST += shared/include/satcan.h
+EXTRA_DIST += shared/slink/grslink.c
+EXTRA_DIST += shared/include/grslink.h
 
-# Additional drivers, if any
-include $(top_srcdir)/buildfiles/Makefile.am.tc
-include $(top_srcdir)/buildfiles/Makefile.am.tm
-include $(top_srcdir)/buildfiles/Makefile.am.gr_rasta_tmtc
-include $(top_srcdir)/buildfiles/Makefile.am.slink
-include $(top_srcdir)/buildfiles/Makefile.am.ascs
-include $(top_srcdir)/buildfiles/Makefile.am.satcan
+# TMTC
+EXTRA_DIST += shared/pci/gr_rasta_tmtc.c
+EXTRA_DIST += shared/include/gr_rasta_tmtc.h
+EXTRA_DIST += shared/tmtc/grtc.c
+EXTRA_DIST += shared/tmtc/grtc_rmap.c
+EXTRA_DIST += shared/include/grtc.h
+EXTRA_DIST += shared/tmtc/grtm.c
+EXTRA_DIST += shared/tmtc/grtm_rmap.c
+EXTRA_DIST += shared/include/grtm.h
 
 include $(top_srcdir)/../../../automake/subdirs.am
 include $(top_srcdir)/../../../automake/local.am

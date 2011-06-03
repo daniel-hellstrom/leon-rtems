@@ -171,6 +171,26 @@ include_HEADERS += ../../sparc/shared/include/genirq.h
 libbsp_a_SOURCES += ../../sparc/shared/irq/genirq.c \
 	startup/eirq.c ../../sparc/shared/irq/irq-shared.c
 
+# GR712
+include_HEADERS += ../../sparc/shared/include/grascs.h
+include_HEADERS += ../../sparc/shared/include/satcan.h 
+include_HEADERS += ../../sparc/shared/include/canmux.h
+include_HEADERS += ../../sparc/shared/include/grslink.h
+libbsp_a_SOURCES += ../../sparc/shared/ascs/grascs.c
+libbsp_a_SOURCES += ../../sparc/shared/can/satcan.c
+libbsp_a_SOURCES += ../../sparc/shared/can/canmux.c
+libbsp_a_SOURCES += ../../sparc/shared/slink/grslink.c
+
+# TM/TC
+include_HEADERS += ../../sparc/shared/include/gr_rasta_tmtc.h
+include_HEADERS += ../../sparc/shared/include/grtc.h
+include_HEADERS += ../../sparc/shared/include/grtm.h
+libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_rasta_tmtc.c
+libbsp_a_SOURCES += ../../sparc/shared/tmtc/grtc.c
+libbsp_a_SOURCES += ../../sparc/shared/tmtc/grtc_rmap.c
+libbsp_a_SOURCES += ../../sparc/shared/tmtc/grtm.c
+libbsp_a_SOURCES += ../../sparc/shared/tmtc/grtm_rmap.c
+
 # Driver Manager 
 include_drvmgrdir = $(includedir)/drvmgr
 include_drvmgr_HEADERS = ../../sparc/shared/include/drvmgr/ambapp_bus_grlib.h
@@ -231,14 +251,6 @@ libbsp_a_LIBADD += leon_open_eth.rel
 libbsp_a_LIBADD += leon_greth.rel
 libbsp_a_LIBADD += leon_smc91111.rel
 endif
-
-# Additional drivers, if any
-include $(top_srcdir)/buildfiles/Makefile.am.tc
-include $(top_srcdir)/buildfiles/Makefile.am.tm
-include $(top_srcdir)/buildfiles/Makefile.am.gr_rasta_tmtc
-include $(top_srcdir)/buildfiles/Makefile.am.slink
-include $(top_srcdir)/buildfiles/Makefile.am.ascs
-include $(top_srcdir)/buildfiles/Makefile.am.satcan
 
 EXTRA_DIST += times
 

@@ -1,3 +1,0 @@
-EXTRA_DIST += shared/tmtc/grtc.c
-EXTRA_DIST += shared/tmtc/grtc_rmap.c
-EXTRA_DIST += shared/include/grtc.h

@@ -197,6 +197,18 @@ $(PROJECT_INCLUDE)/genirq.h: ../../sparc/shared/include/genirq.h $(PROJECT_INCLU
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/genirq.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/genirq.h
 
+$(PROJECT_INCLUDE)/gr_rasta_tmtc.h: ../../sparc/shared/include/gr_rasta_tmtc.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr_rasta_tmtc.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr_rasta_tmtc.h
+
+$(PROJECT_INCLUDE)/grtc.h: ../../sparc/shared/include/grtc.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grtc.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/grtc.h
+
+$(PROJECT_INCLUDE)/grtm.h: ../../sparc/shared/include/grtm.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grtm.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/grtm.h
+
 $(PROJECT_INCLUDE)/drvmgr/$(dirstamp):
 	@$(MKDIR_P) $(PROJECT_INCLUDE)/drvmgr
 	@: > $(PROJECT_INCLUDE)/drvmgr/$(dirstamp)

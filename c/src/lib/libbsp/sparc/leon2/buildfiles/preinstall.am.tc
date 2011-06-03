@@ -1,3 +1,0 @@
-$(PROJECT_INCLUDE)/grtc.h: ../../sparc/shared/include/grtc.h $(PROJECT_INCLUDE)/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grtc.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/grtc.h
