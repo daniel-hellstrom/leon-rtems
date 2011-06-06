@@ -628,9 +628,8 @@ dont_fix_pil2:
 
                                         ! o1 = 2nd arg = address of the ISF
                                         !   WAS LOADED WHEN ISF WAS SAVED!!!
-        mov      %l3, %o0               ! o0 = 1st arg = vector number
         call     %g4, 0
-        nop                             ! delay slot
+         mov     %l3, %o0               ! o0 = 1st arg = vector number
 
         /*
          *  Redisable traps so we can finish up the interrupt processing.
