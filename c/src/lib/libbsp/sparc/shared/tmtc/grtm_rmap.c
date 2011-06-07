@@ -468,6 +468,7 @@ static struct amba_dev_id grtm_ids[] =
 static struct amba_drv_info grtm_rmap_drv_info =
 {
 	{
+		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
 		NULL,				/* Device list */
 		DRIVER_AMBAPP_GAISLER_GRTM_ID,	/* Driver ID */
