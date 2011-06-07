@@ -175,8 +175,9 @@ void gr_tmtc_1553_register_drv(void)
 	rtems_drvmgr_drv_register(&gr_tmtc_1553_info.general);
 }
 
-void gr_tmtc_1553_isr (int irqno, struct gr_tmtc_1553_priv *priv)
+void gr_tmtc_1553_isr (int irqno, void *arg)
 {
+	struct gr_tmtc_1553_priv *priv = arg;
 	unsigned int status, tmp;
 	int irq;
 	tmp = status = priv->irq->ipend;
@@ -212,7 +213,6 @@ int gr_tmtc_1553_hw_init(struct gr_tmtc_1553_priv *priv)
 {
 	unsigned int data;
 	unsigned int *page0 = NULL;
-	unsigned char ver;
 	struct ambapp_dev *tmp;
 	int status;
 	struct ambapp_ahb_info *ahb;
@@ -344,7 +344,7 @@ int gr_tmtc_1553_init1(struct rtems_drvmgr_dev_info *dev)
 		PCI_DEV_EXPAND(priv->pcidev));
 	printf(" PCI VENDOR: 0x%04x, DEVICE: 0x%04x\n",
 		devinfo->id.vendor, devinfo->id.device);
-	printf(" PCI BAR[0]: 0x%x - 0x%x\n", bar0, bar0 + bar0_size - 1);
+	printf(" PCI BAR[0]: 0x%lx - 0x%lx\n", bar0, bar0 + bar0_size - 1);
 	printf(" IRQ: %d\n\n\n", devinfo->irq);
 
 	/* all neccessary space assigned to GR-TMTC-1553 target? */
@@ -540,7 +540,7 @@ void gr_tmtc_1553_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 	bar0 = devinfo->resources[0].address;
 	bar0_size = devinfo->resources[0].size;
 
-	printf(" PCI BAR[0]: 0x%x - 0x%x\n", bar0, bar0 + bar0_size - 1);
+	printf(" PCI BAR[0]: 0x%lx - 0x%lx\n", bar0, bar0 + bar0_size - 1);
 	printf(" IRQ REGS:        0x%x\n", (unsigned int)priv->irq);
 	printf(" IRQ:             %d\n", devinfo->irq);
 	printf(" FREQ:            %d Hz\n", priv->version->amba_freq_hz);

@@ -206,8 +206,9 @@ void gr_rasta_tmtc_register_drv(void)
 	rtems_drvmgr_drv_register(&gr_rasta_tmtc_info.general);
 }
 
-void gr_rasta_tmtc_isr (int irqno, struct gr_rasta_tmtc_priv *priv)
+void gr_rasta_tmtc_isr (int irqno, void *arg)
 {
+	struct gr_rasta_tmtc_priv *priv = arg;
 	unsigned int status, tmp;
 	int irq;
 	tmp = status = priv->irq->ipend;
@@ -241,7 +242,7 @@ int gr_rasta_tmtc_dev_find(struct ambapp_dev *dev, int index, int maxdepth, void
 
 int gr_rasta_tmtc_hw_init(struct gr_rasta_tmtc_priv *priv)
 {
-	unsigned int data;
+	uint32_t data;
 	unsigned int *page0 = NULL;
 	unsigned char ver;
 	struct ambapp_dev *tmp;
@@ -253,7 +254,7 @@ int gr_rasta_tmtc_hw_init(struct gr_rasta_tmtc_priv *priv)
 	uint32_t bar0, bar0_size;
 
 	/* Select version of GR-RASTA-TMTC board */
-	switch (devinfo->ver) {
+	switch (devinfo->rev) {
 		case 0:
 			priv->version = &gr_rasta_tmtc_ver0;
 			break;
@@ -268,9 +269,11 @@ int gr_rasta_tmtc_hw_init(struct gr_rasta_tmtc_priv *priv)
 	/* Point PAGE0 to start of Plug and Play information */
 	*page0 = priv->version->amba_ioarea & 0xf0000000;
 
+#if 0
 	/* set parity error response */
 	pci_cfg_r32(pcidev, PCI_COMMAND, &data);
 	pci_cfg_w32(pcidev, PCI_COMMAND, (data|PCI_COMMAND_PARITY));
+#endif
 
 	/* Scan AMBA Plug&Play */
 
@@ -320,7 +323,7 @@ int gr_rasta_tmtc_hw_init(struct gr_rasta_tmtc_priv *priv)
 	 * the PCI window.
 	 */
 	priv->grpci->cfg_stat = (priv->grpci->cfg_stat & 0x0fffffff) |
-				priv->ahbmst2pci_map & 0xf0000000;
+				(priv->ahbmst2pci_map & 0xf0000000);
 	priv->grpci->page1 = 0x40000000;
 
 	/* Find IRQ controller, Clear all current IRQs */
@@ -429,8 +432,8 @@ int gr_rasta_tmtc_init1(struct rtems_drvmgr_dev_info *dev)
 		PCI_DEV_EXPAND(priv->pcidev));
 	printf(" PCI VENDOR: 0x%04x, DEVICE: 0x%04x\n",
 		devinfo->id.vendor, devinfo->id.device);
-	printf(" PCI BAR[0]: 0x%x - 0x%x\n", bar0, bar0 + bar0_size - 1);
-	printf(" PCI BAR[1]: 0x%x - 0x%x\n", bar1, bar1 + bar1_size - 1);
+	printf(" PCI BAR[0]: 0x%lx - 0x%lx\n", bar0, bar0 + bar0_size - 1);
+	printf(" PCI BAR[1]: 0x%lx - 0x%lx\n", bar1, bar1 + bar1_size - 1);
 	printf(" IRQ: %d\n\n\n", devinfo->irq);
 
 	/* all neccessary space assigned to GR-RASTA-IO target? */
@@ -624,7 +627,6 @@ int ambapp_rasta_tmtc_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems
 void gr_rasta_tmtc_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 {
 	struct gr_rasta_tmtc_priv *priv = dev->priv;
-	int i;
 	struct pci_dev_info *devinfo = priv->devinfo;
 	uint32_t bar0, bar1, bar0_size, bar1_size;
 
@@ -637,8 +639,8 @@ void gr_rasta_tmtc_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 	bar1 = devinfo->resources[1].address;
 	bar1_size = devinfo->resources[1].size;
 
-	printf(" PCI BAR[0]: 0x%x - 0x%x\n", bar0, bar0 + bar0_size - 1);
-	printf(" PCI BAR[1]: 0x%x - 0x%x\n", bar1, bar1 + bar1_size - 1);
+	printf(" PCI BAR[0]: 0x%lx - 0x%lx\n", bar0, bar0 + bar0_size - 1);
+	printf(" PCI BAR[1]: 0x%lx - 0x%lx\n", bar1, bar1 + bar1_size - 1);
 	printf(" IRQ:             %d\n", devinfo->irq);
 	printf(" PCI REVISION:    %d\n", devinfo->rev);
 	printf(" FREQ:            %d Hz\n", priv->version->amba_freq_hz);
@@ -653,6 +655,7 @@ void gr_rasta_tmtc_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 #if 0
 	/* Print IRQ handlers and their arguments */
 	if ( options & RASTA_TMTC_OPTIONS_IRQ ) {
+		int i;
 		for(i=0; i<16; i++) {
 			printf(" IRQ[%02d]:         0x%x, arg: 0x%x\n", 
 				i, (unsigned int)priv->isrs[i].handler, (unsigned int)priv->isrs[i].arg);
