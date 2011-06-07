@@ -46,10 +46,6 @@ extern "C" {
 #define DRIVER_PCI_GAISLER_RASTAADCDAC_ID	DRIVER_PCI_ID(PCIID_VENDOR_GAISLER, PCIID_DEVICE_GR_RASTA_ADCDAC)
 #define DRIVER_PCI_GAISLER_TMTC_1553_ID	        DRIVER_PCI_ID(PCIID_VENDOR_GAISLER, PCIID_DEVICE_GR_TMTC_1553)
 
-struct pcibus_config {
-	struct rtems_drvmgr_drv_res *resources;	/* Driver Resources */
-};
-
 struct pci_dev_id {
 	uint16_t		vendor;
 	uint16_t		device;
@@ -114,10 +110,13 @@ extern void pcibus_cfg_w16(struct rtems_drvmgr_dev_info *dev, int ofs, uint16_t 
 extern void pcibus_cfg_w32(struct rtems_drvmgr_dev_info *dev, int ofs, uint32_t value);
 #endif
 
+/* Weak default PCI driver resources, override this from project configuration
+ * to set PCI Bus resources used to configure PCI device drivers.
+ */
+extern struct rtems_drvmgr_bus_res pcibus_drv_resources;
+
 /* Attach a PCI bus on top of a PCI Host device */
-extern int pcibus_register(
-	struct rtems_drvmgr_dev_info *dev,
-	struct pcibus_config *config);
+extern int pcibus_register(struct rtems_drvmgr_dev_info *dev);
 
 #ifdef __cplusplus
 }

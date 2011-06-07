@@ -31,7 +31,7 @@ extern "C" {
  * The gr_rasta_io_resources is declared weak so that the user can override the
  * default configuration.
  */
-extern struct rtems_drvmgr_drv_res *gr_rasta_adcdac_resources[];
+extern struct rtems_drvmgr_bus_res *gr_rasta_adcdac_resources[];
 
 /* Options to gr_rasta_io_print function */
 #define RASTA_ADCDAC_OPTIONS_AMBA   0x01 /* Print AMBA bus devices */

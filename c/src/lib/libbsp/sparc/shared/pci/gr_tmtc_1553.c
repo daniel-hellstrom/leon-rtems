@@ -163,7 +163,7 @@ struct pci_drv_info gr_tmtc_1553_info =
  *
  * The array must end with a NULL pointer.
  */
-struct rtems_drvmgr_drv_res *gr_tmtc_1553_resources[] __attribute__((weak)) =
+struct rtems_drvmgr_bus_res *gr_tmtc_1553_resources[] __attribute__((weak)) =
 {
 	NULL
 };

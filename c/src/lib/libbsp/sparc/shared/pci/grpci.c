@@ -122,9 +122,6 @@ struct grpci_priv {
 	unsigned int			pci_conf_end;
 
 	uint32_t			devVend; /* Host PCI Vendor/Device ID */
-
-	/* PCI Bus layer configuration */
-	struct pcibus_config	config;
 };
 
 int grpci_init1(struct rtems_drvmgr_dev_info *dev);
@@ -612,7 +609,7 @@ int grpci_init1(struct rtems_drvmgr_dev_info *dev)
 		return DRVMGR_FAIL;
 	}
 
-	return pcibus_register(dev, &priv->config);
+	return pcibus_register(dev);
 }
 
 /* DMA functions which uses GRPCIs optional DMA controller (len in words) */

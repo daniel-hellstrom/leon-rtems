@@ -102,9 +102,6 @@ struct pcif_priv {
 	unsigned int			pci_conf_end;
 
 	unsigned int			devVend; /* PCI Device and Vendor ID of Host */
-
-	/* PCI Bus layer configuration */
-	struct pcibus_config		config;
 };
 
 int pcif_init1(struct rtems_drvmgr_dev_info *dev);
@@ -485,7 +482,7 @@ int pcif_init1(struct rtems_drvmgr_dev_info *dev)
 		return DRVMGR_FAIL;
 	}
 
-	return pcibus_register(dev, &priv->config);;
+	return pcibus_register(dev);
 }
 
 int pcif_init3(struct rtems_drvmgr_dev_info *dev)

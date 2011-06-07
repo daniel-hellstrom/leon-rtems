@@ -242,9 +242,6 @@ struct grpci2_priv {
 	unsigned int			pci_conf_end;
 
 	uint32_t			devVend; /* Host PCI Device/Vendor ID */
-
-	/* PCI Bus layer configuration */
-	struct pcibus_config	config;
 };
 
 int grpci2_init1(struct rtems_drvmgr_dev_info *dev);
@@ -843,7 +840,7 @@ int grpci2_init1(struct rtems_drvmgr_dev_info *dev)
 	}
 
 	/* Initialize/Register Driver Manager PCI Bus */
-	return pcibus_register(dev, &priv->config);
+	return pcibus_register(dev);
 }
 
 int grpci2_init3(struct rtems_drvmgr_dev_info *dev)

@@ -75,14 +75,13 @@ extern "C" {
 #define GR_TMTC_GPIO_TC_RF_AVAIL	(1<<10)
 #define GR_TMTC_GPIO_SCID		(0x000003ff)
 
-/* An array of pointers to GR-RASTA-IO resources. The resources will be
- * used by the drivers controlling the cores on the GR-RASTA-IO target AMBA bus.
+/* An array of pointers to GR-RASTA-TMTC bus resources. The resources will be
+ * used by the device drivers controlling the cores on the GR-RASTA-IO target
+ * AMBA bus.
  *
- * resource - pointer to array of resource pointers
- * cnt      - number of pointers in array
+ * The array is defined weak, and defualts to no resources.
  */
-void gr_rasta_tmtc_set_resources(struct rtems_drvmgr_drv_res **resources, int cnt);
-
+extern struct rtems_drvmgr_bus_res *gr_rasta_tmtc_resources[];
 
 /* Options to gr_rasta_io_print function */
 #define RASTA_TMTC_OPTIONS_AMBA   0x01 /* Print AMBA bus devices */

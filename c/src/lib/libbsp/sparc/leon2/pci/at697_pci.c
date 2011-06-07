@@ -161,9 +161,6 @@ struct at697pci_priv {
 	int			minor;
 
 	unsigned int		devVend; /* PCI Device and Vendor ID of Host */
-
-	/* PCI Bus layer configuration */
-	struct pcibus_config	config;
 };
 
 struct at697pci_priv *at697pcipriv = NULL;
@@ -536,7 +533,7 @@ int at697pci_init1(struct rtems_drvmgr_dev_info *dev)
 		return DRVMGR_FAIL;
 	}
 
-	return pcibus_register(dev, &priv->config);
+	return pcibus_register(dev);
 }
 
 int at697pci_init2(struct rtems_drvmgr_dev_info *dev)

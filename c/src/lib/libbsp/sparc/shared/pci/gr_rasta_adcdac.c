@@ -181,7 +181,7 @@ struct pci_drv_info gr_rasta_adcdac_info =
  *
  * The array must end with a NULL pointer.
  */
-struct rtems_drvmgr_drv_res *gr_rasta_adcdac_resources[] __attribute__((weak)) =
+struct rtems_drvmgr_bus_res *gr_rasta_adcdac_resources[] __attribute__((weak)) =
 {
 	NULL
 };

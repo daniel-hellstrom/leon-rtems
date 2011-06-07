@@ -110,9 +110,21 @@ struct rtems_drvmgr_bus_ops pcibus_ops =
 #endif
 };
 
+/* Driver resources configuration for the PCI bus. It is declared weak so that
+ * the user may override it from the project file, if the default settings are
+ * not enough.
+ */
+struct rtems_drvmgr_bus_res pcibus_drv_resources __attribute__((weak)) =
+{
+	.next = NULL,
+	.resource =
+	{
+		RES_EMPTY,
+	},
+};
+
 struct pcibus_priv {
 	struct rtems_drvmgr_dev_info	*dev;
-	struct pcibus_config		*config;
 };
 
 static int compatible(struct pci_dev_id *id, struct pci_dev_id_match *drv)
@@ -545,8 +557,7 @@ static int pcibus_devs_register(struct rtems_drvmgr_bus_info *bus)
 
 /*** DEVICE FUNCTIONS ***/
 
-int pcibus_register(
-	struct rtems_drvmgr_dev_info *dev, struct pcibus_config *config)
+int pcibus_register(struct rtems_drvmgr_dev_info *dev)
 {
 	struct pcibus_priv *priv;
 
@@ -563,14 +574,13 @@ int pcibus_register(
 	dev->bus->reslist = NULL;
 	dev->bus->mmaps = NULL;
 
-	/* Add resource configuration */
-	if (config->resources)
-		rtems_drvmgr_bus_res_add(dev->bus, config->resources);
+	/* Add resource configuration if user overrided the default empty cfg */
+	if (pcibus_drv_resources.resource[0].drv_id != 0)
+		rtems_drvmgr_bus_res_add(dev->bus, &pcibus_drv_resources);
 
 	/* Init BUS private structures */
 	priv = (struct pcibus_priv *)(dev->bus + 1);
 	dev->bus->priv = priv;	
-	priv->config = config;
 
 	/* Register BUS */
 	rtems_drvmgr_bus_register(dev->bus);
