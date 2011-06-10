@@ -68,12 +68,11 @@ libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp_names.c
 libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp_show.c
 
 ### PCI ###
-include_HEADERS += ../../sparc/shared/include/pci.h
-libbsp_a_SOURCES +=  ../../sparc/shared/pci/pci.c
-libbsp_a_SOURCES +=  ../../sparc/shared/pci/pcifinddevice.c
+include_HEADERS += ../../sparc/shared/include/grpci2.h
+libbsp_a_SOURCES += ../../sparc/shared/pci/grpci2.c
 libbsp_a_SOURCES += ../../sparc/shared/pci/grpci.c
-libbsp_a_SOURCES +=  ../../sparc/shared/pci/pcif.c
-libbsp_a_SOURCES +=  pci/at697_pci.c
+#libbsp_a_SOURCES +=  ../../sparc/shared/pci/pcif.c
+#libbsp_a_SOURCES +=  pci/at697_pci.c
 
 # PCI target devices
 include_HEADERS += ../../sparc/shared/include/gr_rasta_adcdac.h
@@ -183,18 +182,13 @@ include_drvmgrdir = $(includedir)/drvmgr
 include_drvmgr_HEADERS = ../../sparc/shared/include/drvmgr/ambapp_bus.h
 include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/ambapp_bus_rmap.h
 include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/leon2_amba_bus.h
-include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/pci_bus.h
 include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/spw_bus.h
 include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/spw_bus_ids.h
-noinst_PROGRAMS += drvmgr.rel
-drvmgr_rel_SOURCES = ../../sparc/shared/drvmgr/ambapp_bus.c
-drvmgr_rel_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus_rmap.c
-drvmgr_rel_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus_leon2.c
-drvmgr_rel_SOURCES += ../../sparc/shared/drvmgr/leon2_amba_bus.c
-drvmgr_rel_SOURCES += ../../sparc/shared/drvmgr/pci_bus.c
-drvmgr_rel_SOURCES += ../../sparc/shared/drvmgr/spw_bus.c
-drvmgr_rel_CPPFLAGS = $(AM_CPPFLAGS)
-drvmgr_rel_LDFLAGS = $(RTEMS_RELLDFLAGS)
+libbsp_a_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus.c
+libbsp_a_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus_rmap.c
+libbsp_a_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus_leon2.c
+libbsp_a_SOURCES += ../../sparc/shared/drvmgr/leon2_amba_bus.c
+libbsp_a_SOURCES += ../../sparc/shared/drvmgr/spw_bus.c
 
 if HAS_NETWORKING
 noinst_PROGRAMS += leon_smc91111.rel
@@ -235,8 +229,6 @@ libbsp_a_LIBADD += leon_greth.rel
 libbsp_a_LIBADD += leon_open_eth.rel
 libbsp_a_LIBADD += leon_smc91111.rel
 endif
-
-libbsp_a_LIBADD += drvmgr.rel
 
 EXTRA_DIST = times
 
