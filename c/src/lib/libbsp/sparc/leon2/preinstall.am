@@ -89,10 +89,6 @@ $(PROJECT_INCLUDE)/grlib.h: ../../sparc/shared/include/grlib.h $(PROJECT_INCLUDE
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grlib.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/grlib.h
 
-$(PROJECT_INCLUDE)/pci.h: ../../sparc/shared/include/pci.h $(PROJECT_INCLUDE)/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/pci.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/pci.h
-
 $(PROJECT_INCLUDE)/gr_rasta_adcdac.h: ../../sparc/shared/include/gr_rasta_adcdac.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr_rasta_adcdac.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr_rasta_adcdac.h
@@ -197,6 +193,18 @@ $(PROJECT_INCLUDE)/genirq.h: ../../sparc/shared/include/genirq.h $(PROJECT_INCLU
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/genirq.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/genirq.h
 
+$(PROJECT_INCLUDE)/bsp/irq-generic.h: ../../shared/include/irq-generic.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/irq-generic.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/irq-generic.h
+
+$(PROJECT_INCLUDE)/bsp/irq-info.h: ../../shared/include/irq-info.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/irq-info.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/irq-info.h
+
+$(PROJECT_INCLUDE)/bsp/irq.h: include/bsp/irq.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/irq.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/irq.h
+
 $(PROJECT_INCLUDE)/gr_rasta_tmtc.h: ../../sparc/shared/include/gr_rasta_tmtc.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr_rasta_tmtc.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr_rasta_tmtc.h
@@ -225,10 +233,6 @@ PREINSTALL_FILES += $(PROJECT_INCLUDE)/drvmgr/ambapp_bus_rmap.h
 $(PROJECT_INCLUDE)/drvmgr/leon2_amba_bus.h: ../../sparc/shared/include/drvmgr/leon2_amba_bus.h $(PROJECT_INCLUDE)/drvmgr/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/drvmgr/leon2_amba_bus.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/drvmgr/leon2_amba_bus.h
-
-$(PROJECT_INCLUDE)/drvmgr/pci_bus.h: ../../sparc/shared/include/drvmgr/pci_bus.h $(PROJECT_INCLUDE)/drvmgr/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/drvmgr/pci_bus.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/drvmgr/pci_bus.h
 
 $(PROJECT_INCLUDE)/drvmgr/spw_bus.h: ../../sparc/shared/include/drvmgr/spw_bus.h $(PROJECT_INCLUDE)/drvmgr/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/drvmgr/spw_bus.h
