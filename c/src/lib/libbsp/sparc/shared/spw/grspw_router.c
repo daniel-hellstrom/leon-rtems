@@ -288,6 +288,11 @@ int router_config_set(struct router_priv *priv, struct router_config *cfg)
 {
 	int i;
 
+	if ( (cfg->flags & (ROUTER_FLG_TPRES|ROUTER_FLG_TRLD)) &&
+	     !priv->hwinfo.timers_avail ) {
+		return RTEMS_NOT_IMPLEMENTED;
+	}
+
 	/* Write only configuration bits in Config register */
 	if ( cfg->flags & ROUTER_FLG_CFG ) {
 		REG_WRITE(&priv->regs->cfgsts, cfg->config & ~0x4);

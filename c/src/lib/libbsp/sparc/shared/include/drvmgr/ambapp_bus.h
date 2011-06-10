@@ -78,15 +78,10 @@ struct amba_dev_info {
 
 struct ambapp_ops {
 	int	(*int_register)
-		(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
+		(struct rtems_drvmgr_dev_info *dev, int index, const char *info, rtems_drvmgr_isr isr, void *arg);
 	int	(*int_unregister)
 		(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
-	int	(*int_enable)
-		(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
-	int	(*int_disable)
-		(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
-	int	(*int_clear)
-		(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
+	int	(*int_clear)(struct rtems_drvmgr_dev_info *dev, int index);
 	int	(*int_mask)(struct rtems_drvmgr_dev_info *dev, int index);
 	int	(*int_unmask)(struct rtems_drvmgr_dev_info *dev, int index);
 	int	(*get_params)

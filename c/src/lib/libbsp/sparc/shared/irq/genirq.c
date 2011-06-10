@@ -217,7 +217,7 @@ void genirq_doirq(genirq_t d, int irq)
 		if ( isrentry->enabled ) {
 			enabled = 1;
 			/* Call the ISR */
-			isrentry->isr(irq, isrentry->arg);
+			isrentry->isr(isrentry->arg);
 		}
 		isrentry = isrentry->next;
 	}

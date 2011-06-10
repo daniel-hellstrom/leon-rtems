@@ -117,7 +117,7 @@ struct gptimer_priv {
 	struct gptimer_timer timers[0];
 };
 
-void gptimer_isr(int irqno, void *data);
+void gptimer_isr(void *data);
 
 #if 0
 void gptimer_tlib_irq_register(struct tlib_drv *tdrv, tlib_isr_t func, void *data)
@@ -300,8 +300,12 @@ int gptimer_init1(struct rtems_drvmgr_dev_info *dev)
 
 	if ( priv->separate_interrupt == 0 ) {
 		/* Shared IRQ handler */
-		rtems_drvmgr_interrupt_register(priv->dev, 0, gptimer_isr,priv);
-		rtems_drvmgr_interrupt_enable(priv->dev, 0, gptimer_isr, priv);
+		rtems_drvmgr_interrupt_register(
+			priv->dev,
+			0,
+			"gptimer_shared",
+			gptimer_isr,
+			priv);
 	}
 
 	/* If the user request a certain Timer to be the RTEMS Clock Timer,
@@ -367,7 +371,7 @@ static inline struct gptimer_priv *priv_from_timer(struct gptimer_timer *t)
 		t->index * sizeof(struct gptimer_timer));
 }
 
-void gptimer_isr(int irqno, void *data)
+void gptimer_isr(void *data)
 {
 	struct gptimer_priv *priv = data;
 	struct gptimer_timer_regs *tregs;
@@ -385,7 +389,7 @@ void gptimer_isr(int irqno, void *data)
 			tregs->ctrl = ctrl | GPTIMER_CTRL_IP;
 			if ( priv->timers[i].tdev.isr_func ) {
 				priv->timers[i].tdev.isr_func(
-					irqno, priv->timers[i].tdev.isr_data);
+					priv->timers[i].tdev.isr_data);
 			}
 		}
 	}
@@ -435,9 +439,7 @@ void gptimer_tlib_irq_reg(struct tlib_dev *hand, tlib_isr_t func, void *data)
 
 	if ( priv->separate_interrupt ) {
 		rtems_drvmgr_interrupt_register(priv->dev, timer->tindex,
-						func, data);
-		rtems_drvmgr_interrupt_enable(priv->dev, timer->tindex,
-						func, data);
+						"gptimer", func, data);
 	}
 
 	timer->tregs->ctrl |= GPTIMER_CTRL_IE;
@@ -452,8 +454,6 @@ void gptimer_tlib_irq_unreg(struct tlib_dev *hand, tlib_isr_t func, void *data)
 	timer->tregs->ctrl &= ~GPTIMER_CTRL_IE;
 
 	if ( priv->separate_interrupt ) {
-		rtems_drvmgr_interrupt_disable(priv->dev, timer->tindex, 
-						func, data);
 		rtems_drvmgr_interrupt_unregister(priv->dev, timer->tindex,
 						func, data);
 	} else {

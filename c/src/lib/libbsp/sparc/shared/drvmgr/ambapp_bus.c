@@ -50,11 +50,9 @@ struct grlib_gptimer_regs {
 int ambapp_bus_init1(struct rtems_drvmgr_bus_info *bus);
 int ambapp_bus_remove(struct rtems_drvmgr_bus_info *bus);
 int ambapp_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_info *dev);
-int ambapp_int_register(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
+int ambapp_int_register(struct rtems_drvmgr_dev_info *dev, int index, const char *info, rtems_drvmgr_isr isr, void *arg);
 int ambapp_int_unregister(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
-int ambapp_int_enable(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
-int ambapp_int_disable(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
-int ambapp_int_clear(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
+int ambapp_int_clear(struct rtems_drvmgr_dev_info *dev, int index);
 int ambapp_int_mask(struct rtems_drvmgr_dev_info *dev, int index);
 int ambapp_int_unmask(struct rtems_drvmgr_dev_info *dev, int index);
 int ambapp_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params);
@@ -77,8 +75,6 @@ struct rtems_drvmgr_bus_ops ambapp_bus_ops =
 	.unite		= ambapp_unite,
 	.int_register	= ambapp_int_register,
 	.int_unregister	= ambapp_int_unregister,
-	.int_enable	= ambapp_int_enable,
-	.int_disable	= ambapp_int_disable,
 	.int_clear	= ambapp_int_clear,
 	.int_mask	= ambapp_int_mask,
 	.int_unmask	= ambapp_int_unmask,
@@ -153,6 +149,7 @@ static int ambapp_int_get(struct rtems_drvmgr_dev_info *dev, int index)
 int ambapp_int_register(
 	struct rtems_drvmgr_dev_info *dev,
 	int index,
+	const char *info,
 	rtems_drvmgr_isr isr,
 	void *arg)
 {
@@ -166,15 +163,15 @@ int ambapp_int_register(
 	/* Get IRQ number from index and device information */
 	irq = ambapp_int_get(dev, index);
 	if ( irq < 0 ) 
-		return -1;
+		return DRVMGR_EINVAL;
 
 	DBG("Register interrupt on 0x%x for dev 0x%x (IRQ: %d)\n", (unsigned int)busdev, (unsigned int)dev, irq);
 
 	if ( priv->config->ops->int_register ) {
 		/* Let device override driver default */
-		return priv->config->ops->int_register(dev, irq, isr, arg);
+		return priv->config->ops->int_register(dev, irq, info, isr, arg);
 	} else {
-		return -1;
+		return DRVMGR_ENOSYS;
 	}
 }
 
@@ -194,7 +191,7 @@ int ambapp_int_unregister(
 	/* Get IRQ number from index and device information */
 	irq = ambapp_int_get(dev, index);
 	if ( irq < 0 ) 
-		return -1;
+		return DRVMGR_EINVAL;
 
 	DBG("Unregister interrupt on 0x%x for dev 0x%x (IRQ: %d)\n", (unsigned int)busdev, (unsigned int)dev, irq);
 
@@ -202,71 +199,13 @@ int ambapp_int_unregister(
 		/* Let device override driver default */
 		return priv->config->ops->int_unregister(dev, irq, isr, arg);
 	} else {
-		return -1;
-	}
-}
-
-int ambapp_int_enable(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg)
-{
-	struct rtems_drvmgr_dev_info *busdev;
-	struct ambapp_priv *priv;
-	int irq;
-
-	busdev = dev->parent->dev;
-	priv = dev->parent->priv;
-
-	/* Get IRQ number from index and device information */
-	irq = ambapp_int_get(dev, index);
-	if ( irq < 0 ) 
-		return -1;
-
-	DBG("Enable interrupt on 0x%x for dev 0x%x (IRQ: %d)\n", (unsigned int)busdev, (unsigned int)dev, irq);
-
-	if ( priv->config->ops->int_enable ) {
-		/* Let device override driver default */
-		return priv->config->ops->int_enable(dev, irq, isr, arg);
-	} else {
-		return -1;
-	}
-}
-
-int ambapp_int_disable(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg)
-{
-	struct rtems_drvmgr_dev_info *busdev;
-	struct ambapp_priv *priv;
-	int irq;
-
-	busdev = dev->parent->dev;
-	priv = dev->parent->priv;
-
-	/* Get IRQ number from index and device information */
-	irq = ambapp_int_get(dev, index);
-	if ( irq < 0 ) 
-		return -1;
-
-	DBG("Disable interrupt on 0x%x for dev 0x%x (IRQ: %d)\n", (unsigned int)busdev, (unsigned int)dev, irq);
-
-	if ( priv->config->ops->int_disable ) {
-		/* Let device override driver default */
-		return priv->config->ops->int_disable(dev, irq, isr, arg);
-	} else {
-		return -1;
+		return DRVMGR_ENOSYS;
 	}
 }
 
 int ambapp_int_clear(
 	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg)
+	int index)
 {
 	struct rtems_drvmgr_dev_info *busdev;
 	struct ambapp_priv *priv;
@@ -284,9 +223,9 @@ int ambapp_int_clear(
 
 	if ( priv->config->ops->int_clear ) {
 		/* Let device override driver default */
-		return priv->config->ops->int_clear(dev, irq, isr, arg);
+		return priv->config->ops->int_clear(dev, irq);
 	} else {
-		return -1;
+		return DRVMGR_ENOSYS;
 	}
 }
 
@@ -312,7 +251,7 @@ int ambapp_int_mask(
 		/* Let device override driver default */
 		return priv->config->ops->int_mask(dev, irq);
 	} else {
-		return -1;
+		return DRVMGR_ENOSYS;
 	}
 }
 
@@ -330,7 +269,7 @@ int ambapp_int_unmask(
 	/* Get IRQ number from index and device information */
 	irq = ambapp_int_get(dev, index);
 	if ( irq < 0 ) 
-		return -1;
+		return DRVMGR_EINVAL;
 
 	DBG("UNMASK interrupt on 0x%x for dev 0x%x (IRQ: %d)\n", (unsigned int)busdev, (unsigned int)dev, irq);
 
@@ -338,7 +277,7 @@ int ambapp_int_unmask(
 		/* Let device override driver default */
 		return priv->config->ops->int_unmask(dev, irq);
 	} else {
-		return -1;
+		return DRVMGR_ENOSYS;
 	}
 }
 

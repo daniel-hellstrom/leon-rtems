@@ -39,6 +39,7 @@ int leon2_amba_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_
 int leon2_amba_int_register(
 	struct rtems_drvmgr_dev_info *dev,
 	int index,
+	const char *info,
 	rtems_drvmgr_isr isr,
 	void *arg);
 int leon2_amba_int_unregister(
@@ -46,21 +47,9 @@ int leon2_amba_int_unregister(
 	int index,
 	rtems_drvmgr_isr isr,
 	void *arg);
-int leon2_amba_int_enable(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg);
-int leon2_amba_int_disable(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg);
 int leon2_amba_int_clear(
 	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg);
+	int index);
 int leon2_amba_int_mask(
 	struct rtems_drvmgr_dev_info *dev,
 	int index);
@@ -81,8 +70,6 @@ struct rtems_drvmgr_bus_ops leon2_amba_bus_ops =
 	.unite		= leon2_amba_unite,
 	.int_register	= leon2_amba_int_register,
 	.int_unregister	= leon2_amba_int_unregister,
-	.int_enable	= leon2_amba_int_enable,
-	.int_disable	= leon2_amba_int_disable,
 	.int_clear	= leon2_amba_int_clear,
 	.int_mask	= leon2_amba_int_mask,
 	.int_unmask	= leon2_amba_int_unmask,
@@ -367,6 +354,7 @@ int leon2_amba_int_register
 	(
 	struct rtems_drvmgr_dev_info *dev,
 	int index,
+	const char *info,
 	rtems_drvmgr_isr isr,
 	void *arg
 	)
@@ -379,7 +367,7 @@ int leon2_amba_int_register
 
 	DBG("Registering IRQ %d to func 0x%x arg 0x%x\n", irq, (unsigned int)isr, (unsigned int)arg);
 
-	return BSP_shared_interrupt_register(irq, isr, arg);
+	return BSP_shared_interrupt_register(irq, info, isr, arg);
 }
 
 int leon2_amba_int_unregister
@@ -401,48 +389,10 @@ int leon2_amba_int_unregister
 	return BSP_shared_interrupt_unregister(irq, isr, arg);
 }
 
-/* Enable interrupt */
-int leon2_amba_int_enable
-	(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg
-	)
-{
-	int irq;
-
-	irq = leon2_amba_get_irq(dev, index);
-	if ( irq < 0 )
-		return -1;
-
-	return BSP_shared_interrupt_enable(irq, isr, arg);
-}
-
-/* Disable interrupt */
-int leon2_amba_int_disable
-	(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg
-	)
-{
-	int irq;
-
-	irq = leon2_amba_get_irq(dev, index);
-	if ( irq < 0 )
-		return -1;
-
-	return BSP_shared_interrupt_disable(irq, isr, arg);
-}
-
 int leon2_amba_int_clear
 	(
 	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg
+	int index
 	)
 {
 	int irq;
@@ -451,7 +401,9 @@ int leon2_amba_int_clear
 	if ( irq < 0 )
 		return -1;
 
-	return BSP_shared_interrupt_clear(irq, isr, arg);
+	BSP_shared_interrupt_clear(irq);
+
+	return DRVMGR_OK;
 }
 
 int leon2_amba_int_mask
@@ -468,7 +420,7 @@ int leon2_amba_int_mask
 
 	BSP_shared_interrupt_mask(irq);
 
-	return 0;
+	return DRVMGR_OK;
 }
 
 int leon2_amba_int_unmask
@@ -485,7 +437,7 @@ int leon2_amba_int_unmask
 
 	BSP_shared_interrupt_unmask(irq);
 
-	return 0;
+	return DRVMGR_OK;
 }
 
 struct rtems_drvmgr_drv_ops leon2_amba_ops = 

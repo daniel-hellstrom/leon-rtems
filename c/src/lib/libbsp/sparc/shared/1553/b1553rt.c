@@ -109,7 +109,7 @@ typedef struct {
 
 } rt_priv;
 
-static void b1553rt_interrupt(int irq, void *arg);
+static void b1553rt_interrupt(void *arg);
 static rtems_device_driver rt_init(rt_priv *rt);
 
 #define OFS(ofs) (((unsigned int)&ofs & 0x1ffff)>>1)
@@ -375,11 +375,6 @@ int b1553rt_device_init(rt_priv *pDev)
         return RTEMS_INTERNAL_ERROR;
     }
 
-    /* Register interrupt routine */
-    if ( rtems_drvmgr_interrupt_register(pDev->dev, 0, b1553rt_interrupt, pDev) ) {
-        return -1;
-    }
-
     /* Default to RT-mode */
     rt_init(pDev);
 
@@ -499,7 +494,12 @@ static rtems_device_driver rt_open(rtems_device_major_number major, rtems_device
 
     start_operation(rt);
 
-    rtems_drvmgr_interrupt_enable(rt->dev, 0, b1553rt_interrupt, rt);
+    /* Register interrupt routine */
+    if (rtems_drvmgr_interrupt_register(rt->dev, 0, "b1553rt", b1553rt_interrupt, rt)) {
+        rtems_semaphore_release(rt->dev_sem);
+        return -1;
+    }
+
 
     return RTEMS_SUCCESSFUL;
 }
@@ -516,7 +516,7 @@ static rtems_device_driver rt_close(rtems_device_major_number major, rtems_devic
     }
     rt = (rt_priv *)dev->priv;
 
-    rtems_drvmgr_interrupt_disable(rt->dev, 0, b1553rt_interrupt, rt);
+    rtems_drvmgr_interrupt_unregister(rt->dev, 0, b1553rt_interrupt, rt);
 
     stop_operation(rt);
     rtems_semaphore_release(rt->dev_sem);
@@ -676,7 +676,8 @@ static rtems_device_driver rt_control(rtems_device_major_number major, rtems_dev
     return RTEMS_SUCCESSFUL;
 }
 
-static void b1553rt_interrupt(int irq, void *arg) {
+static void b1553rt_interrupt(void *arg)
+{
     rt_priv *rt = arg;
     unsigned short descriptor;
     int signal_event=0, wake_rx_task=0;

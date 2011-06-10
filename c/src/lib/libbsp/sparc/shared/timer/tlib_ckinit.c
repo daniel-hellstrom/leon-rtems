@@ -69,7 +69,7 @@ rtems_device_minor_number rtems_clock_minor;
  *
  */
 
-void Clock_isr(int irq, void *arg_unused)
+void Clock_isr(void *arg_unused)
 {
   /*
    *  Accurate count of ISRs

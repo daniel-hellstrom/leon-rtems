@@ -490,7 +490,7 @@ int gr1553rt_irq_sa
 }
 
 /* GR1553-RT Interrupt Service Routine */
-void gr1553rt_isr(int irq, void *data)
+void gr1553rt_isr(void *data)
 {
 	struct gr1553rt_priv *priv = data;
 	unsigned int firstirq, lastpos;
@@ -501,6 +501,7 @@ void gr1553rt_isr(int irq, void *data)
 	struct gr1553rt_irq *isr;
 	struct gr1553rt_irqerr *isrerr;
 	struct gr1553rt_irqmc *isrmc;
+	unsigned int irq;
 
 	/* Ack IRQ before reading current write pointer, but after
 	 * reading current IRQ pointer. This is because RT_EVIRQ
@@ -741,14 +742,11 @@ void *gr1553rt_open(int minor)
 	/* Unmask IRQs and so */
 	gr1553rt_hw_stop(priv);
 
-	/* Register ISR handler */
-	if (rtems_drvmgr_interrupt_register(*priv->pdev, 0, gr1553rt_isr, priv))
-		goto fail;
-
-	/* Hardware mask IRQ, so it is safe to unmask at IRQ
-	 * controller.
+	/* Register ISR handler. hardware mask IRQ, so it is safe to unmask
+	 * at IRQ controller.
 	 */
-	rtems_drvmgr_interrupt_enable(*priv->pdev, 0, gr1553rt_isr, priv);
+	if (rtems_drvmgr_interrupt_register(*priv->pdev, 0, "gr1553rt", gr1553rt_isr, priv))
+		goto fail;
 
 	return priv;
 
@@ -767,9 +765,6 @@ void gr1553rt_close(void *rt)
 	if ( priv->started ) {
 		gr1553rt_stop(priv);
 	}
-
-	/* unmask IRQ at IRQ controller */
-	rtems_drvmgr_interrupt_disable(*priv->pdev, 0, gr1553rt_isr, priv);
 
 	/* Remove ISR handler */
 	rtems_drvmgr_interrupt_unregister(*priv->pdev, 0, gr1553rt_isr, priv);

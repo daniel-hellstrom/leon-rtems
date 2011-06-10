@@ -180,7 +180,7 @@ static void grcan_hw_sync(
   struct grcan_regs *regs,
   struct grcan_filter *sfilter);
 
-static void grcan_interrupt(int irq, void *arg);
+static void grcan_interrupt(void *arg);
 
 #ifdef GRCAN_REG_BYPASS_CACHE
 #define READ_REG(address) _grcan_read_nocache((unsigned int)(address))
@@ -385,11 +385,6 @@ int grcan_device_init(struct grcan_priv *pDev)
 
 	/* Reset Hardware before attaching IRQ handler */
 	grcan_hw_reset(pDev->regs);
-
-	/* Register interrupt routine */
-	if ( rtems_drvmgr_interrupt_register(pDev->dev, 0, grcan_interrupt, pDev) ) {
-		return -1;
-	}
 
 	/* RX Semaphore created with count = 0 */
 	if ( rtems_semaphore_create(rtems_build_name('G', 'C', 'R', '0' + pDev->minor),
@@ -1501,8 +1496,10 @@ static rtems_device_driver grcan_ioctl(rtems_device_major_number major, rtems_de
 		}
 		/* Read and write are now open... */
 		pDev->started = 1;
-		/* Enable Interrupt */
-		rtems_drvmgr_interrupt_enable(dev, 0, grcan_interrupt, pDev);
+
+		/* Register interrupt routine and enable IRQ at IRQ ctrl */
+		rtems_drvmgr_interrupt_register(dev, 0, "grcan", grcan_interrupt, pDev);
+
 		break;
 
 		case GRCAN_IOC_STOP:
@@ -1510,7 +1507,7 @@ static rtems_device_driver grcan_ioctl(rtems_device_major_number major, rtems_de
 			return RTEMS_RESOURCE_IN_USE;
 
 		/* Disable interrupts */
-		rtems_drvmgr_interrupt_disable(dev, 0, grcan_interrupt, pDev);
+		rtems_drvmgr_interrupt_unregister(dev, 0, grcan_interrupt, pDev);
 
 		grcan_stop(pDev);
 		pDev->started = 0;
@@ -1686,7 +1683,7 @@ static rtems_device_driver grcan_ioctl(rtems_device_major_number major, rtems_de
 }
 
 /* Handle the IRQ */
-static void grcan_interrupt(int irq, void *arg)
+static void grcan_interrupt(void *arg)
 {
 	struct grcan_priv *pDev = arg;
 	unsigned int status = READ_REG(&pDev->regs->pimsr);

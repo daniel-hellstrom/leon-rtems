@@ -375,12 +375,6 @@ static int graes_device_init(struct graes_priv *pDev)
 	/* Reset Hardware before attaching IRQ handler */
 	graes_hw_reset(pDev);
 
-	/* Register interrupt handler */
-	if ( rtems_drvmgr_interrupt_register(pDev->dev, 0, graes_interrupt, pDev) ) {
-		DBG("GRAES: Failed to allocate irq %d@0x%08x %d:%d apb:0x%x\n", pnpinfo->irq, pDev->regs,pnpinfo->vendor,pnpinfo->device, pnpinfo->apb_slv);
-		return -1;
-	}
-
 	return 0;
 }
 
@@ -938,8 +932,8 @@ static rtems_device_driver graes_ioctl(rtems_device_major_number major, rtems_de
 		if ( (status=graes_start(pDev)) != RTEMS_SUCCESSFUL ){
 			return status;
 		}
-		/* Enable interrupt */
-		rtems_drvmgr_interrupt_enable(dev, 0, graes_interrupt, pDev);
+		/* Register interrupt handler and unmask IRQ at IRQ ctrl */
+		rtems_drvmgr_interrupt_register(dev, 0, "graes", graes_interrupt, pDev);
 
 		/* Read and write are now open... */
 		break;
@@ -950,7 +944,7 @@ static rtems_device_driver graes_ioctl(rtems_device_major_number major, rtems_de
 		}
 
 		/* Disable interrupts */
-		rtems_drvmgr_interrupt_disable(dev, 0, graes_interrupt, pDev);
+		rtems_drvmgr_interrupt_unregister(dev, 0, graes_interrupt, pDev);
 		graes_stop(pDev);
 		pDev->running = 0;
 		break;

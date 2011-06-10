@@ -521,11 +521,11 @@ rtems_status_code grpwm_config_channel(
 	return RTEMS_SUCCESSFUL;
 }
 
-static void grpwm_isr(int irq, void *arg)
+static void grpwm_isr(void *arg)
 {
-	struct grpwm_priv *priv = arg;
 	unsigned int ipend;
-	struct grpwm_chan_priv *pwm;
+	struct grpwm_chan_priv *pwm = arg;
+	struct grpwm_priv *priv = pwm->common;
 	int i;
 
 	/* Get current pending interrupts */
@@ -723,9 +723,9 @@ static rtems_device_driver grpwm_ioctl(rtems_device_major_number major, rtems_de
 
 			if ( data & GRPWM_IRQ_CLEAR ) {
 				priv->regs->ipend |= (1<<channel);
-				rtems_drvmgr_interrupt_clear(priv->dev, pwm->irqindex, grpwm_isr, priv);
+				rtems_drvmgr_interrupt_clear(priv->dev, pwm->irqindex);
 			}
-			if ( (data & 0x3) && !pwm->isr) {
+			if ( (data & 0x3) && !pwm->isr ) {
 				/* Enable IRQ but no ISR */
 				return RTEMS_INVALID_NAME;
 			}
@@ -830,11 +830,16 @@ int grpwm_device_init(struct grpwm_priv *priv)
 	for (i=0; i<priv->channel_cnt; i++) {
 		pwm = priv->channels[i];
 		if ( (mask & (1 << pwm->irqindex)) == 0 ) {
-			/* Not register interrupt handler for this IRQ index before,
+			/* Not registered interrupt handler for this IRQ index before,
 			 * we do it now.
 			 */
 			mask |= (1 << pwm->irqindex);
-			rtems_drvmgr_interrupt_register(priv->dev, pwm->irqindex, grpwm_isr, priv);
+			rtems_drvmgr_interrupt_register(
+				priv->dev,
+				pwm->irqindex,
+				"grpwm",
+				grpwm_isr,
+				pwm);
 		}
 	}
 

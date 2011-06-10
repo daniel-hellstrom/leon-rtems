@@ -260,7 +260,7 @@ static int pelican_start(occan_priv *priv);
 static void pelican_stop(occan_priv *priv);
 static int pelican_send(occan_priv *can, CANMsg *msg);
 static void pelican_set_accept(occan_priv *priv, unsigned char *acode, unsigned char *amask);
-void occan_interrupt(int irq, void *arg);
+void occan_interrupt(void *arg);
 #ifdef DEBUG_PRINT_REGMAP
 static void pelican_regadr_print(pelican_regs *regs);
 #endif
@@ -614,11 +614,6 @@ int occan_device_init(occan_priv *pDev)
 	/* hardware init/reset */
 	pelican_init(pDev);
 
-	/* Register interrupt routine */
-	if ( rtems_drvmgr_interrupt_register(pDev->dev, 0, occan_interrupt, pDev) ) {
-		return -1;
-	}
-
 #ifdef DEBUG_PRINT_REGMAP
 	pelican_regadr_print(pDev->regs);
 #endif
@@ -878,15 +873,17 @@ static int pelican_start(occan_priv *priv){
 	 */
 	WRITE_REG(priv, &priv->regs->mode, (priv->single_mode << 3));
 
-	rtems_drvmgr_interrupt_enable(priv->dev, 0, occan_interrupt, priv);
+	/* Register interrupt routine and unmask IRQ at IRQ controller */
+	rtems_drvmgr_interrupt_register(priv->dev, 0, "occan", occan_interrupt, priv);
 
 	return 0;
 }
 
-static void pelican_stop(occan_priv *priv){
+static void pelican_stop(occan_priv *priv)
+{
 	/* stop HW */
 
-	rtems_drvmgr_interrupt_disable(priv->dev, 0, occan_interrupt, priv);
+	rtems_drvmgr_interrupt_unregister(priv->dev, 0, occan_interrupt, priv);
 
 #ifdef DEBUG
 	/* print setup before stopping */
@@ -1714,7 +1711,8 @@ static rtems_device_driver occan_ioctl(rtems_device_major_number major, rtems_de
 	return RTEMS_SUCCESSFUL;
 }
 
-void occan_interrupt(int irq, void *arg) {
+void occan_interrupt(void *arg)
+{
 	occan_priv *can = arg;
 	unsigned char iflags;
 	pelican_regs *regs = can->regs;

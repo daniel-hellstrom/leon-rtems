@@ -333,7 +333,7 @@ struct grtc_priv {
 
 /* Prototypes */
 static void grtc_hw_reset(struct grtc_priv *priv);
-static void grtc_interrupt(int irq, void *arg);
+static void grtc_interrupt(void *arg);
 
 /* Common Global Variables */
 static rtems_id grtc_dev_sem;
@@ -513,11 +513,6 @@ static int grtc_device_init(struct grtc_priv *pDev)
 
 	/* Reset Hardware before attaching IRQ handler */
 	grtc_hw_reset(pDev);
-
-	/* Register interrupt handler */
-	if ( rtems_drvmgr_interrupt_register(pDev->dev, 0, grtc_interrupt, pDev) ) {
-		return -1;
-	}
 
 	return 0;
 }
@@ -1725,8 +1720,8 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 		if ( (status=grtc_start(pDev)) != RTEMS_SUCCESSFUL ){
 			return status;
 		}
-		/* Unmask interrupt */
-		rtems_drvmgr_interrupt_enable(pDev->dev, 0, grtc_interrupt, pDev);
+		/* Register ISR & Unmask interrupt */
+		rtems_drvmgr_interrupt_register(pDev->dev, 0, "grtc_rmap", grtc_interrupt, pDev);
 
 		/* Read and write are now open... */
 		break;
@@ -1735,7 +1730,7 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 		if ( !pDev->running ) {
 			return RTEMS_RESOURCE_IN_USE;
 		}
-		rtems_drvmgr_interrupt_disable(pDev->dev, 0, grtc_interrupt, pDev);
+		rtems_drvmgr_interrupt_unregister(pDev->dev, 0, grtc_interrupt, pDev);
 		grtc_stop(pDev);
 		pDev->running = 0;
 		break;
@@ -2063,7 +2058,7 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 	return RTEMS_SUCCESSFUL;
 }
 
-static void grtc_interrupt(int irq, void *arg)
+static void grtc_interrupt(void *arg)
 {
 	struct grtc_priv *pDev = arg;
 	struct grtc_regs *regs = pDev->regs;

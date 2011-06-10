@@ -155,8 +155,18 @@ libbsp_a_SOURCES += timer/timer.c
 
 # IRQ
 include_HEADERS += ../../sparc/shared/include/genirq.h
-libbsp_a_SOURCES += ../../sparc/shared/irq/genirq.c \
-	../../sparc/shared/irq/irq-shared.c
+include_bsp_HEADERS = \
+	../../shared/include/irq-generic.h \
+        ../../shared/include/irq-info.h \
+	include/bsp/irq.h
+libbsp_a_SOURCES += \
+	../../sparc/shared/irq/genirq.c \
+	../../sparc/shared/irq/irq-shared.c \
+        ../../shared/src/irq-generic.c \
+        ../../shared/src/irq-legacy.c \
+        ../../shared/src/irq-info.c \
+        ../../shared/src/irq-shell.c \
+        ../../shared/src/irq-server.c
 
 # TM/TC
 include_HEADERS += ../../sparc/shared/include/gr_rasta_tmtc.h

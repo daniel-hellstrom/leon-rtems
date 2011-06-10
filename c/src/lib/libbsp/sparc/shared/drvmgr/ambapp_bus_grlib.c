@@ -31,28 +31,17 @@
 int ambapp_grlib_int_register(
 	struct rtems_drvmgr_dev_info *dev,
 	int irq,
-	void (*handler)(int,void*),
+	const char *info,
+	rtems_drvmgr_isr isr,
 	void *arg);
 int ambapp_grlib_int_unregister(
 	struct rtems_drvmgr_dev_info *dev,
 	int irq,
 	rtems_drvmgr_isr isr,
 	void *arg);
-int ambapp_grlib_int_enable(
-	struct rtems_drvmgr_dev_info *dev,
-	int irq,
-	rtems_drvmgr_isr isr,
-	void *arg);
-int ambapp_grlib_int_disable(
-	struct rtems_drvmgr_dev_info *dev,
-	int irq,
-	rtems_drvmgr_isr isr,
-	void *arg);
 int ambapp_grlib_int_clear(
 	struct rtems_drvmgr_dev_info *dev,
-	int irq,
-	rtems_drvmgr_isr isr,
-	void *arg);
+	int irq);
 int ambapp_grlib_int_mask(
 	struct rtems_drvmgr_dev_info *dev,
 	int irq);
@@ -70,8 +59,6 @@ int ambapp_grlib_remove(struct rtems_drvmgr_dev_info *dev);
 struct ambapp_ops ambapp_grlib_ops = {
 	.int_register = ambapp_grlib_int_register,
 	.int_unregister = ambapp_grlib_int_unregister,
-	.int_enable = ambapp_grlib_int_enable,
-	.int_disable = ambapp_grlib_int_disable,
 	.int_clear = ambapp_grlib_int_clear,
 	.int_mask = ambapp_grlib_int_mask,
 	.int_unmask = ambapp_grlib_int_unmask,
@@ -154,11 +141,12 @@ int ambapp_grlib_int_register
 	(
 	struct rtems_drvmgr_dev_info *dev,
 	int irq,
+	const char *info,
 	rtems_drvmgr_isr isr,
 	void *arg
 	)
 {
-	return BSP_shared_interrupt_register(irq, isr, arg);
+	return BSP_shared_interrupt_register(irq, info, isr, arg);
 }
 
 int ambapp_grlib_int_unregister
@@ -172,37 +160,13 @@ int ambapp_grlib_int_unregister
 	return BSP_shared_interrupt_unregister(irq, isr, arg);
 }
 
-int ambapp_grlib_int_enable
-	(
-	struct rtems_drvmgr_dev_info *dev,
-	int irq,
-	rtems_drvmgr_isr isr,
-	void *arg
-	)
-{
-	return BSP_shared_interrupt_enable(irq, isr, arg);
-}
-
-int ambapp_grlib_int_disable
-	(
-	struct rtems_drvmgr_dev_info *dev,
-	int irq,
-	rtems_drvmgr_isr isr,
-	void *arg
-	)
-{
-	return BSP_shared_interrupt_disable(irq, isr, arg);
-}
-
 int ambapp_grlib_int_clear
 	(
 	struct rtems_drvmgr_dev_info *dev,
-	int irq,
-	rtems_drvmgr_isr isr,
-	void *arg
-	)
+	int irq)
 {
-	return BSP_shared_interrupt_clear(irq, isr, arg);
+	BSP_shared_interrupt_clear(irq);
+	return DRVMGR_OK;
 }
 
 int ambapp_grlib_int_mask
@@ -212,7 +176,7 @@ int ambapp_grlib_int_mask
 	)
 {
 	BSP_shared_interrupt_mask(irq);
-	return 0;
+	return DRVMGR_OK;
 }
 
 int ambapp_grlib_int_unmask
@@ -222,7 +186,7 @@ int ambapp_grlib_int_unmask
 	)
 {
 	BSP_shared_interrupt_unmask(irq);
-	return 0;
+	return DRVMGR_OK;
 }
 
 int ambapp_grlib_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params)

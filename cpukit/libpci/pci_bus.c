@@ -51,6 +51,7 @@ int pcibus_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_info
 int pcibus_int_register(
 	struct rtems_drvmgr_dev_info *dev,
 	int index,
+	const char *info,
 	rtems_drvmgr_isr isr,
 	void *arg);
 int pcibus_int_unregister(
@@ -58,21 +59,9 @@ int pcibus_int_unregister(
 	int index,
 	rtems_drvmgr_isr isr,
 	void *arg);
-int pcibus_int_enable(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg);
-int pcibus_int_disable(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg);
 int pcibus_int_clear(
 	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg);
+	int index);
 int pcibus_freq_get(
 	struct rtems_drvmgr_dev_info *dev,
 	int options,
@@ -98,8 +87,10 @@ struct rtems_drvmgr_bus_ops pcibus_ops =
 	.unite		= pcibus_unite,
 	.int_register	= pcibus_int_register,
 	.int_unregister	= pcibus_int_unregister,
+#if 0
 	.int_enable	= pcibus_int_enable,
 	.int_disable	= pcibus_int_disable,
+#endif
 	.int_clear	= pcibus_int_clear,
 	.int_mask	= NULL,
 	.int_unmask	= NULL,
@@ -199,6 +190,7 @@ static int pcibus_int_get(struct rtems_drvmgr_dev_info *dev, int index)
 int pcibus_int_register(
 	struct rtems_drvmgr_dev_info *dev,
 	int index,
+	const char *info,
 	rtems_drvmgr_isr isr,
 	void *arg)
 {
@@ -217,7 +209,7 @@ int pcibus_int_register(
 	DBG("Register PCI interrupt on 0x%x for dev 0x%x (IRQ: %d)\n",
 		(unsigned int)busdev, (unsigned int)dev, irq);
 
-	return pci_interrupt_register(irq, isr, arg);
+	return pci_interrupt_register(irq, info, isr, arg);
 }
 
 /* Use standard PCI facility to unregister interrupt handler */
@@ -245,6 +237,7 @@ int pcibus_int_unregister(
 	return pci_interrupt_unregister(irq, isr, arg);
 }
 
+#if 0
 /* Use standard PCI facility to enable interrupt */
 int pcibus_int_enable(
 	struct rtems_drvmgr_dev_info *dev,
@@ -278,13 +271,12 @@ int pcibus_int_disable(
 
 	return pci_interrupt_disable(irq, isr, arg);
 }
+#endif
 
 /* Use standard PCI facility to clear interrupt */
 int pcibus_int_clear(
 	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg)
+	int index)
 {
 	int irq;
 
@@ -293,7 +285,9 @@ int pcibus_int_clear(
 	if ( irq < 0 ) 
 		return -1;
 
-	return pci_interrupt_clear(irq, isr, arg);
+	pci_interrupt_clear(irq);
+
+	return 0;
 }
 
 int pcibus_freq_get(

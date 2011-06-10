@@ -412,7 +412,7 @@ struct grtm_priv {
 /* Prototypes */
 static void *grtm_memalign(unsigned int boundary, unsigned int length, void *realbuf);
 static void grtm_hw_reset(struct grtm_priv *pDev);
-static void grtm_interrupt(int irq, void *arg);
+static void grtm_interrupt(void *arg);
 
 /* Common Global Variables */
 static rtems_id grtm_dev_sem;
@@ -611,11 +611,6 @@ static int grtm_device_init(struct grtm_priv *pDev)
 	/* Read SUB revision number, ignore  */
 	pDev->subrev = (READ_REG(&pDev->regs->revision) & GRTM_REV1_REV_SREV)
 			>> GRTM_REV1_REV_SREV_BIT;
-
-	/* Register interrupt handler */
-	if ( rtems_drvmgr_interrupt_register(pDev->dev, 0, grtm_interrupt, pDev) ) {
-		return -1;
-	}
 
 	return 0;
 }
@@ -1230,8 +1225,8 @@ static rtems_device_driver grtm_ioctl(rtems_device_major_number major, rtems_dev
 		if ( (status=grtm_start(pDev)) != RTEMS_SUCCESSFUL ){
 			return status;
 		}
-		/* Enable interrupt */
-		rtems_drvmgr_interrupt_enable(dev, 0, grtm_interrupt, pDev);
+		/* Register ISR & Enable interrupt */
+		rtems_drvmgr_interrupt_register(dev, 0, "grtm", grtm_interrupt, pDev);
 
 		/* Read and write are now open... */
 		break;
@@ -1242,7 +1237,7 @@ static rtems_device_driver grtm_ioctl(rtems_device_major_number major, rtems_dev
 		}
 
 		/* Disable interrupts */
-		rtems_drvmgr_interrupt_disable(dev, 0, grtm_interrupt, pDev);
+		rtems_drvmgr_interrupt_unregister(dev, 0, grtm_interrupt, pDev);
 		grtm_stop(pDev);
 		pDev->running = 0;
 		break;
@@ -1501,7 +1496,7 @@ trigger_transmission:
 	return RTEMS_SUCCESSFUL;
 }
 
-static void grtm_interrupt(int irq, void *arg)
+static void grtm_interrupt(void *arg)
 {
 	struct grtm_priv *pDev = arg;
 	struct grtm_regs *regs = pDev->regs;

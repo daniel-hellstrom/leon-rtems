@@ -33,15 +33,8 @@
 
 #include <bsp.h>
 
-extern void bsp_leon3_ext_isr_connect(
-  uint32_t    vector,
-  proc_ptr    new_handler,
-  proc_ptr   *old_handler
-);
-
 #define SET_VECTOR_RAW  0  /* Raw trap handler */
 #define SET_VECTOR_INT  1  /* Trap handler with _ISR_Handler interrupt handler */
-#define SET_VECTOR_EINT 2  /* Trap handler with extended interrupt handler, up to 31 interrupts */
 
 rtems_isr_entry set_vector(                   /* returns old vector */
   rtems_isr_entry     handler,                /* isr routine        */
@@ -53,24 +46,14 @@ rtems_isr_entry set_vector(                   /* returns old vector */
   uint32_t      real_trap;
   uint32_t      source;
 
-  if ( (type == 2) && ((vector < 0x20) || (vector > 0x2F)) ) {
-    /* Use standard interrupt connect facility for standard IRQs */
-    type = 1;
-  }
-
-  if ( type == 1 )
+  if ( type == SET_VECTOR_INT )
     rtems_interrupt_catch( handler, vector, &previous_isr );
-  else if ( type == 2 ) {
-    /* Use Extended interrupt controller for traps 0x20-0x2f, no real
-     * IRQ traps on 0x20-0x2f.
-     */
-    bsp_leon3_ext_isr_connect(vector, handler, (void *)&previous_isr);
-  } else
+  else
     _CPU_ISR_install_raw_handler( vector, handler, (void *)&previous_isr );
 
   real_trap = SPARC_REAL_TRAP_NUMBER( vector );
 
-  if ( LEON_INT_TRAP( real_trap ) || ((type==2) && LEON_EINT_TRAP( real_trap )) ) {
+  if ( LEON_INT_TRAP( real_trap ) ) {
 
     source = LEON_TRAP_SOURCE( real_trap );
 

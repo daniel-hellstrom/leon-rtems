@@ -65,11 +65,9 @@ static int spw_bus_cnt = 0;
 
 int spw_bus_init1(struct rtems_drvmgr_bus_info *bus);
 int spw_bus_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_info *dev);
-int spw_bus_int_register(struct rtems_drvmgr_dev_info *dev, int index, void (*handler)(int,void*), void *arg);
+int spw_bus_int_register(struct rtems_drvmgr_dev_info *dev, int index, const char *info, rtems_drvmgr_isr handler, void *arg);
 int spw_bus_int_unregister(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
-int spw_bus_int_enable(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
-int spw_bus_int_disable(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
-int spw_bus_int_clear(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
+int spw_bus_int_clear(struct rtems_drvmgr_dev_info *dev, int index);
 
 int spw_bus_freq_get(
 	struct rtems_drvmgr_dev_info *dev,
@@ -102,8 +100,6 @@ struct rtems_drvmgr_bus_ops spw_bus_ops =
 	.unite		= spw_bus_unite,
 	.int_register	= spw_bus_int_register,
 	.int_unregister	= spw_bus_int_unregister,
-	.int_enable	= spw_bus_int_enable,
-	.int_disable	= spw_bus_int_disable,
 	.int_clear	= spw_bus_int_clear,
 	.get_params	= spw_bus_get_params,
 	.freq_get	= spw_bus_freq_get,
@@ -446,7 +442,12 @@ int spw_bus_int_get(struct rtems_drvmgr_dev_info *dev, int index)
 	return virq;
 }
 
-int spw_bus_int_register(struct rtems_drvmgr_dev_info *dev, int index, void (*handler)(int,void*), void *arg)
+int spw_bus_int_register(
+	struct rtems_drvmgr_dev_info *dev,
+	int index,
+	const char *info,
+	rtems_drvmgr_isr handler,
+	void *arg)
 {
 	struct rtems_drvmgr_bus_info *bus;
 	struct spw_bus_priv *priv;
@@ -504,7 +505,7 @@ int spw_bus_int_unregister(struct rtems_drvmgr_dev_info *dev, int index, rtems_d
 	virq = spw_bus_int_get(dev, index);
 	if ( virq <= 0 )
 		return -1;
-		
+
 	DBG("SpW-BUS: unregister ISR for VIRQ%d\n", virq);
 
 	bus = dev->parent;
@@ -527,6 +528,8 @@ int spw_bus_int_unregister(struct rtems_drvmgr_dev_info *dev, int index, rtems_d
 	return 0;
 }
 
+#warning FIX SPW-BUS IRQ ENABLING/DISABLING
+#if 0
 /* Enable interrupt */
 int spw_bus_int_enable(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg)
 {
@@ -602,8 +605,9 @@ int spw_bus_int_disable(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvm
 
 	return 0;
 }
+#endif
 
-int spw_bus_int_clear(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg)
+int spw_bus_int_clear(struct rtems_drvmgr_dev_info *dev, int index)
 {
 	struct rtems_drvmgr_bus_info *bus;
 	struct spw_bus_priv *priv;

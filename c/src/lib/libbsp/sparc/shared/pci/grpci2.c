@@ -584,8 +584,9 @@ struct pci_io_ops grpci2_io_ops_be =
 /* PCI Error Interrupt handler, called when there may be a PCI Target/Master
  * Abort.
  */
-void grpci2_err_isr(int irqno, struct grpci2_priv *priv)
+void grpci2_err_isr(void *arg)
 {
+	struct grpci2_priv *priv = arg;
 	unsigned int sts = priv->regs->sts_cap;
 
 	if (sts & (STS_IMSTABRT | STS_ITGTABRT | STS_IPARERR | STS_ISYSERR)) {
@@ -767,10 +768,6 @@ int grpci2_init(struct grpci2_priv *priv)
 	if (grpci2_hw_init(priv))
 		return -3;
 
-	/* Install PCI Error interrupt handler */
-	rtems_drvmgr_interrupt_register(priv->dev, 0,
-					grpci2_err_isr, (void *)priv);
-
 	return 0;
 }
 
@@ -847,8 +844,8 @@ int grpci2_init3(struct rtems_drvmgr_dev_info *dev)
 {
 	struct grpci2_priv *priv = dev->priv;
 
-	/* Enable PCI Error Interrupt handler */
-	rtems_drvmgr_interrupt_enable(dev, 0, grpci2_err_isr, (void *)priv);
+	/* Install and Enable PCI Error interrupt handler */
+	rtems_drvmgr_interrupt_register(dev, 0, "grpci2", grpci2_err_isr, priv);
 
 	/* Unmask Error IRQ and all PCI interrupts at PCI Core. For this to be
 	 * safe every PCI board have to be resetted (no IRQ generation) before

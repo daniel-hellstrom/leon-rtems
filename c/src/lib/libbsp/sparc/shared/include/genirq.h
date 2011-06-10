@@ -11,7 +11,7 @@
  * 
  */
 
-typedef void (*genirq_handler)(int irq, void *arg);
+typedef void (*genirq_handler)(void *arg);
 typedef void* genirq_t;
 
 struct genirq_stats {

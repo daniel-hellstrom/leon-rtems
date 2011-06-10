@@ -49,8 +49,7 @@ int rtems_drvmgr_freq_get(
 	int options, 
 	unsigned int *freq_hz)
 {
-	if ( !dev || !dev->parent || !dev->parent->ops ||
-	     !dev->parent->ops->freq_get)
+	if ( !dev || !dev->parent || !dev->parent->ops->freq_get)
 		return -1;
 
 	return dev->parent->ops->freq_get(dev, options, freq_hz);
@@ -60,7 +59,7 @@ int rtems_drvmgr_freq_get(
 int rtems_drvmgr_get_dev_prefix(struct rtems_drvmgr_dev_info *dev, char *dev_prefix)
 {
 	struct rtems_drvmgr_bus_params params;
-	if ( !dev || !dev->parent || !dev->parent->ops || !dev->parent->ops->get_params)
+	if ( !dev || !dev->parent || !dev->parent->ops->get_params)
 		return -1;
 
 	dev->parent->ops->get_params(dev, &params);
@@ -75,16 +74,17 @@ int rtems_drvmgr_get_dev_prefix(struct rtems_drvmgr_dev_info *dev, char *dev_pre
 int rtems_drvmgr_interrupt_register(
 	struct rtems_drvmgr_dev_info *dev,
 	int index,
+	const char *info,
 	rtems_drvmgr_isr isr,
 	void *arg)
 {
-	if ( !dev || !dev->parent || !dev->parent->ops || !dev->parent->ops->int_register)
+	if ( !dev || !dev->parent || !dev->parent->ops->int_register)
 		return -1;
 
 	if ( !isr )
 		return -1;
 
-	return dev->parent->ops->int_register(dev, index, isr, arg);
+	return dev->parent->ops->int_register(dev, index, info, isr, arg);
 }
 
 /* Unregister an interrupt */
@@ -94,10 +94,7 @@ int rtems_drvmgr_interrupt_unregister(
 	rtems_drvmgr_isr isr,
 	void *arg)
 {
-	/* Since it is a shared interrupt service, the handler being unregistered must be disabled. */
-	rtems_drvmgr_interrupt_disable(dev, index, isr, arg);
-
-	if ( !dev || !dev->parent || !dev->parent->ops || !dev->parent->ops->int_unregister)
+	if ( !dev || !dev->parent || !dev->parent->ops->int_unregister)
 		return -1;
 
 	if ( !isr )
@@ -106,56 +103,21 @@ int rtems_drvmgr_interrupt_unregister(
 	return dev->parent->ops->int_unregister(dev, index, isr, arg);
 }
 
-int rtems_drvmgr_interrupt_enable(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg)
-{
-	if ( !dev || !dev->parent || !dev->parent->ops || !dev->parent->ops->int_enable)
-		return -1;
-
-	if ( !isr )
-		return -1;
-
-	return dev->parent->ops->int_enable(dev, index, isr, arg);
-}
-
-int rtems_drvmgr_interrupt_disable(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg)
-{
-	if ( !dev || !dev->parent || !dev->parent->ops || !dev->parent->ops->int_disable)
-		return -1;
-
-	if ( !isr )
-		return -1;
-
-	return dev->parent->ops->int_disable(dev, index, isr, arg);
-}
-
 int rtems_drvmgr_interrupt_clear(
 	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg)
+	int index)
 {
-	if ( !dev || !dev->parent || !dev->parent->ops || !dev->parent->ops->int_clear)
+	if ( !dev || !dev->parent || !dev->parent->ops->int_clear)
 		return -1;
 
-	if ( !isr )
-		return -1;
-
-	return dev->parent->ops->int_clear(dev, index, isr, arg);
+	return dev->parent->ops->int_clear(dev, index);
 }
 
 int rtems_drvmgr_interrupt_unmask(
 	struct rtems_drvmgr_dev_info *dev,
 	int index)
 {
-	if ( !dev || !dev->parent || !dev->parent->ops || !dev->parent->ops->int_unmask)
+	if ( !dev || !dev->parent || !dev->parent->ops->int_unmask)
 		return -1;
 
 	return dev->parent->ops->int_unmask(dev, index);
@@ -165,7 +127,7 @@ int rtems_drvmgr_interrupt_mask(
 	struct rtems_drvmgr_dev_info *dev,
 	int index)
 {
-	if ( !dev || !dev->parent || !dev->parent->ops || !dev->parent->ops->int_mask)
+	if ( !dev || !dev->parent || !dev->parent->ops->int_mask)
 		return -1;
 
 	return dev->parent->ops->int_mask(dev, index);

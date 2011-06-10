@@ -80,27 +80,31 @@ struct ambapp_rmap_priv {
 int ambapp_rmap_int_register(
 	struct rtems_drvmgr_dev_info *dev,
 	int irq,
-	void (*handler)(int,void*),
+	const char *info,
+	rtems_drvmgr_isr isr,
 	void *arg);
-int ambapp_rmap_int_enable(struct rtems_drvmgr_dev_info *dev, int irq, rtems_drvmgr_isr isr, void *arg);
-int ambapp_rmap_int_disable(struct rtems_drvmgr_dev_info *dev, int irq, rtems_drvmgr_isr isr, void *arg);
-int ambapp_rmap_int_clear(struct rtems_drvmgr_dev_info *dev, int irq, rtems_drvmgr_isr isr, void *arg);
+int ambapp_rmap_int_unregister(
+	struct rtems_drvmgr_dev_info *dev,
+	int irq,
+	rtems_drvmgr_isr isr,
+	void *arg);
+int ambapp_rmap_int_unmask(struct rtems_drvmgr_dev_info *dev, int irq);
+int ambapp_rmap_int_mask(struct rtems_drvmgr_dev_info *dev, int irq);
+int ambapp_rmap_int_clear(struct rtems_drvmgr_dev_info *dev, int irq);
 int ambapp_rmap_get_params(
 	struct rtems_drvmgr_dev_info *dev,
 	struct rtems_drvmgr_bus_params *params);
-void ambapp_rmap_isr(int irqno, void *arg);
+void ambapp_rmap_isr(void *arg);
 
 int ambapp_rmap_init1(struct rtems_drvmgr_dev_info *dev);
 int ambapp_rmap_init2(struct rtems_drvmgr_dev_info *dev);
 
 struct ambapp_ops ambapp_rmap_ops = {
 	.int_register = ambapp_rmap_int_register,
-	.int_unregister = NULL,
-	.int_enable = ambapp_rmap_int_enable,
-	.int_disable = ambapp_rmap_int_disable,
+	.int_unregister = ambapp_rmap_int_unregister,
 	.int_clear = ambapp_rmap_int_clear,
-	.int_mask = NULL,
-	.int_unmask = NULL,
+	.int_unmask = ambapp_rmap_int_unmask,
+	.int_mask = ambapp_rmap_int_mask,
 	.get_params = ambapp_rmap_get_params
 };
 
@@ -235,14 +239,8 @@ int ambapp_rmap_init1(struct rtems_drvmgr_dev_info *dev)
 	WRITE_REG(priv, &priv->irq->ilevel, 0);
 	WRITE_REG(priv, &priv->irq->mask[0], 0);
 
-	/* install interrupt vector */
-	rtems_drvmgr_interrupt_register(priv->dev, 0, ambapp_rmap_isr, (void *)priv);
-
-	/* Clear any old interrupt requests */
-	rtems_drvmgr_interrupt_clear(priv->dev, 0, ambapp_rmap_isr, (void *)priv);
-
-	/* Let interrupt be masked */
-	rtems_drvmgr_interrupt_disable(priv->dev, 0, ambapp_rmap_isr, (void *)priv);
+	/* Clear any old interrupt requests (IRQ IS LEVEL) */
+	rtems_drvmgr_interrupt_clear(priv->dev, 0);
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
@@ -309,13 +307,13 @@ int ambapp_rmap_init2(struct rtems_drvmgr_dev_info *dev)
 	 * might be shared and Node 2 have not initialized and might therefore
 	 * drive interrupt already when entering init1().
 	 */
-	rtems_drvmgr_interrupt_enable(dev, 0, ambapp_rmap_isr, (void *)priv);
+	rtems_drvmgr_interrupt_register(priv->dev, 0, "ambapp_rmap", ambapp_rmap_isr, (void *)priv);
 
 	return 0;
 }
 
 /* The ISR is executed on the SpW-BUS ISR Task, ie. not in interrupt context */
-void ambapp_rmap_isr (int irqno, void *arg)
+void ambapp_rmap_isr (void *arg)
 {
 	struct ambapp_rmap_priv *priv = arg;
 	unsigned int status, tmp;
@@ -343,15 +341,18 @@ void ambapp_rmap_isr (int irqno, void *arg)
 	/* ACK interrupt, this is because Interrupt is Level, so the IRQ
 	 * Controller still drives the IRQ. 
 	 */
-	if ( tmp ) {
-		rtems_drvmgr_interrupt_clear(
-			priv->dev, 0, ambapp_rmap_isr, (void *)priv);
-	}
+	if ( tmp )
+		rtems_drvmgr_interrupt_clear(priv->dev, 0);
 
 	DBG("AMBAPP-RMAP-ISR: 0x%x\n", tmp);
 }
 
-int ambapp_rmap_int_register(struct rtems_drvmgr_dev_info *dev, int irq, void (*handler)(int,void*), void *arg)
+int ambapp_rmap_int_register(
+	struct rtems_drvmgr_dev_info *dev,
+	int irq,
+	const char *info,
+	rtems_drvmgr_isr isr,
+	void *arg)
 {
 	struct ambapp_rmap_priv *priv = dev->parent->dev->priv;
 	int status;
@@ -359,7 +360,7 @@ int ambapp_rmap_int_register(struct rtems_drvmgr_dev_info *dev, int irq, void (*
 
 	DBG("AMBAPP-RMAP-INT_REG: %d\n", irq);
 
-	status = genirq_register(priv->genirq, irq, handler, arg);
+	status = genirq_register(priv->genirq, irq, isr, arg);
 	if ( status == 0 ) {
 		/* Disable and clear IRQ for first registered handler */
 		WRITE_REG(priv, &priv->irq->iclear, (1<<irq));
@@ -368,18 +369,10 @@ int ambapp_rmap_int_register(struct rtems_drvmgr_dev_info *dev, int irq, void (*
 	} else if ( status == 1 )
 		status = 0;
 
-	return status;
-}
+	if (status != 0)
+		return DRVMGR_FAIL;
 
-int ambapp_rmap_int_enable(struct rtems_drvmgr_dev_info *dev, int irq, rtems_drvmgr_isr isr, void *arg)
-{
-	struct ambapp_rmap_priv *priv = dev->parent->dev->priv;
-	int status;
-	unsigned int tmp;
-
-	DBG("AMBAPP-RMAP-INT_EN: %d\n", irq);
-
-	status = genirq_enable(priv->genirq, irq, isr, arg);
+	status = genirq_disable(priv->genirq, irq, isr, arg);
 	if ( status == 0 ) {
 		/* Enable IRQ for first enabled handler only */
 
@@ -387,18 +380,22 @@ int ambapp_rmap_int_enable(struct rtems_drvmgr_dev_info *dev, int irq, rtems_drv
 		tmp = READ_REG(priv, &priv->irq->mask[0]);
 		WRITE_REG(priv, &priv->irq->mask[0], tmp | (1<<irq)); 
 	} else if ( status == 1 )
-		status = 0;
+		status = DRVMGR_OK;
 
 	return status;
 }
 
-int ambapp_rmap_int_disable(struct rtems_drvmgr_dev_info *dev, int irq, rtems_drvmgr_isr isr, void *arg)
+int ambapp_rmap_int_unregister(
+	struct rtems_drvmgr_dev_info *dev,
+	int irq,
+	rtems_drvmgr_isr isr,
+	void *arg)
 {
 	struct ambapp_rmap_priv *priv = dev->parent->dev->priv;
 	int status;
 	unsigned int tmp;
 
-	DBG("AMBAPP-RMAP-INT_DIS: %d\n", irq);
+	DBG("AMBAPP-RMAP-INT_UNREG: %d\n", irq);
 
 	status = genirq_disable(priv->genirq, irq, isr, arg);
 	if ( status == 0 ) {
@@ -406,19 +403,56 @@ int ambapp_rmap_int_disable(struct rtems_drvmgr_dev_info *dev, int irq, rtems_dr
 
 		/* mask interrupt source */
 		tmp = READ_REG(priv, &priv->irq->mask[0]);
-		WRITE_REG(priv, &priv->irq->mask[0], tmp & ~(1<<irq)); 
-	} else if ( status == 1 )
-		status = 0;
+		WRITE_REG(priv, &priv->irq->mask[0], tmp & ~(1<<irq));
+	}
+
+	status = genirq_unregister(priv->genirq, irq, isr, arg);
+	if ( status != 0 )
+		status = DRVMGR_FAIL;
 
 	return status;
 }
 
-int ambapp_rmap_int_clear(struct rtems_drvmgr_dev_info *dev, int irq, rtems_drvmgr_isr isr, void *arg)
+int ambapp_rmap_int_unmask(struct rtems_drvmgr_dev_info *dev, int irq)
+{
+	struct ambapp_rmap_priv *priv = dev->parent->dev->priv;
+	unsigned int tmp;
+
+	DBG("AMBAPP-RMAP-INT_UNMASK: %d\n", irq);
+
+	if ( genirq_check(priv->genirq, irq) )
+		return DRVMGR_FAIL;
+
+	/* unmask interrupt source */
+	tmp = READ_REG(priv, &priv->irq->mask[0]);
+	WRITE_REG(priv, &priv->irq->mask[0], tmp | (1<<irq)); 
+
+	return DRVMGR_OK;
+}
+
+int ambapp_rmap_int_mask(struct rtems_drvmgr_dev_info *dev, int irq)
+{
+	struct ambapp_rmap_priv *priv = dev->parent->dev->priv;
+	unsigned int tmp;
+
+	DBG("AMBAPP-RMAP-INT_MASK: %d\n", irq);
+
+	if ( genirq_check(priv->genirq, irq) )
+		return DRVMGR_FAIL;
+
+	/* mask interrupt source */
+	tmp = READ_REG(priv, &priv->irq->mask[0]);
+	WRITE_REG(priv, &priv->irq->mask[0], tmp & ~(1<<irq)); 
+
+	return DRVMGR_OK;
+}
+
+int ambapp_rmap_int_clear(struct rtems_drvmgr_dev_info *dev, int irq)
 {
 	struct ambapp_rmap_priv *priv = dev->parent->dev->priv;
 
 	if ( genirq_check(priv->genirq, irq) )
-		return -1;
+		return DRVMGR_FAIL;
 
 	WRITE_REG(priv, &priv->irq->iclear, (1<<irq));
 

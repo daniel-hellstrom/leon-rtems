@@ -1,168 +1,82 @@
 #include <rtems.h>
-#include <rtems/rtems/intr.h>
 #include <bsp.h>
-#include <genirq.h>
+#include <bsp/irq-generic.h>
+#include <leon.h>
 
-extern rtems_isr bsp_spurious_handler(rtems_vector_number trap, CPU_Interrupt_frame *isf);
-
-genirq_t BSP_shared_interrupt_d;
-
-rtems_isr BSP_shared_interrupt_isr(rtems_vector_number v)
+static inline void leon_dispatch_irq(int irq)
 {
-	genirq_doirq(BSP_shared_interrupt_d, v - 0x10); /* Vector number to IRQ number */
-}
+	bsp_interrupt_handler_entry *e =
+		&bsp_interrupt_handler_table[bsp_interrupt_handler_index(irq)];
 
-int BSP_shared_interrupt_init(void)
-{
-	int irq_cnt;
-#ifdef LEON3
-	/* Initialize the Shared Interrupt service */
-	if ( LEON3_IrqCtrl_EIrq != 0 ) {
-		irq_cnt = 32;
-	} else {
-		irq_cnt = 16;
+	while (e != NULL) {
+		(*e->handler)(e->arg);
+		e = e->next;
 	}
-#elif defined(LEON2)
-	irq_cnt = 16;
-#else
-#error CPU NOT SUPPORTED
-#endif
-
-	BSP_shared_interrupt_d = genirq_init(irq_cnt);
-	if ( BSP_shared_interrupt_d == NULL )
-		return -1;
-	return 0;
 }
 
-/* internal function */
-int BSP_shared_interrupt_connect(int irq, rtems_isr_entry newisr)
+/* Called directly from IRQ trap handler TRAP[0x10..0x1F] = IRQ[0..15] */
+void LEON_ISR_handler(rtems_vector_number vector)
+{
+	int irq = LEON_TRAP_SOURCE(vector);
+
+	/* Let BSP fixup and/or handle incomming IRQ */
+	irq = leon_irq_fixup(irq);
+
+	leon_dispatch_irq(irq);
+}
+
+/* Initialize interrupts */
+int BSP_shared_interrupt_init(void)
 {
 	rtems_vector_number vector;
 	rtems_isr_entry previous_isr;
+	int sc, i;
 
-	vector = LEON_TRAP_TYPE(irq);
-
-#ifdef LEON3
-	/* If we are using extended IRQ controller we let that interrupt service
-	 * take care of interrupt registration, else we use the standard facility
-	 */
-	if ( irq > 15 ) {
-		bsp_leon3_ext_isr_connect(vector, newisr, &previous_isr);
-	} else {
-		rtems_interrupt_catch(newisr, vector, &previous_isr);
+	for (i=0; i <= BSP_INTERRUPT_VECTOR_MAX_STD; i++) {
+		vector = LEON_TRAP_TYPE(i);
+		rtems_interrupt_catch(LEON_ISR_handler, vector, &previous_isr);
 	}
-#elif defined(LEON2)
-	rtems_interrupt_catch(newisr, vector, &previous_isr);
-#else
-#error CPU NOT SUPPORTED
-#endif
+
+	/* Initalize interrupt support */
+	sc = bsp_interrupt_initialize();
+	if (sc != RTEMS_SUCCESSFUL)
+		return -1;
 
 	return 0;
 }
 
-int BSP_shared_interrupt_register
-	(
-	int irq,
-	bsp_shared_isr isr,
-	void *arg
-	)
+/* Callback from bsp_interrupt_initialize() */
+rtems_status_code bsp_interrupt_facility_initialize(void)
 {
-	int ret;
-	rtems_interrupt_level level;
-
-	rtems_interrupt_disable(level);
-
-	ret = genirq_register(BSP_shared_interrupt_d, irq, isr, arg);
-	if ( ret == 0 ) {
-		/* First time to register IRQ for this interrupt means that
-		 * we should install an interrupt handler 
-		 */
-		ret = BSP_shared_interrupt_connect(irq, BSP_shared_interrupt_isr);
-	} else if ( ret == 1 ) {
-		ret = 0;
-	}
-
-	rtems_interrupt_enable(level);
-
-	return ret;
+	return RTEMS_SUCCESSFUL;
 }
 
-int BSP_shared_interrupt_unregister
-	(
-	int irq,
-	bsp_shared_isr isr,
-	void *arg
-	)
+/* Spurious IRQ handler */
+void bsp_interrupt_handler_default(rtems_vector_number vector)
 {
-	int ret;
-	rtems_interrupt_level level;
-
-	BSP_shared_interrupt_disable(irq, isr, arg);
-
-	rtems_interrupt_disable(level);
-
-	ret = genirq_unregister(BSP_shared_interrupt_d, irq, isr, arg);
-	if ( ret == 0 ) {
-		/* Successfull unregister, and no other handler left on this IRQ. 
-		 * Unregister by registering the spurious interrupt handler to
-		 * handle unwanted and unexpected IRQs.
-		 */
-		ret = BSP_shared_interrupt_connect(irq, bsp_spurious_handler);
-	} else if ( ret == 1 ) {
-		ret = 0;
-	}
-
-	rtems_interrupt_enable(level);
-
-	return ret;
+	printk("Spurious IRQ %d\n", (int)vector);
 }
 
-int BSP_shared_interrupt_enable
-	(
-	int irq,
-	bsp_shared_isr isr,
-	void *arg
-	)
+rtems_status_code bsp_interrupt_vector_enable(rtems_vector_number vector)
 {
-	int ret;
 	rtems_interrupt_level level;
 
 	rtems_interrupt_disable(level);
-
-	ret = genirq_enable(BSP_shared_interrupt_d, irq, isr, arg);
-	if ( ret == 0 ) {
-		LEON_Unmask_interrupt(irq);
-	} else if ( ret == 1 ) {
-		ret = 0;
-	}
-
+	LEON_Unmask_interrupt((int)vector);
 	rtems_interrupt_enable(level);
 
-	return ret;
+	return RTEMS_SUCCESSFUL;
 }
 
-int BSP_shared_interrupt_disable
-	(
-	int irq,
-	bsp_shared_isr isr,
-	void *arg
-	)
+rtems_status_code bsp_interrupt_vector_disable(rtems_vector_number vector)
 {
-	int ret;
 	rtems_interrupt_level level;
 
 	rtems_interrupt_disable(level);
-
-	ret = genirq_disable(BSP_shared_interrupt_d, irq, isr, arg);
-	if ( ret == 0 ) {
-		LEON_Mask_interrupt(irq);
-	} else if ( ret == 1 ) {
-		ret = 0;
-	}
-
+	LEON_Mask_interrupt((int)vector);
 	rtems_interrupt_enable(level);
 
-	return ret;
+	return RTEMS_SUCCESSFUL;
 }
 
 void BSP_shared_interrupt_mask(int irq)
@@ -187,21 +101,10 @@ void BSP_shared_interrupt_unmask(int irq)
 	rtems_interrupt_enable(level);
 }
 
-int BSP_shared_interrupt_clear
-	(
-	int irq,
-	bsp_shared_isr isr,
-	void *arg
-	)
+void BSP_shared_interrupt_clear(int irq)
 {
-	rtems_interrupt_level level;
-
-	if ( genirq_check(BSP_shared_interrupt_d, irq) )
-		return -1;
-
-	/* We don't have to interrupt lock here, because the register is only written
-	 * and self clearing */
+	/* We don't have to interrupt lock here, because the register is only
+	 * written and self clearing
+	 */
 	LEON_Clear_interrupt(irq);
-
-	return 0;
 }

@@ -28,7 +28,7 @@ struct spwcuc_priv {
 	struct spwcuc_stats stats;
 };
 
-void spwcuc_isr(int irq, void *data);
+void spwcuc_isr(void *data);
 
 struct amba_drv_info spwcuc_drv_info;
 
@@ -73,9 +73,6 @@ void *spwcuc_open(int minor)
 	/* Set initial state of software */
 	priv->open = 1;
 
-	/* Register Interrupt handler */
-	rtems_drvmgr_interrupt_register(priv->dev, 0, spwcuc_isr, priv);
-
 	/* Clear Statistics */
 	spwcuc_clr_stats(priv);
 	priv->user_isr = NULL;
@@ -94,10 +91,6 @@ void spwcuc_close(void *spwcuc)
 	/* Reset Hardware */
 	spwcuc_hw_reset(priv);
 
-	/* Disable and UnRegister Interrupt handler */
-	rtems_drvmgr_interrupt_disable(priv->dev, 0, spwcuc_isr, priv);
-	rtems_drvmgr_interrupt_unregister(priv->dev, 0, spwcuc_isr, priv);
-
 	priv->open = 0;	
 }
 
@@ -105,8 +98,8 @@ void spwcuc_int_enable(void *spwcuc)
 {
 	struct spwcuc_priv *priv = (struct spwcuc_priv *)spwcuc;
 
-	/* Enable Interrupt at Interrupt controller */
-	rtems_drvmgr_interrupt_enable(priv->dev, 0, spwcuc_isr, priv);
+	/* Register and Enable Interrupt at Interrupt controller */
+	rtems_drvmgr_interrupt_enable(priv->dev, 0, "spwcuc", spwcuc_isr, priv);
 }
 
 void spwcuc_int_disable(void *spwcuc)
@@ -114,7 +107,7 @@ void spwcuc_int_disable(void *spwcuc)
 	struct spwcuc_priv *priv = (struct spwcuc_priv *)spwcuc;
 
 	/* Enable Interrupt at Interrupt controller */
-	rtems_drvmgr_interrupt_disable(priv->dev, 0, spwcuc_isr, priv);
+	rtems_drvmgr_interrupt_unregister(priv->dev, 0, spwcuc_isr, priv);
 }
 
 void spwcuc_clr_stats(void *spwcuc)
@@ -269,7 +262,7 @@ void spwcuc_int_register(void *spwcuc, spwcuc_isr_t func, void *data)
 	priv->user_isr_arg = data;
 }
 
-void spwcuc_isr(int irq, void *data)
+void spwcuc_isr(void *data)
 {
 	struct spwcuc_priv *priv = data;
 	struct spwcuc_stats *stats = &priv->stats;

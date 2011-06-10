@@ -1226,7 +1226,7 @@ found_mid:
 
 void gr1553bc_device_init(struct gr1553bc_priv *priv);
 void gr1553bc_device_uninit(struct gr1553bc_priv *priv);
-void gr1553bc_isr(int irq, void *data);
+void gr1553bc_isr(void *data);
 
 /*** GR1553BC driver ***/
 
@@ -1281,16 +1281,11 @@ void *gr1553bc_open(int minor)
 
 	gr1553bc_device_init(priv);
 
-	/* Register ISR handler */
-	if ( rtems_drvmgr_interrupt_register(*priv->pdev, 0,
+	/* Register ISR handler (unmask at IRQ controller) */
+	if ( rtems_drvmgr_interrupt_register(*priv->pdev, 0, "gr1553bc",
 	     gr1553bc_isr, priv) ) {
 		goto fail;
 	}
-
-	/* Hardware mask IRQ, so it is safe to unmask at IRQ
-	 * controller.
-	 */
-	rtems_drvmgr_interrupt_enable(*priv->pdev, 0, gr1553bc_isr, priv);
 
 	return priv;
 
@@ -1313,10 +1308,7 @@ void gr1553bc_close(void *bc)
 
 	gr1553bc_device_uninit(priv);
 
-	/* unmask IRQ at IRQ controller */
-	rtems_drvmgr_interrupt_disable(*priv->pdev, 0, gr1553bc_isr, priv);
-
-	/* Remove interrupt handler */
+	/* Remove interrupt handler (mask IRQ at IRQ controller) */
 	rtems_drvmgr_interrupt_unregister(*priv->pdev, 0, gr1553bc_isr, priv);
 
 	/* Free device */
@@ -1514,14 +1506,14 @@ void gr1553bc_device_uninit(struct gr1553bc_priv *priv)
 }
 
 /* Interrupt handler */
-void gr1553bc_isr(int irq, void *arg)
+void gr1553bc_isr(void *arg)
 {
 	struct gr1553bc_priv *priv = arg;
 	uint32_t *curr, *pos, word0, word2;
 	union gr1553bc_bd *bd;
 	bcirq_func_t func;
 	void *data;
-	int handled;
+	int handled, irq;
 
 	/* Did core make IRQ */
 	irq = GR1553BC_READ_REG(&priv->regs->irq);

@@ -27,7 +27,7 @@ struct grctm_priv {
 	struct grctm_stats stats;
 };
 
-void grctm_isr(int irq, void *data);
+void grctm_isr(void *data);
 
 struct amba_drv_info grctm_drv_info;
 
@@ -48,9 +48,6 @@ void *grctm_open(int minor)
 	/* Set initial state of software */
 	priv->open = 1;
 
-	/* Register Interrupt handler */
-	rtems_drvmgr_interrupt_register(priv->dev, 0, grctm_isr, priv);
-
 	/* Clear Statistics */
 	grctm_clr_stats(priv);
 	priv->user_isr = NULL;
@@ -68,10 +65,6 @@ void grctm_close(void *grctm)
 
 	/* Reset Hardware */
 	grctm_reset(priv);
-
-	/* Disable and UnRegister Interrupt handler */
-	rtems_drvmgr_interrupt_disable(priv->dev, 0, grctm_isr, priv);
-	rtems_drvmgr_interrupt_unregister(priv->dev, 0, grctm_isr, priv);
 
 	priv->open = 0;
 }
@@ -96,8 +89,8 @@ void grctm_int_enable(void *grctm)
 {
 	struct grctm_priv *priv = (struct grctm_priv *)grctm;
 
-	/* Enable Interrupt at Interrupt controller */
-	rtems_drvmgr_interrupt_enable(priv->dev, 0, grctm_isr, priv);
+	/* Register and Enable Interrupt at Interrupt controller */
+	rtems_drvmgr_interrupt_register(priv->dev, 0, "grctm", grctm_isr, priv);
 }
 
 void grctm_int_disable(void *grctm)
@@ -105,7 +98,7 @@ void grctm_int_disable(void *grctm)
 	struct grctm_priv *priv = (struct grctm_priv *)grctm;
 
 	/* Enable Interrupt at Interrupt controller */
-	rtems_drvmgr_interrupt_disable(priv->dev, 0, grctm_isr, priv);
+	rtems_drvmgr_interrupt_unregister(priv->dev, 0, grctm_isr, priv);
 }
 
 void grctm_clr_stats(void *grctm)
@@ -316,7 +309,7 @@ void grctm_set_et_incr(void *grctm, int incr)
 }
 
 
-void grctm_isr(int irq, void *data)
+void grctm_isr(void *data)
 {
 	struct grctm_priv *priv = data;
 	struct grctm_stats *stats = &priv->stats;

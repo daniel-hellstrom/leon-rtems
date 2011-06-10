@@ -259,21 +259,21 @@ int grgpio_grpiolib_irq_opts(void *handle, unsigned int options)
 
 	if ( options & GPIOLIB_IRQ_DISABLE ) {
 		/* Disable interrupt at interrupt controller */
-		if ( rtems_drvmgr_interrupt_disable(priv->dev, portnr, isr, arg) ) {
+		if ( rtems_drvmgr_interrupt_unregister(priv->dev, portnr, isr, arg) ) {
 			return -1;
 		}
 	}
 	if ( options & GPIOLIB_IRQ_CLEAR ) {
 		/* Clear interrupt at interrupt controller */
-		if ( rtems_drvmgr_interrupt_clear(priv->dev, portnr, isr, arg) ) {
+		if ( rtems_drvmgr_interrupt_clear(priv->dev, portnr) ) {
 			return -1;
 		}
 	}
 	if ( options & GPIOLIB_IRQ_ENABLE ) {
 		/* Enable interrupt at interrupt controller */
-		if ( rtems_drvmgr_interrupt_enable(priv->dev, portnr, isr, arg) ) {
+		if ( rtems_drvmgr_interrupt_register(priv->dev, portnr, "grgpio", isr, arg) ) {
 			return -1;
-		}	
+		}
 	}
 
 	return 0;
@@ -294,11 +294,6 @@ int grgpio_grpiolib_irq_register(void *handle, void *func, void *arg)
 	/* Since the user doesn't provide the ISR and argument, we must... */
 	priv->isrs[portnr].isr = func;
 	priv->isrs[portnr].arg = arg;
-
-	/* Register interrupt routine */
-	if ( rtems_drvmgr_interrupt_register(priv->dev, portnr, func, arg) ) {
-		return -1;
-	}
 
 	return 0;
 }

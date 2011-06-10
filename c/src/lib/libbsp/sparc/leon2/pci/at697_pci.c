@@ -224,11 +224,11 @@ at697pci_read_config_dword(unsigned char bus, unsigned char slot, unsigned char 
 
 	if ( bus == 0 ) {
 		/* PCI Access - TYPE 0 */
-		address = (  1<<(11+slot) ) | ((function & 0x7)<<8) | (offset&0x3c);
+		address = (  1<<(11+slot) ) | ((function & 0x7)<<8) | (offset&0xfc);
 	} else {
 		/* PCI access - TYPE 1 */
 		address = ((bus & 0xff) << 16) | ((slot & 0x1f) << 11) |
-				((function & 0x7)<<8) | (offset & 0x3c) | 1;
+				((function & 0x7)<<8) | (offset & 0xfc) | 1;
 	}
 	regs->pcisa = address;
 	regs->pcidma = 0xa01;
@@ -294,11 +294,11 @@ at697pci_write_config_dword(unsigned char bus, unsigned char slot, unsigned char
 
 	if ( bus == 0 ) {
 		/* PCI Access - TYPE 0 */
-		address = (  1<<(11+slot) ) | ((function & 0x7)<<8) | (offset&0x3c);
+		address = (  1<<(11+slot) ) | ((function & 0x7)<<8) | (offset&0xfc);
 	} else {
 		/* PCI access - TYPE 1 */
 		address = ((bus & 0xff) << 16) | ((slot & 0x1f) << 11) |
-				((function & 0x7)<<8) | (offset & 0x3c) | 1;
+				((function & 0x7)<<8) | (offset & 0xfc) | 1;
 	}
 	regs->pcisa = address;
 	regs->pcidma = 0xb01;

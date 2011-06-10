@@ -202,7 +202,7 @@ static char *almalloc(int sz)
 
 /* GRETH interrupt handler */
 
-void greth_interrupt (int irq, void *arg)
+void greth_interrupt (void *arg)
 {
         uint32_t status;
         uint32_t ctrl;
@@ -512,9 +512,9 @@ auto_neg_done:
 
     /* clear all pending interrupts */
     regs->status = 0xffffffff;
-    
+
     /* install interrupt handler */
-    rtems_drvmgr_interrupt_enable(sc->dev, 0, greth_interrupt, sc);
+    rtems_drvmgr_interrupt_register(sc->dev, 0, "greth", greth_interrupt, sc);
 
     regs->ctrl |= GRETH_CTRL_RXEN | (sc->fd << 4) | GRETH_CTRL_RXIRQ | (sc->sp << 7) | (sc->gb << 8);
 
@@ -1368,12 +1368,6 @@ int greth_device_init(struct greth_softc *sc)
     value = rtems_drvmgr_dev_key_get(sc->dev, "phyAdr", KEY_TYPE_INT);
     if ( value && (value->i < 32) )
         sc->phyaddr = value->i;
-
-    /* install interrupt handler */
-    if ( rtems_drvmgr_interrupt_register(sc->dev, 0, greth_interrupt, sc) ) {
-        printk("GRETH: Failed to register interrupt\n");
-        return -1;
-    }
 
     return 0;
 }

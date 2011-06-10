@@ -127,7 +127,7 @@ struct rtems_drvmgr_bus_params {
 };
 
 /* Interrupt Service Routine (ISR) */
-typedef void (*rtems_drvmgr_isr)(int irq, void *arg);
+typedef void (*rtems_drvmgr_isr)(void *arg);
 
 /*! Bus operations */
 struct rtems_drvmgr_bus_ops {
@@ -137,11 +137,9 @@ struct rtems_drvmgr_bus_ops {
 	int	(*unite)(struct rtems_drvmgr_drv_info *, struct rtems_drvmgr_dev_info *);	/*!< Unite Hardware Device with Driver */
 
 	/* Functions called indirectly from drivers */
-	int	(*int_register)(struct rtems_drvmgr_dev_info *, int index, rtems_drvmgr_isr isr, void *arg);
+	int	(*int_register)(struct rtems_drvmgr_dev_info *, int index, const char *info, rtems_drvmgr_isr isr, void *arg);
 	int	(*int_unregister)(struct rtems_drvmgr_dev_info *, int index, rtems_drvmgr_isr isr, void *arg);
-	int	(*int_enable)(struct rtems_drvmgr_dev_info *, int index, rtems_drvmgr_isr isr, void *arg);
-	int	(*int_disable)(struct rtems_drvmgr_dev_info *, int index, rtems_drvmgr_isr isr, void *arg);
-	int	(*int_clear)(struct rtems_drvmgr_dev_info *, int index, rtems_drvmgr_isr isr, void *arg);
+	int	(*int_clear)(struct rtems_drvmgr_dev_info *, int index);
 	int	(*int_mask)(struct rtems_drvmgr_dev_info *, int index);
 	int	(*int_unmask)(struct rtems_drvmgr_dev_info *, int index);
 
@@ -520,6 +518,7 @@ extern int rtems_drvmgr_get_dev_prefix(struct rtems_drvmgr_dev_info *dev, char *
 extern int rtems_drvmgr_interrupt_register(
 	struct rtems_drvmgr_dev_info *dev,
 	int index,
+	const char *info,
 	rtems_drvmgr_isr isr,
 	void *arg);
 
@@ -537,36 +536,6 @@ extern int rtems_drvmgr_interrupt_unregister(
 	rtems_drvmgr_isr isr,
 	void *arg);
 
-/*! Enable (unmask) an interrupt source 
- * 
- *  \param dev        Device to enable interrupt for.
- *  \param index      Index is used to identify the IRQ number if hardware has multiple IRQ sources. 
- *                    Normally Index is set to 0 to indicated the first and only IRQ source.
- *                    A negative index is interpreted as a absolute bus IRQ number.
- *  \param isr        Interrupt Service Routine, previously registered.
- *  \param arg        Optional ISR argument, previously registered.
- */
-extern int rtems_drvmgr_interrupt_enable(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg);
-
-/*! Disable (mask) an interrupt source 
- *
- *  \param dev        Device to disable interrupt for.
- *  \param index      Index is used to identify the IRQ number if hardware has multiple IRQ sources. 
- *                    Normally Index is set to 0 to indicated the first and only IRQ source.
- *                    A negative index is interpreted as a absolute bus IRQ number.
- *  \param isr        Interrupt Service Routine, previously registered.
- *  \param arg        Optional ISR argument, previously registered.
- */
-extern int rtems_drvmgr_interrupt_disable(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg);
-
 /*! Clear (ACK) pending interrupt
  *
  *  \param dev        Device to clear interrupt for.
@@ -578,9 +547,7 @@ extern int rtems_drvmgr_interrupt_disable(
  */
 extern int rtems_drvmgr_interrupt_clear(
 	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg);
+	int index);
 
 /*! Force unmasking/enableing an interrupt on the interrupt controller, this is not normally used,
  *  if used the caller has masked/disabled the interrupt just before.

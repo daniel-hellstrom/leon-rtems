@@ -70,7 +70,7 @@ void apbuart_dbg_init(struct console_dev *);
 char apbuart_dbg_in_char(struct console_dev *);
 void apbuart_dbg_out_char(struct console_dev *, char c);
 
-void apbuart_isr(int irqno, void *arg);
+void apbuart_isr(void *arg);
 
 int apbuart_init1(struct rtems_drvmgr_dev_info *dev);
 #ifdef APBUART_INFO
@@ -347,8 +347,8 @@ int apbuart_firstOpen(int major, int minor, void *arg)
 
 	if ( uart->mode != TERMIOS_POLLED ) {
 		/* Register interrupt and enable it */
-		rtems_drvmgr_interrupt_register(uart->dev, 0, apbuart_isr, uart);
-		rtems_drvmgr_interrupt_enable(uart->dev, 0, apbuart_isr, uart);
+		rtems_drvmgr_interrupt_register(uart->dev, 0, "apbuart",
+						apbuart_isr, uart);
 
 		uart->sending = 0;
 		/* Turn on RX interrupts */
@@ -372,7 +372,6 @@ int apbuart_lastClose(int major, int minor, void *arg)
 		}
 
 		/* Disable and unregister interrupt handler */
-		rtems_drvmgr_interrupt_disable(uart->dev, 0, apbuart_isr, uart);
 		rtems_drvmgr_interrupt_unregister(uart->dev, 0, apbuart_isr, uart);
 	}
 
@@ -545,7 +544,7 @@ int apbuart_write_intr(int minor, const char *buf, int len)
 }
 
 /* Handle UART interrupts */
-void apbuart_isr(int irqno, void *arg)
+void apbuart_isr(void *arg)
 {
 	struct apbuart_priv *uart = arg;
 	unsigned int status;

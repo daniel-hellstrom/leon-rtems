@@ -12,7 +12,7 @@
 
 struct tlib_dev;
 
-typedef void (*tlib_isr_t)(int irqno, void *data);
+typedef void (*tlib_isr_t)(void *data);
 
 struct tlib_drv {
 	/*** Functions ***/

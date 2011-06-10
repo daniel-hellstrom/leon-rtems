@@ -324,7 +324,7 @@ static void grspw_hw_read_config(GRSPW_DEV *pDev);
 
 static void check_rx_errors(GRSPW_DEV *pDev, int ctrl);
 static void grspw_rxnext(GRSPW_DEV *pDev);
-static void grspw_interrupt(int irq, void *arg);
+static void grspw_interrupt(void *arg);
 static int grspw_buffer_alloc(GRSPW_DEV *pDev);
 
 static rtems_device_driver grspw_initialize(
@@ -634,11 +634,6 @@ int grspw_device_init(GRSPW_DEV *pDev)
 
 	grspw_hw_init(pDev);
 
-	/* Register interrupt routine */
-	if ( rtems_drvmgr_interrupt_register(pDev->dev, 0, grspw_interrupt, pDev) ) {
-		return -1;
-	}
-
 	return 0;
 }
 
@@ -725,7 +720,7 @@ static int grspw_buffer_alloc(GRSPW_DEV *pDev)
 	return 0;
 }
 
-static void grspw_interrupt(int irq, void *arg)
+static void grspw_interrupt(void *arg)
 {
 	GRSPW_DEV *pDev = (GRSPW_DEV *)arg;
 	int dmactrl;
@@ -1495,8 +1490,9 @@ static rtems_device_driver grspw_control(
 				return ret;
 			}
 			pDev->running = 1;
-			/* Enable interrupt */
-			rtems_drvmgr_interrupt_enable(dev, 0, grspw_interrupt, pDev);
+			/* Register interrupt routine and unmask IRQ */
+			rtems_drvmgr_interrupt_register(pDev->dev, 0, "grspw", grspw_interrupt, pDev);
+
 			break;
 
 		case SPACEWIRE_IOCTRL_STOP:
@@ -1504,7 +1500,7 @@ static rtems_device_driver grspw_control(
 				return RTEMS_INVALID_NAME;
 			}
 			/* Disable interrupts */
-			rtems_drvmgr_interrupt_disable(dev, 0, grspw_interrupt, pDev);
+			rtems_drvmgr_interrupt_unregister(dev, 0, grspw_interrupt, pDev);
 
 			pDev->running = 0;
 

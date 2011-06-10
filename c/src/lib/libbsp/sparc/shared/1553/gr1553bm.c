@@ -59,7 +59,7 @@ struct gr1553bm_priv {
 	volatile uint64_t time;
 };
 
-void gr1553bm_isr(int irq, void *data);
+void gr1553bm_isr(void *data);
 
 /* Default Driver configuration */
 struct gr1553bm_config gr1553bm_default_config =
@@ -166,10 +166,6 @@ void *gr1553bm_open(int minor)
 	/* Unmask IRQs */
 	gr1553bm_hw_stop(priv);
 
-	/* Register ISR handler */
-	if (rtems_drvmgr_interrupt_register(*priv->pdev, 0, gr1553bm_isr, priv))
-		goto fail;
-
 	return priv;
 
 fail:
@@ -188,16 +184,6 @@ void gr1553bm_close(void *bm)
 	if ( priv->started ) {
 		gr1553bm_stop(bm);
 	}
-
-	/* At this point the hardware must be stopped and IRQ 
-	 * sources unmasked.
-	 */
-
-	/* Unmask 1553 IRQ source at IRQ controller. */
-	rtems_drvmgr_interrupt_disable(*priv->pdev, 0, gr1553bm_isr, priv);
-
-	/* Unregister ISR handler */
-	rtems_drvmgr_interrupt_unregister(*priv->pdev, 0, gr1553bm_isr, priv);
 
 	if ( (priv->cfg.buffer_custom == NULL) && priv->buffer )
 		free(priv->buffer);
@@ -293,8 +279,9 @@ int gr1553bm_start(void *bm)
 	priv->read_pos = priv->buffer_base;
 	priv->buffer_end = priv->buffer_base + priv->cfg.buffer_size;
 
-	/* Unmask 1553 IRQ source at IRQ controller. */
-	rtems_drvmgr_interrupt_enable(*priv->pdev, 0, gr1553bm_isr, priv);
+	/* Register ISR handler and unmask IRQ source at IRQ controller */
+	if (rtems_drvmgr_interrupt_register(*priv->pdev, 0, "gr1553bm", gr1553bm_isr, priv))
+		return -3;
 
 	/* Start hardware and set priv->started */
 	gr1553bm_hw_start(priv);
@@ -310,8 +297,12 @@ void gr1553bm_stop(void *bm)
 	/* Stop Hardware */
 	gr1553bm_hw_stop(priv);
 
-	/* Mask 1553 IRQ source at IRQ controller. */
-	rtems_drvmgr_interrupt_disable(*priv->pdev, 0, gr1553bm_isr, priv);
+	/* At this point the hardware must be stopped and IRQ 
+	 * sources unmasked.
+	 */
+
+	/* Unregister ISR handler and unmask 1553 IRQ source at IRQ ctrl */
+	rtems_drvmgr_interrupt_unregister(*priv->pdev, 0, gr1553bm_isr, priv);
 }
 
 int gr1553bm_started(void *bm)
@@ -496,7 +487,7 @@ int gr1553bm_read(void *bm, struct gr1553bm_entry *dst, int *max)
 /* Note: This is a shared interrupt handler, with BC/RT driver
  *       we must determine the cause of IRQ before handling it.
  */
-void gr1553bm_isr(int irq, void *data)
+void gr1553bm_isr(void *data)
 {
 	struct gr1553bm_priv *priv = data;
 	uint32_t irqflag;

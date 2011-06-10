@@ -263,7 +263,7 @@ static rtems_device_driver apbuart_read(rtems_device_major_number major, rtems_d
 static rtems_device_driver apbuart_write(rtems_device_major_number major, rtems_device_minor_number minor, void *arg);
 static rtems_device_driver apbuart_control(rtems_device_major_number major, rtems_device_minor_number minor, void *arg);
 
-static void apbuart_interrupt(int irq, void *arg);
+static void apbuart_interrupt(void *arg);
 
 #define APBUART_DRIVER_TABLE_ENTRY { apbuart_initialize, apbuart_open, apbuart_close, apbuart_read, apbuart_write, apbuart_control }
 static rtems_driver_address_table apbuart_driver = APBUART_DRIVER_TABLE_ENTRY;
@@ -331,11 +331,6 @@ int apbuart_device_init(struct apbuart_priv *priv)
 	priv->rxfifo = apbuart_fifo_create(rxFifoLen);
 	if ( !priv->txfifo || !priv->rxfifo )
 		return -1;
-
-	/* Setup interrupt handler */
-	if ( rtems_drvmgr_interrupt_register(priv->dev, 0, apbuart_interrupt, priv) ) {
-		return -1;
-	}
 
 	/* Device A Semaphore created with count = 1 */
 	if ( rtems_semaphore_create(rtems_build_name('A', 'U', 'D', '0'+minor),
@@ -674,25 +669,27 @@ static rtems_device_driver apbuart_control(rtems_device_major_number major, rtem
 
 	ioarg->ioctl_return = 0;
 	switch(ioarg->command) {
-	
+
 	/* Enable Receiver & transmitter */
 	case APBUART_START:
 		if ( uart->started )
 			return RTEMS_INVALID_NAME;
 		apbuart_hw_open(uart);
 		uart->started = 1;
-		rtems_drvmgr_interrupt_enable(dev, 0, apbuart_interrupt, uart);
+		/* Setup interrupt handler & Enable IRQ */
+		rtems_drvmgr_interrupt_register(dev, 0, "apbuart",
+						apbuart_interrupt, uart);
 		break;
-	
+
 	/* Close Receiver & transmitter */
 	case APBUART_STOP:
 		if ( !uart->started )
 			return RTEMS_INVALID_NAME;
-		rtems_drvmgr_interrupt_disable(dev, 0, apbuart_interrupt, uart);
+		rtems_drvmgr_interrupt_unregister(dev, 0, apbuart_interrupt, uart);
 		apbuart_hw_close(uart);
 		uart->started = 0;
 		break;
-	
+
 	/* Set RX FIFO Software buffer length 
 	 * It is only possible to change buffer size in
 	 * non-running mode.
@@ -784,7 +781,7 @@ static rtems_device_driver apbuart_control(rtems_device_major_number major, rtem
 /* The interrupt handler, taking care of the 
  * APBUART hardware
  */
-static void apbuart_interrupt(int irq, void *arg)
+static void apbuart_interrupt(void *arg)
 {
 	struct apbuart_priv *uart = (struct apbuart_priv *)arg;
 	unsigned int status;

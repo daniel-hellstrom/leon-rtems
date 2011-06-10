@@ -412,11 +412,6 @@ static int grpwrx_device_init(struct grpwrx_priv *pDev)
 	/* Reset Hardware before attaching IRQ handler */
 	grpwrx_hw_reset(pDev);
 
-	/* Register interrupt handler */
-	if ( rtems_drvmgr_interrupt_register(pDev->dev, 0, grpwrx_interrupt, pDev) ) {
-		return -1;
-	}
-
 	return 0;
 }
 
@@ -954,8 +949,8 @@ static rtems_device_driver grpwrx_ioctl(rtems_device_major_number major, rtems_d
 		if ( (status=grpwrx_start(pDev)) != RTEMS_SUCCESSFUL ){
 			return status;
 		}
-		/* Enable interrupt */
-		rtems_drvmgr_interrupt_enable(dev, 0, grpwrx_interrupt, pDev);
+		/* Register interrupt handler & Enable interrupt */
+		rtems_drvmgr_interrupt_register(dev, 0, "grpwrx", grpwrx_interrupt, pDev);
 
 		/* Read and write are now open... */
 		break;
@@ -966,7 +961,7 @@ static rtems_device_driver grpwrx_ioctl(rtems_device_major_number major, rtems_d
 		}
 
 		/* Disable interrupts */
-		rtems_drvmgr_interrupt_disable(dev, 0, grpwrx_interrupt, pDev);
+		rtems_drvmgr_interrupt_unregister(dev, 0, grpwrx_interrupt, pDev);
 		grpwrx_stop(pDev);
 		pDev->running = 0;
 		break;

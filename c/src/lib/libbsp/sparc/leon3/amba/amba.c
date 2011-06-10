@@ -63,7 +63,7 @@ struct grlib_config grlib_bus_config =
 #endif
 
 /* GRLIB extended IRQ controller register */
-extern void bsp_leon3_ext_irq_register(int irq);
+extern void leon3_ext_irq_init(void);
 
 /* Pointers to Interrupt Controller configuration registers */
 volatile LEON3_IrqCtrl_Regs_Map *LEON3_IrqCtrl_Regs;
@@ -124,24 +124,32 @@ void amba_initialize(void)
   /* Find LEON3 Interrupt controller */
   i = ambapp_for_each(ambapp_plb.root, (OPTIONS_ALL|OPTIONS_APB_SLVS), 
               VENDOR_GAISLER, GAISLER_IRQMP, 10, find_matching_adev, &adev);
-  if ( i > 0 ){
-    LEON3_IrqCtrl_Regs = (volatile LEON3_IrqCtrl_Regs_Map *)
-                          ((struct ambapp_apb_info *)adev->devinfo)->start;
-    if ( (LEON3_IrqCtrl_Regs->ampctrl >> 28) > 0 ) {
-      /* IRQ Controller has support for multiple IRQ Controllers, each
-       * CPU can be routed to different Controllers, we find out which
-       * controller by looking at the IRQCTRL Select Register for this CPU.
-       * Each Controller is located at a 4KByte offset.
-       */
-      icsel = LEON3_IrqCtrl_Regs->icsel[LEON3_Cpu_Index/8];
-      icsel = (icsel >> ((7 - (LEON3_Cpu_Index & 0x7)) * 4)) & 0xf;
-      LEON3_IrqCtrl_Regs += icsel;
-    }
-    if ( (LEON3_IrqCtrl_Regs->mpstat >> 16) & 0xf ) {
-      /* Extended IRQ controller available */
-      bsp_leon3_ext_irq_register((LEON3_IrqCtrl_Regs->mpstat >> 16) & 0xf);
-    }
+  if ( i <= 0 ) {
+    /* PANIC IRQ controller not found!
+     *
+     *  What else can we do but stop ...
+     */
+    asm volatile( "mov 1, %g1; ta 0x0" );
   }
+
+  LEON3_IrqCtrl_Regs = (volatile LEON3_IrqCtrl_Regs_Map *)
+                       ((struct ambapp_apb_info *)adev->devinfo)->start;
+  if ( (LEON3_IrqCtrl_Regs->ampctrl >> 28) > 0 ) {
+    /* IRQ Controller has support for multiple IRQ Controllers, each
+     * CPU can be routed to different Controllers, we find out which
+     * controller by looking at the IRQCTRL Select Register for this CPU.
+     * Each Controller is located at a 4KByte offset.
+     */
+    icsel = LEON3_IrqCtrl_Regs->icsel[LEON3_Cpu_Index/8];
+    icsel = (icsel >> ((7 - (LEON3_Cpu_Index & 0x7)) * 4)) & 0xf;
+    LEON3_IrqCtrl_Regs += icsel;
+    LEON3_IrqCtrl_Regs->mask[LEON3_Cpu_Index] = 0;
+    LEON3_IrqCtrl_Regs->force[LEON3_Cpu_Index] = 0;
+    LEON3_IrqCtrl_Regs->iclear = 0xffffffff;
+  }
+
+  /* Init Extended IRQ controller if available */
+  leon3_ext_irq_init();
 
   /* Initialize shared interrupt handling, must be done after extended 
    * interrupt controller has been registered.

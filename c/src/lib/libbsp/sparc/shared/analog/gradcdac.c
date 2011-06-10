@@ -57,8 +57,8 @@ void gradcdac_print(void *cookie);
 int gradcdac_init2(struct rtems_drvmgr_dev_info *dev);
 int gradcdac_init3(struct rtems_drvmgr_dev_info *dev);
 int gradcadc_device_init(struct gradcdac_priv *pDev);
-void gradcdac_adc_interrupt(int irq, void *arg);
-void gradcdac_dac_interrupt(int irq, void *arg);
+void gradcdac_adc_interrupt(void *arg);
+void gradcdac_dac_interrupt(void *arg);
 
 struct rtems_drvmgr_drv_ops gradcdac_ops = 
 {
@@ -214,25 +214,17 @@ int gradcadc_device_init(struct gradcdac_priv *pDev)
 
 	DBG("GRADCDAC frequency: %d Hz\n", pDev->freq);
 
-	/* Register ADC and DAC interrupt routines */
-	if ( rtems_drvmgr_interrupt_register(pDev->dev, GRADCDAC_IRQ_ADC, gradcdac_adc_interrupt, pDev) ) {
-		return -1;
-	}
-	if ( rtems_drvmgr_interrupt_register(pDev->dev, GRADCDAC_IRQ_DAC, gradcdac_dac_interrupt, pDev) ) {
-		return -1;
-	}
-
 	return 0;
 }
 
-void gradcdac_dac_interrupt(int irq, void *arg)
+void gradcdac_dac_interrupt(void *arg)
 {
 	struct gradcdac_priv *pDev = arg;
 	if ( pDev->isr_dac ) 
 		pDev->isr_dac(pDev, pDev->isr_dac_arg);
 }
 
-void gradcdac_adc_interrupt(int irq, void *arg)
+void gradcdac_adc_interrupt(void *arg)
 {
 	struct gradcdac_priv *pDev = arg;
 	if ( pDev->isr_adc ) 
@@ -382,13 +374,13 @@ int gradcdac_install_irq_handler(void *cookie, int adc, void (*isr)(void *cookie
 	if ( adc & GRADCDAC_ISR_ADC ){
 		pDev->isr_adc_arg = arg;
 		pDev->isr_adc = isr;
-		rtems_drvmgr_interrupt_enable(pDev->dev, GRADCDAC_IRQ_ADC, gradcdac_adc_interrupt, pDev);
+		rtems_drvmgr_interrupt_register(pDev->dev, GRADCDAC_IRQ_ADC, "gradcdac_adc", gradcdac_adc_interrupt, pDev);
 	}
 
 	if ( adc & GRADCDAC_ISR_DAC ){
 		pDev->isr_dac_arg = arg;
 		pDev->isr_dac = isr;
-		rtems_drvmgr_interrupt_enable(pDev->dev, GRADCDAC_IRQ_DAC, gradcdac_dac_interrupt, pDev);
+		rtems_drvmgr_interrupt_register(pDev->dev, GRADCDAC_IRQ_DAC, "gradcdac_dac", gradcdac_dac_interrupt, pDev);
 	}
 
 	return 0;
@@ -402,13 +394,13 @@ void gradcdac_uninstall_irq_handler(void *cookie, int adc)
 		return;
 
 	if ( adc & GRADCDAC_ISR_ADC ){
-		rtems_drvmgr_interrupt_disable(pDev->dev, GRADCDAC_IRQ_ADC, gradcdac_adc_interrupt, pDev);
+		rtems_drvmgr_interrupt_unregister(pDev->dev, GRADCDAC_IRQ_ADC, gradcdac_adc_interrupt, pDev);
 		pDev->isr_adc = NULL;
 		pDev->isr_adc_arg = NULL;
 	}
 
 	if ( adc & GRADCDAC_ISR_DAC ){
-		rtems_drvmgr_interrupt_disable(pDev->dev, GRADCDAC_IRQ_DAC, gradcdac_dac_interrupt, pDev);
+		rtems_drvmgr_interrupt_unregister(pDev->dev, GRADCDAC_IRQ_DAC, gradcdac_dac_interrupt, pDev);
 		pDev->isr_dac = NULL;
 		pDev->isr_dac_arg = NULL;
 	}

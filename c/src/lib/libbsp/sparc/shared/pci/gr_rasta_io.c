@@ -117,6 +117,7 @@ struct gr_rasta_io_ver gr_rasta_io_ver1 = {
 int ambapp_rasta_io_int_register(
 	struct rtems_drvmgr_dev_info *dev,
 	int irq,
+	const char *info,
 	rtems_drvmgr_isr handler,
 	void *arg);
 int ambapp_rasta_io_int_unregister(
@@ -124,21 +125,15 @@ int ambapp_rasta_io_int_unregister(
 	int irq,
 	rtems_drvmgr_isr handler,
 	void *arg);
-int ambapp_rasta_io_int_enable(
+int ambapp_rasta_io_int_unmask(
 	struct rtems_drvmgr_dev_info *dev,
-	int irq,
-	rtems_drvmgr_isr isr,
-	void *arg);
-int ambapp_rasta_io_int_disable(
+	int irq);
+int ambapp_rasta_io_int_mask(
 	struct rtems_drvmgr_dev_info *dev,
-	int irq,
-	rtems_drvmgr_isr isr,
-	void *arg);
+	int irq);
 int ambapp_rasta_io_int_clear(
 	struct rtems_drvmgr_dev_info *dev,
-	int irq,
-	rtems_drvmgr_isr isr,
-	void *arg);
+	int irq);
 int ambapp_rasta_io_get_params(
 	struct rtems_drvmgr_dev_info *dev,
 	struct rtems_drvmgr_bus_params *params);
@@ -146,8 +141,8 @@ int ambapp_rasta_io_get_params(
 struct ambapp_ops ambapp_rasta_io_ops = {
 	.int_register = ambapp_rasta_io_int_register,
 	.int_unregister = ambapp_rasta_io_int_unregister,
-	.int_enable = ambapp_rasta_io_int_enable,
-	.int_disable = ambapp_rasta_io_int_disable,
+	.int_unmask = ambapp_rasta_io_int_unmask,
+	.int_mask = ambapp_rasta_io_int_mask,
 	.int_clear = ambapp_rasta_io_int_clear,
 	.get_params = ambapp_rasta_io_get_params
 };
@@ -203,7 +198,7 @@ void gr_rasta_io_register_drv(void)
 	rtems_drvmgr_drv_register(&gr_rasta_io_info.general);
 }
 
-void gr_rasta_io_isr (int irqno, void *arg)
+void gr_rasta_io_isr (void *arg)
 {
 	struct gr_rasta_io_priv *priv = arg;
 	unsigned int status, tmp;
@@ -224,7 +219,7 @@ void gr_rasta_io_isr (int irqno, void *arg)
 
 	/* ACK interrupt, this is because PCI is Level, so the IRQ Controller still drives the IRQ. */
 	if ( tmp ) 
-		rtems_drvmgr_interrupt_clear(priv->dev, 0, gr_rasta_io_isr, (void *)priv);
+		rtems_drvmgr_interrupt_clear(priv->dev, 0);
 
 	DBG("RASTA-IO-IRQ: 0x%x\n", tmp);
 }
@@ -466,13 +461,8 @@ int gr_rasta_io_init2(struct rtems_drvmgr_dev_info *dev)
 {
 	struct gr_rasta_io_priv *priv = dev->priv;
 
-	/* install interrupt vector */
-	rtems_drvmgr_interrupt_register(priv->dev, 0,
-		gr_rasta_io_isr, (void *)priv);
-
 	/* Clear any old interrupt requests */
-	rtems_drvmgr_interrupt_clear(priv->dev, 0,
-		gr_rasta_io_isr, (void *)priv);
+	rtems_drvmgr_interrupt_clear(dev, 0);
 
 	/* Enable System IRQ so that GR-RASTA-IO PCI target interrupt goes
 	 * through.
@@ -483,7 +473,12 @@ int gr_rasta_io_init2(struct rtems_drvmgr_dev_info *dev)
 	 * be shared and PCI board 2 have not initialized and
 	 * might therefore drive interrupt already when entering init1().
 	 */
-	rtems_drvmgr_interrupt_enable(dev, 0, gr_rasta_io_isr, (void *)priv);
+	rtems_drvmgr_interrupt_register(
+		dev,
+		0,
+		"gr_rasta_io",
+		gr_rasta_io_isr,
+		(void *)priv);
 
 	return gr_rasta_io_hw_init2(priv);
 }
@@ -491,6 +486,7 @@ int gr_rasta_io_init2(struct rtems_drvmgr_dev_info *dev)
 int ambapp_rasta_io_int_register(
 	struct rtems_drvmgr_dev_info *dev,
 	int irq,
+	const char *info,
 	rtems_drvmgr_isr handler,
 	void *arg)
 {
@@ -502,9 +498,20 @@ int ambapp_rasta_io_int_register(
 
 	status = genirq_register(priv->genirq, irq, handler, arg);
 	if ( status == 0 ) {
-		/* Disable and clear IRQ for first registered handler */
+		/* Clear IRQ for first registered handler */
 		priv->irq->iclear = (1<<irq);
-		priv->irq->mask[0] &= ~(1<<irq); /* mask interrupt source */
+	} else if ( status == 1 )
+		status = 0;
+
+	if (status != 0) {
+		rtems_interrupt_enable(level);
+		return DRVMGR_FAIL;
+	}
+
+	status = genirq_enable(priv->genirq, irq, handler, arg);
+	if ( status == 0 ) {
+		/* Enable IRQ for first enabled handler only */
+		priv->irq->mask[0] |= (1<<irq); /* unmask interrupt source */
 	} else if ( status == 1 )
 		status = 0;
 
@@ -525,81 +532,77 @@ int ambapp_rasta_io_int_unregister(
 
 	rtems_interrupt_disable(level);
 
-	status = genirq_unregister(priv->genirq, irq, isr, arg);
-	if ( status != 0 )
-		status = -1;
-
-	rtems_interrupt_enable(level);
-
-	return status;
-}
-
-int ambapp_rasta_io_int_enable(
-	struct rtems_drvmgr_dev_info *dev,
-	int irq,
-	rtems_drvmgr_isr isr,
-	void *arg)
-{
-	struct gr_rasta_io_priv *priv = dev->parent->dev->priv;
-	rtems_interrupt_level level;
-	int status;
-
-	DBG("RASTA-IO IRQ %d: enable\n", irq);
-
-	rtems_interrupt_disable(level);
-
-	status = genirq_enable(priv->genirq, irq, isr, arg);
-	if ( status == 0 ) {
-		/* Enable IRQ for first enabled handler only */
-		priv->irq->mask[0] |= (1<<irq); /* unmask interrupt source */
-	} else if ( status == 1 )
-		status = 0;
-
-	rtems_interrupt_enable(level);
-
-	return status;
-}
-
-int ambapp_rasta_io_int_disable(
-	struct rtems_drvmgr_dev_info *dev,
-	int irq,
-	rtems_drvmgr_isr isr,
-	void *arg)
-{
-	struct gr_rasta_io_priv *priv = dev->parent->dev->priv;
-	rtems_interrupt_level level;
-	int status;
-
-	DBG("RASTA-IO IRQ %d: disable\n", irq);
-
-	rtems_interrupt_disable(level);
-
 	status = genirq_disable(priv->genirq, irq, isr, arg);
 	if ( status == 0 ) {
 		/* Disable IRQ only when no enabled handler exists */
 		priv->irq->mask[0] &= ~(1<<irq); /* mask interrupt source */
-	} else if ( status == 1 )
-		status = 0;
+	}
+
+	status = genirq_unregister(priv->genirq, irq, isr, arg);
+	if ( status != 0 )
+		status = DRVMGR_FAIL;
 
 	rtems_interrupt_enable(level);
 
 	return status;
 }
 
+int ambapp_rasta_io_int_unmask(
+	struct rtems_drvmgr_dev_info *dev,
+	int irq)
+{
+	struct gr_rasta_io_priv *priv = dev->parent->dev->priv;
+	rtems_interrupt_level level;
+
+	DBG("RASTA-IO IRQ %d: unmask\n", irq);
+
+	if ( genirq_check(priv->genirq, irq) )
+		return DRVMGR_EINVAL;
+
+	rtems_interrupt_disable(level);
+
+	/* Enable IRQ for first enabled handler only */
+	priv->irq->mask[0] |= (1<<irq); /* unmask interrupt source */
+
+	rtems_interrupt_enable(level);
+
+	return DRVMGR_OK;
+}
+
+int ambapp_rasta_io_int_mask(
+	struct rtems_drvmgr_dev_info *dev,
+	int irq)
+{
+	struct gr_rasta_io_priv *priv = dev->parent->dev->priv;
+	rtems_interrupt_level level;
+
+	DBG("RASTA-IO IRQ %d: mask\n", irq);
+
+	if ( genirq_check(priv->genirq, irq) )
+		return DRVMGR_EINVAL;
+
+	rtems_interrupt_disable(level);
+
+	/* Disable/mask IRQ */
+	priv->irq->mask[0] &= ~(1<<irq); /* mask interrupt source */
+
+	rtems_interrupt_enable(level);
+
+	return DRVMGR_OK;
+}
+
 int ambapp_rasta_io_int_clear(
 	struct rtems_drvmgr_dev_info *dev,
-	int irq,
-	rtems_drvmgr_isr isr,
-	void *arg)
+	int irq)
 {
 	struct gr_rasta_io_priv *priv = dev->parent->dev->priv;
 
 	if ( genirq_check(priv->genirq, irq) )
-		return -1;
+		return DRVMGR_EINVAL;
 
 	priv->irq->iclear = (1<<irq);
 
-	return 0;
+	return DRVMGR_OK;
 }
 
 int ambapp_rasta_io_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params)

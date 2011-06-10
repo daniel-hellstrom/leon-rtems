@@ -32,6 +32,7 @@
 int ambapp_leon2_int_register(
 	struct rtems_drvmgr_dev_info *dev,
 	int index,
+	const char *info,
 	rtems_drvmgr_isr isr,
 	void *arg);
 int ambapp_leon2_int_unregister(
@@ -39,21 +40,9 @@ int ambapp_leon2_int_unregister(
 	int index,
 	rtems_drvmgr_isr isr,
 	void *arg);
-int ambapp_leon2_int_enable(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg);
-int ambapp_leon2_int_disable(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg);
 int ambapp_leon2_int_clear(
 	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg);
+	int index);
 int ambapp_leon2_int_mask(
 	struct rtems_drvmgr_dev_info *dev,
 	int irq);
@@ -76,8 +65,6 @@ struct ambappl2_priv {
 struct ambapp_ops ambapp_leon2_ops = {
 	.int_register = ambapp_leon2_int_register,
 	.int_unregister = ambapp_leon2_int_unregister,
-	.int_enable = ambapp_leon2_int_enable,
-	.int_disable = ambapp_leon2_int_disable,
 	.int_clear = ambapp_leon2_int_clear,
 	.int_mask = ambapp_leon2_int_mask,
 	.int_unmask = ambapp_leon2_int_unmask,
@@ -190,12 +177,13 @@ int ambapp_leon2_int_register
 	(
 	struct rtems_drvmgr_dev_info *dev,
 	int index,
+	const char *info,
 	rtems_drvmgr_isr isr,
 	void *arg
 	)
 {
 	/* Let LEON2 bus handle interrupt requests */
-	return rtems_drvmgr_interrupt_register(dev->parent->dev, index, isr, arg);
+	return rtems_drvmgr_interrupt_register(dev->parent->dev, index, info, isr, arg);
 }
 
 int ambapp_leon2_int_unregister
@@ -210,40 +198,14 @@ int ambapp_leon2_int_unregister
 	return rtems_drvmgr_interrupt_unregister(dev->parent->dev, index, isr, arg);
 }
 
-int ambapp_leon2_int_enable
-	(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg
-	)
-{
-	/* Let LEON2 bus handle interrupt requests */
-	return rtems_drvmgr_interrupt_enable(dev->parent->dev, index, isr, arg);
-}
-
-int ambapp_leon2_int_disable
-	(
-	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg
-	)
-{
-	/* Let LEON2 bus handle interrupt requests */
-	return rtems_drvmgr_interrupt_disable(dev->parent->dev, index, isr, arg);
-}
-
 int ambapp_leon2_int_clear
 	(
 	struct rtems_drvmgr_dev_info *dev,
-	int index,
-	rtems_drvmgr_isr isr,
-	void *arg
+	int index
 	)
 {
 	/* Let LEON2 bus handle interrupt requests */
-	return rtems_drvmgr_interrupt_clear(dev->parent->dev, index, isr, arg);
+	return rtems_drvmgr_interrupt_clear(dev->parent->dev, index);
 }
 
 int ambapp_leon2_int_mask
