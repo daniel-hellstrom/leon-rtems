@@ -32,11 +32,14 @@
  *
  */
 
-#include <pci.h>
 #include <rtems/bspIo.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <libcpu/byteorder.h>
+#include <libcpu/access.h>
+#include <pci.h>
+#include <pci/cfg.h>
 
 #include <drvmgr/drvmgr.h>
 #include <drvmgr/pci_bus.h>
@@ -160,7 +163,9 @@ struct at697pci_priv {
 	struct at697pci_regs	*regs;
 	int			minor;
 
-	unsigned int		devVend; /* PCI Device and Vendor ID of Host */
+	uint32_t		devVend; /* PCI Device and Vendor ID of Host */
+	uint32_t		bar1_pci_adr;
+	uint32_t		bar2_pci_adr;
 };
 
 struct at697pci_priv *at697pcipriv = NULL;
@@ -195,6 +200,7 @@ struct leon2_amba_drv_info at697pci_info =
 		DRVMGR_BUS_TYPE_LEON2_AMBA,	/* Bus Type */
 		&at697pci_ops,
 		0,				/* No devices yet */
+		sizeof(struct at697pci_priv),	/* let drvmgr alloc private */
 	},
 	&at697pci_ids[0]
 };
@@ -208,27 +214,33 @@ void at697pci_register_drv(void)
 /*  The configuration access functions uses the DMA functionality of the
  *  AT697 pci controller to be able access all slots
  */
- 
-int
-at697pci_read_config_dword(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned int *val)
+
+int at697pci_cfg_r32(pci_dev_t dev, int offset, uint32_t *val)
 {
 	struct at697pci_regs *regs;
 	volatile unsigned int data = 0;
 	unsigned int address;
+	int bus = PCI_DEV_BUS(dev);
+	int slot = PCI_DEV_SLOT(dev);
+	int func = PCI_DEV_FUNC(dev);
+	int retval;
 
-	if (offset & 3) return PCIBIOS_BAD_REGISTER_NUMBER;
-	
+	if (slot > 21 || (offset & ~0xfc)) {
+		*val = 0xffffffff;
+		return PCISTS_EINVAL;
+	}
+
 	regs = at697pcipriv->regs;
 
 	regs->pciitp = 0xff; /* clear interrupts */ 
 
 	if ( bus == 0 ) {
 		/* PCI Access - TYPE 0 */
-		address = (  1<<(11+slot) ) | ((function & 0x7)<<8) | (offset&0xfc);
+		address = (1<<(11+slot)) | (func << 8) | offset;
 	} else {
 		/* PCI access - TYPE 1 */
 		address = ((bus & 0xff) << 16) | ((slot & 0x1f) << 11) |
-				((function & 0x7)<<8) | (offset & 0xfc) | 1;
+				(func << 8) | offset | 1;
 	}
 	regs->pcisa = address;
 	regs->pcidma = 0xa01;
@@ -242,51 +254,56 @@ at697pci_read_config_dword(unsigned char bus, unsigned char slot, unsigned char 
 	if (regs->pcisc & 0x20000000)  { /* Master Abort */
 		regs->pcisc |= 0x20000000;
 		*val = 0xffffffff;
-	}
-	else
+		retval = PCISTS_MSTABRT;
+	} else {
 		*val = data;
+		retval = PCISTS_OK;
+	}
 
-	DBG("pci_read - bus: %d, dev: %d, fn: %d, off: %d => addr: %x, val: %x\n", bus, slot, function, offset,  (1<<(11+slot) ) | ((function & 7)<<8) |  (offset&0x3f), *val); 
+	DBG("pci_read - bus: %d, dev: %d, fn: %d, off: %d => addr: %x, val: %x\n",
+		bus, slot, func, offset,  address, *val); 
 
-	return PCIBIOS_SUCCESSFUL;
+	return retval;
 }
 
-
-int 
-at697pci_read_config_word(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned short *val)
+int at697pci_cfg_r16(pci_dev_t dev, int ofs, uint16_t *val)
 {
-	unsigned int v;
+	uint32_t v;
+	int retval;
 
-	if (offset & 1) return PCIBIOS_BAD_REGISTER_NUMBER;
+	if (ofs & 1)
+		return PCISTS_EINVAL;
 
-	at697pci_read_config_dword(bus, slot, function, offset&~3, &v);
-	*val = 0xffff & (v >> (8*(offset & 3)));
+	retval = at697pci_cfg_r32(dev, ofs & ~0x3, &v);
+	*val = 0xffff & (v >> (8*(ofs & 0x3)));
 
-	return PCIBIOS_SUCCESSFUL;
+	return retval;
 }
 
-
-int 
-at697pci_read_config_byte(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned char *val)
+int at697pci_cfg_r8(pci_dev_t dev, int ofs, uint8_t *val)
 {
-	unsigned int v;
+	uint32_t v;
+	int retval;
 
-	at697pci_read_config_dword(bus, slot, function, offset&~3, &v);
+	retval = at697pci_cfg_r32(dev, ofs & ~0x3, &v);
 
-	*val = 0xff & (v >> (8*(offset & 3)));
+	*val = 0xff & (v >> (8*(ofs & 3)));
 
-	return PCIBIOS_SUCCESSFUL;
+	return retval;
 }
 
-
-int
-at697pci_write_config_dword(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned int val)
+int at697pci_cfg_w32(pci_dev_t dev, int offset, uint32_t val)
 {
 	struct at697pci_regs *regs;
 	volatile unsigned int tmp_val = val;
 	unsigned int address;
+	int bus = PCI_DEV_BUS(dev);
+	int slot = PCI_DEV_SLOT(dev);
+	int func = PCI_DEV_FUNC(dev);
+	int retval;
 
-	if (offset & 3) return PCIBIOS_BAD_REGISTER_NUMBER;
+	if (slot > 21 || (offset & ~0xfc))
+		return PCISTS_EINVAL;
 
 	regs = at697pcipriv->regs;
 
@@ -294,11 +311,11 @@ at697pci_write_config_dword(unsigned char bus, unsigned char slot, unsigned char
 
 	if ( bus == 0 ) {
 		/* PCI Access - TYPE 0 */
-		address = (  1<<(11+slot) ) | ((function & 0x7)<<8) | (offset&0xfc);
+		address = (1<<(11+slot)) | (func << 8) | offset;
 	} else {
 		/* PCI access - TYPE 1 */
 		address = ((bus & 0xff) << 16) | ((slot & 0x1f) << 11) |
-				((function & 0x7)<<8) | (offset & 0xfc) | 1;
+				(func << 8) | offset | 1;
 	}
 	regs->pcisa = address;
 	regs->pcidma = 0xb01;
@@ -309,45 +326,48 @@ at697pci_write_config_dword(unsigned char bus, unsigned char slot, unsigned char
 
 	if (regs->pcisc & 0x20000000)  { /* Master Abort */
 		regs->pcisc |= 0x20000000;
-	}
+		retval = PCISTS_MSTABRT;
+	} else
+		retval = PCISTS_OK;
 
 	regs->pciitp = 0xff; /* clear interrupts */
 
-	DBG("pci_write - bus: %d, dev: %d, fn: %d, off: %d => addr: %x, val: %x\n", bus, slot, function, offset, (1<<(11+slot) ) | ((function & 7)<<8) |  (offset&0x3f), val);
+	DBG("pci_write - bus: %d, dev: %d, fn: %d, off: %d => addr: %x, val: %x\n",
+		bus, slot, func, offset, address, val);
 
-	return PCIBIOS_SUCCESSFUL;
+	return retval;
 }
 
-
-int 
-at697pci_write_config_word(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned short val)
+int at697pci_cfg_w16(pci_dev_t dev, int ofs, uint16_t val)
 {
-	unsigned int v;
+	uint32_t v;
+	int retval;
 
-	if (offset & 1) return PCIBIOS_BAD_REGISTER_NUMBER;
+	if (ofs & 1)
+		return PCISTS_EINVAL;
 
-	at697pci_read_config_dword(bus, slot, function, offset&~3, &v);
+	retval = at697pci_cfg_r32(dev, ofs & ~0x3, &v);
+	if (retval != PCISTS_OK)
+		return retval;
 
-	v = (v & ~(0xffff << (8*(offset&3)))) | ((0xffff&val) << (8*(offset&3)));
+	v = (v & ~(0xffff << (8*(ofs&3)))) | ((0xffff&val) << (8*(ofs&3)));
 
-	return at697pci_write_config_dword(bus, slot, function, offset&~3, v);
+	return at697pci_cfg_w32(dev, ofs & ~0x3, v);
 }
 
-
-int 
-at697pci_write_config_byte(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned char val)
+int at697pci_cfg_w8(pci_dev_t dev, int ofs, uint8_t val)
 {
-	unsigned int v;
+	uint32_t v;
 
-	at697pci_read_config_dword(bus, slot, function, offset&~3, &v);
+	at697pci_cfg_r32(dev, ofs & ~0x3, &v);
 
-	v = (v & ~(0xff << (8*(offset&3)))) | ((0xff&val) << (8*(offset&3)));
+	v = (v & ~(0xff << (8*(ofs&3)))) | ((0xff&val) << (8*(ofs&3)));
 
-	return at697pci_write_config_dword(bus, slot, function, offset&~3, v);
+	return at697pci_cfg_w32(dev, ofs & ~0x3, v);
 }
 
-/* Return the assigned system IRQ number that corresponds to the PCI "Interrupt Pin"
- * information from configuration space.
+/* Return the assigned system IRQ number that corresponds to the PCI
+ * "Interrupt Pin" information from configuration space.
  *
  * The IRQ information is stored in the at697_pci_irq_table configurable
  * by the user.
@@ -355,30 +375,48 @@ at697pci_write_config_byte(unsigned char bus, unsigned char slot, unsigned char 
  * Returns the "system IRQ" for the PCI INTA#..INTD# pin in irq_pin. Returns
  * 0xff if not assigned.
  */
-unsigned char at697_pci_get_assigned_irq(
-	unsigned char bus,
-	unsigned char slot,
-	unsigned char func,
-	unsigned char irq_pin
-	)
+uint8_t at697pci_bus0_irq_map(pci_dev_t dev, int irq_pin)
 {
-	unsigned char sysIrqNr = 0xff; /* not assigned */
+	uint8_t sysIrqNr = 0; /* not assigned */
+	int irq_group;
 
 	if ( (irq_pin >= 1) && (irq_pin <= 4) ) {
+		/* Use default IRQ decoding on PCI BUS0 according slot numbering */
+		irq_group = PCI_DEV_SLOT(dev) & 0x3;
+		irq_pin = ((irq_pin - 1) + irq_group) & 0x3;
 		/* Valid PCI "Interrupt Pin" number */
-		sysIrqNr = at697_pci_irq_table[irq_pin-1] & 0xff;
+		sysIrqNr = at697_pci_irq_table[irq_pin];
 	}
 	return sysIrqNr;
 }
 
-const pci_config_access_functions at697pci_access_functions = {
-	at697pci_read_config_byte,
-	at697pci_read_config_word,
-	at697pci_read_config_dword,
-	at697pci_write_config_byte,
-	at697pci_write_config_word,
-	at697pci_write_config_dword,
-	at697_pci_get_assigned_irq
+int at697pci_translate(uint32_t *address, int type, int dir)
+{
+	/* No address translation implmented at this point */
+	return 0;
+}
+
+struct pci_access_drv at697pci_access_drv = {
+	.cfg =
+	{
+		at697pci_cfg_r8,
+		at697pci_cfg_r16,
+		at697pci_cfg_r32,
+		at697pci_cfg_w8,
+		at697pci_cfg_w16,
+		at697pci_cfg_w32,
+	},
+	.io =
+	{	/* AT697 only supports non-standard Big-Endian PCI Bus */
+		sparc_ld8,
+		sparc_ld_be16,
+		sparc_ld_be32,
+		sparc_st8,
+		sparc_st_be16,
+		sparc_st_be32,
+
+	},
+	.translate = at697pci_translate,
 };
 
 /* Initializes the AT697PCI core hardware
@@ -388,6 +426,7 @@ int at697pci_hw_init(struct at697pci_priv *priv)
 {
 	struct at697pci_regs *regs = priv->regs;
 	unsigned short vendor = regs->pciid1 >> 16;
+	pci_dev_t host = PCI_DEV(0, 0, 0);
 
 	/* Must match ATMEL or ESA ID */
 	if ( !((vendor == 0x1202) || (vendor == 0x1E0F)) ) {
@@ -401,10 +440,11 @@ int at697pci_hw_init(struct at697pci_priv *priv)
 	/* Mask PCI interrupts */
 	regs->pciite = 0;
 
-	/* Map system RAM at pci address 0x40000000 and system SDRAM to pci address 0x60000000  */
-	regs->mbar1  = SYSTEM_MAINMEM_START;
-	regs->mbar2  = SYSTEM_MAINMEM_START2;
-	regs->pcitpa = (SYSTEM_MAINMEM_START & 0xff000000) | ((SYSTEM_MAINMEM_START2>>16) & 0xff00);
+	/* Map parts of AT697 main memory into PCI (for DMA) */
+	regs->mbar1  = priv->bar1_pci_adr;
+	regs->mbar2  = priv->bar2_pci_adr;
+	regs->pcitpa = (priv->bar1_pci_adr & 0xff000000) |
+	               ((priv->bar2_pci_adr>>16) & 0xff00);
 
 	/* Enable PCI master and target memory command response  */
 	regs->pcisc |= 0x40 | 0x6;
@@ -416,7 +456,7 @@ int at697pci_hw_init(struct at697pci_priv *priv)
 	regs->pciic = 0x41;
 
 	/* Get the AT697PCI Host PCI ID */
-	at697pci_read_config_dword(0, 0, 0, PCI_VENDOR_ID, &priv->devVend);
+	at697pci_cfg_r32(host, PCI_VENDOR_ID, &priv->devVend);
 
 	return 0;
 }
@@ -430,8 +470,6 @@ int at697pci_hw_init(struct at697pci_priv *priv)
 int at697pci_init(struct at697pci_priv *priv)
 {
 	int pin;
-	pci_mem_config pci_mem_cfg;
-	pci_config pci_drv_cfg;
 	union rtems_drvmgr_key_value *value;
 	char keyname_sysirq[6];
 	char keyname_pio[10];
@@ -466,29 +504,27 @@ int at697pci_init(struct at697pci_priv *priv)
 		}
 	}
 
+	/* Use GRPCI target BAR1 and BAR2 to map CPU RAM to PCI, this is to
+	 * make it possible for PCI peripherals to do DMA directly to CPU memory
+	 *
+	 * Defualt is to map system RAM at pci address 0x40000000 and system
+	 * SDRAM to pci address 0x60000000
+	 */
+	value = rtems_drvmgr_dev_key_get(priv->dev, "tgtbar1", KEY_TYPE_INT);
+	if (value)
+		priv->bar1_pci_adr = value->i;
+	else
+		priv->bar1_pci_adr = SYSTEM_MAINMEM_START; /* default */
+
+	value = rtems_drvmgr_dev_key_get(priv->dev, "tgtbar2", KEY_TYPE_INT);
+	if (value)
+		priv->bar2_pci_adr = value->i;
+	else
+		priv->bar2_pci_adr = SYSTEM_MAINMEM_START2; /* default */
+
 	/* Init the PCI Core */
 	if ( at697pci_hw_init(priv) ) {
 		return -3;
-	}
-
-	/* Register the PCI core at the PCI layer */
-
-	/* Prepare PCI driver description */
-	memset(&pci_drv_cfg, 0, sizeof(pci_drv_cfg));
-	pci_drv_cfg.pci_config_addr = 0;
-	pci_drv_cfg.pci_config_data = 0;
-	pci_drv_cfg.pci_functions = &at697pci_access_functions;
-
-	/* Prepare memory MAP */
-	memset(&pci_mem_cfg, 0, sizeof(pci_mem_cfg));
-	pci_mem_cfg.pci_mem_start = PCI_MEM_START;
-	pci_mem_cfg.pci_mem_size = PCI_MEM_SIZE;
-	pci_mem_cfg.pci_io_start = 0;
-	pci_mem_cfg.pci_io_size = 0;
-
-	if ( pci_register_drv(&pci_drv_cfg, &pci_mem_cfg, priv) ) {
-		/* Registration failed */
-		return -4;
 	}
 
 	return 0;
@@ -499,8 +535,8 @@ int at697pci_init(struct at697pci_priv *priv)
  */
 int at697pci_init1(struct rtems_drvmgr_dev_info *dev)
 {
-	int status;
 	struct at697pci_priv *priv;
+	struct pci_auto_setup at697pci_auto_cfg;
 
 	DBG("AT697PCI[%d] on bus %s\n", dev->minor_drv,
 		dev->parent->dev->name);
@@ -510,26 +546,32 @@ int at697pci_init1(struct rtems_drvmgr_dev_info *dev)
 		return DRVMGR_FAIL;
 	}
 
-	priv = malloc(sizeof(struct at697pci_priv));
+	priv = dev->priv;
 	if ( !priv )
 		return DRVMGR_NOMEM;
 
-	memset(priv, 0, sizeof(*priv));
-	dev->priv = priv;
 	priv->dev = dev;
 	priv->minor = at697pci_minor++;
 
-	at697pcipriv = priv;
-	if ( at697pci_init(priv) ) {
-		DBG("Failed to initialize at697pci driver\n");
-		free(priv);
-		dev->priv = NULL;
+	if (pci_access_drv_register(&at697pci_access_drv)) {
+		/* Access routines registration failed */
 		return DRVMGR_FAIL;
 	}
 
-	status = init_pci();
-	if ( status ) {
-		DBG("Failed to initialize PCI sybsystem (%d)\n", status);
+	/* Prepare memory MAP */
+	at697pci_auto_cfg.options = 0;
+	at697pci_auto_cfg.mem_start = 0;
+	at697pci_auto_cfg.mem_size = 0;
+	at697pci_auto_cfg.memio_start = PCI_MEM_START;
+	at697pci_auto_cfg.memio_size = PCI_MEM_SIZE;
+	at697pci_auto_cfg.io_start = 0;
+	at697pci_auto_cfg.io_size = 0;
+	at697pci_auto_cfg.irq_map = at697pci_bus0_irq_map;
+	at697pci_auto_cfg.irq_route = NULL; /* use standard routing */
+	pci_config_register(&at697pci_auto_cfg);
+
+	if (pci_config_init()) {
+		/* PCI configuration failed */
 		return DRVMGR_FAIL;
 	}
 
@@ -538,7 +580,9 @@ int at697pci_init1(struct rtems_drvmgr_dev_info *dev)
 
 int at697pci_init2(struct rtems_drvmgr_dev_info *dev)
 {
+#if 0
 	struct at697pci_priv *priv = dev->priv;
+#endif
 	int pin, irq, pio, ioport;
 	LEON_Register_Map *regs = (LEON_Register_Map *)0x80000000;
 

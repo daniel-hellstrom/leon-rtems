@@ -72,7 +72,7 @@ include_HEADERS += ../../sparc/shared/include/grpci2.h
 libbsp_a_SOURCES += ../../sparc/shared/pci/grpci2.c
 libbsp_a_SOURCES += ../../sparc/shared/pci/grpci.c
 #libbsp_a_SOURCES +=  ../../sparc/shared/pci/pcif.c
-#libbsp_a_SOURCES +=  pci/at697_pci.c
+libbsp_a_SOURCES +=  pci/at697_pci.c
 
 # PCI target devices
 include_HEADERS += ../../sparc/shared/include/gr_rasta_adcdac.h
