@@ -281,8 +281,11 @@ int grpci_cfg_w16(pci_dev_t dev, int ofs, uint16_t val)
 int grpci_cfg_w8(pci_dev_t dev, int ofs, uint8_t val)
 {
 	uint32_t v;
+	int retval;
 
-	grpci_cfg_r32(dev, ofs & ~0x3, &v);
+	retval = grpci_cfg_r32(dev, ofs & ~0x3, &v);
+	if (retval != PCISTS_OK)
+		return retval;
 
 	v = (v & ~(0xff << (8*(ofs&3)))) | ((0xff&val) << (8*(ofs&3)));
 
