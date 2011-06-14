@@ -52,8 +52,8 @@
 #define DBG(x...) 
 #endif
 
-int gr701_init1(struct rtems_drvmgr_dev_info *dev);
-int gr701_init2(struct rtems_drvmgr_dev_info *dev);
+int gr701_init1(struct drvmgr_dev *dev);
+int gr701_init2(struct drvmgr_dev *dev);
 
 #define READ_REG(address) (*(volatile unsigned int *)address)
 
@@ -89,7 +89,7 @@ struct pci_bridge_regs {
 /* Private data structure for driver */
 struct gr701_priv {
 	/* Driver management */
-	struct rtems_drvmgr_dev_info	*dev;
+	struct drvmgr_dev	*dev;
 	char				prefix[16];
 
 	struct pci_bridge_regs		*pcib;
@@ -104,7 +104,7 @@ struct gr701_priv {
 	int				interrupt_cnt;
 
 	/* GR-701 */
-	struct rtems_drvmgr_mmap_entry	bus_maps[3];
+	struct drvmgr_mmap_entry	bus_maps[3];
 
 	/* AMBA Plug&Play information on GR-701 */
 	struct ambapp_bus		abus;
@@ -113,28 +113,28 @@ struct gr701_priv {
 };
 
 int ambapp_gr701_int_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
 	const char *info,
-	rtems_drvmgr_isr handler,
+	drvmgr_isr handler,
 	void *arg);
 int ambapp_gr701_int_unregister(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg);
 int ambapp_gr701_int_unmask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq);
 int ambapp_gr701_int_mask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq);
 int ambapp_gr701_int_clear(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq);
 int ambapp_gr701_get_params(
-	struct rtems_drvmgr_dev_info *dev,
-	struct rtems_drvmgr_bus_params *params);
+	struct drvmgr_dev *dev,
+	struct drvmgr_bus_params *params);
 
 struct ambapp_ops ambapp_gr701_ops = {
 	.int_register = ambapp_gr701_int_register,
@@ -145,7 +145,7 @@ struct ambapp_ops ambapp_gr701_ops = {
 	.get_params = ambapp_gr701_get_params
 };
 
-struct rtems_drvmgr_drv_ops gr701_ops = 
+struct drvmgr_drv_ops gr701_ops = 
 {
 	.init = {gr701_init1, gr701_init2, NULL, NULL},
 	.remove = NULL,
@@ -183,7 +183,7 @@ struct pci_drv_info gr701_info =
  *
  * The array must end with a NULL pointer.
  */
-struct rtems_drvmgr_bus_res *gr701_resources[] __attribute__((weak)) =
+struct drvmgr_bus_res *gr701_resources[] __attribute__((weak)) =
 {
 	NULL
 };
@@ -192,7 +192,7 @@ int gr701_resources_cnt = 0;
 void gr701_register_drv(void)
 {
 	DBG("Registering GR-701 PCI driver\n");
-	rtems_drvmgr_drv_register(&gr701_info.general);
+	drvmgr_drv_register(&gr701_info.general);
 }
 
 void gr701_interrupt(void *arg)
@@ -212,7 +212,7 @@ void gr701_interrupt(void *arg)
 
 	/* ACK interrupt, this is because PCI is Level, so the IRQ Controller still drives the IRQ. */
 	if ( irq )
-		rtems_drvmgr_interrupt_clear(priv->dev, 0);
+		drvmgr_interrupt_clear(priv->dev, 0);
 }
 
 /* AMBA PP find routines */
@@ -278,7 +278,7 @@ int gr701_hw_init(struct gr701_priv *priv)
 			NULL, &priv->amba_maps[0]);
 
 	/* Frequency is the same as the PCI bus frequency */
-	rtems_drvmgr_freq_get(priv->dev, NULL, &pci_freq_hz);
+	drvmgr_freq_get(priv->dev, NULL, &pci_freq_hz);
 
 	/* Initialize Frequency of AMBA bus */
 	ambapp_freq_init(&priv->abus, NULL, pci_freq_hz);
@@ -303,7 +303,7 @@ void gr701_hw_init2(struct gr701_priv *priv)
 /* Called when a PCI target is found with the PCI device and vendor ID 
  * given in gr701_ids[].
  */
-int gr701_init1(struct rtems_drvmgr_dev_info *dev)
+int gr701_init1(struct drvmgr_dev *dev)
 {
 	struct gr701_priv *priv;
 	struct pci_dev_info *devinfo;
@@ -382,12 +382,12 @@ int gr701_init1(struct rtems_drvmgr_dev_info *dev)
 /* Called when a PCI target is found with the PCI device and vendor ID 
  * given in gr701_ids[].
  */
-int gr701_init2(struct rtems_drvmgr_dev_info *dev)
+int gr701_init2(struct drvmgr_dev *dev)
 {
 	struct gr701_priv *priv = dev->priv;
 
 	/* Clear any old interrupt requests */
-	rtems_drvmgr_interrupt_clear(dev, 0);
+	drvmgr_interrupt_clear(dev, 0);
 
 	/* Enable System IRQ so that GR-701 PCI target interrupt goes through.
 	 *
@@ -397,7 +397,7 @@ int gr701_init2(struct rtems_drvmgr_dev_info *dev)
 	 * and PCI target 2 have not initialized and might therefore drive
 	 * interrupt already when entering init1().
 	 */
-	rtems_drvmgr_interrupt_register(dev, 0, "gr701", gr701_interrupt, priv);
+	drvmgr_interrupt_register(dev, 0, "gr701", gr701_interrupt, priv);
 
 	gr701_hw_init2(priv);
 
@@ -405,10 +405,10 @@ int gr701_init2(struct rtems_drvmgr_dev_info *dev)
 }
 
 int ambapp_gr701_int_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
 	const char *info,
-	rtems_drvmgr_isr handler,
+	drvmgr_isr handler,
 	void *arg)
 {
 	struct gr701_priv *priv = dev->parent->dev->priv;
@@ -442,9 +442,9 @@ int ambapp_gr701_int_register(
 }
 
 int ambapp_gr701_int_unregister(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg)
 {
 	struct gr701_priv *priv = dev->parent->dev->priv;
@@ -469,7 +469,7 @@ int ambapp_gr701_int_unregister(
 }
 
 int ambapp_gr701_int_unmask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq)
 {
 	struct gr701_priv *priv = dev->parent->dev->priv;
@@ -491,7 +491,7 @@ int ambapp_gr701_int_unmask(
 }
 
 int ambapp_gr701_int_mask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq)
 {
 	struct gr701_priv *priv = dev->parent->dev->priv;
@@ -513,7 +513,7 @@ int ambapp_gr701_int_mask(
 }
 
 int ambapp_gr701_int_clear(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq)
 {
 	struct gr701_priv *priv = dev->parent->dev->priv;
@@ -526,7 +526,7 @@ int ambapp_gr701_int_clear(
 	return DRVMGR_OK;
 }
 
-int ambapp_gr701_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params)
+int ambapp_gr701_get_params(struct drvmgr_dev *dev, struct drvmgr_bus_params *params)
 {
 	struct gr701_priv *priv = dev->parent->dev->priv;
 
@@ -536,7 +536,7 @@ int ambapp_gr701_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvm
 	return 0;
 }
 
-void gr701_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
+void gr701_print_dev(struct drvmgr_dev *dev, int options)
 {
 	struct gr701_priv *priv = dev->priv;
 	struct pci_dev_info *devinfo = priv->devinfo;
@@ -556,7 +556,7 @@ void gr701_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 	printf(" IRQ:             %d\n", devinfo->irq);
 
 	/* Frequency is the same as the PCI bus frequency */
-	rtems_drvmgr_freq_get(dev, 0, &freq_hz);
+	drvmgr_freq_get(dev, 0, &freq_hz);
 
 	printf(" FREQ:            %u Hz\n", freq_hz);
 	printf(" IMASK:           0x%08x\n", priv->pcib->imask);
@@ -582,7 +582,7 @@ void gr701_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 void gr701_print(int options)
 {
 	struct pci_drv_info *drv = &gr701_info;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	dev = drv->general.dev;
 	while(dev) {

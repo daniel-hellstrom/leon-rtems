@@ -57,8 +57,8 @@ extern unsigned int _RAM_START;
 #define PCIID_VENDOR_GAISLER		0x1AC8
 #define PCIID_DEVICE_GR_RASTA_ADCDAC	0x0014
 
-int gr_rasta_adcdac_init1(struct rtems_drvmgr_dev_info *dev);
-int gr_rasta_adcdac_init2(struct rtems_drvmgr_dev_info *dev);
+int gr_rasta_adcdac_init1(struct drvmgr_dev *dev);
+int gr_rasta_adcdac_init2(struct drvmgr_dev *dev);
 
 struct grpci_regs {
 	volatile unsigned int cfg_stat;
@@ -78,7 +78,7 @@ struct gr_rasta_adcdac_ver {
 /* Private data structure for driver */
 struct gr_rasta_adcdac_priv {
 	/* Driver management */
-	struct rtems_drvmgr_dev_info	*dev;
+	struct drvmgr_dev	*dev;
 	char				prefix[20];
 
 	/* PCI */
@@ -93,7 +93,7 @@ struct gr_rasta_adcdac_priv {
 	struct gr_rasta_adcdac_ver	*version;
 	LEON3_IrqCtrl_Regs_Map		*irq;
 	struct grpci_regs		*grpci;
-	struct rtems_drvmgr_mmap_entry	bus_maps[4];
+	struct drvmgr_mmap_entry	bus_maps[4];
 
 	/* AMBA Plug&Play information on GR-RASTA-ADCDAC */
 	struct ambapp_bus		abus;
@@ -107,28 +107,28 @@ struct gr_rasta_adcdac_ver gr_rasta_adcdac_ver0 = {
 };
 
 int ambapp_rasta_adcdac_int_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
 	const char *info,
-	rtems_drvmgr_isr handler,
+	drvmgr_isr handler,
 	void *arg);
 int ambapp_rasta_adcdac_int_unregister(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg);
 int ambapp_rasta_adcdac_int_unmask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq);
 int ambapp_rasta_adcdac_int_mask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq);
 int ambapp_rasta_adcdac_int_clear(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq);
 int ambapp_rasta_adcdac_get_params(
-	struct rtems_drvmgr_dev_info *dev,
-	struct rtems_drvmgr_bus_params *params);
+	struct drvmgr_dev *dev,
+	struct drvmgr_bus_params *params);
 
 struct ambapp_ops ambapp_rasta_adcdac_ops = {
 	.int_register = ambapp_rasta_adcdac_int_register,
@@ -139,7 +139,7 @@ struct ambapp_ops ambapp_rasta_adcdac_ops = {
 	.get_params = ambapp_rasta_adcdac_get_params
 };
 
-struct rtems_drvmgr_drv_ops gr_rasta_adcdac_ops = 
+struct drvmgr_drv_ops gr_rasta_adcdac_ops = 
 {	.init = {gr_rasta_adcdac_init1, gr_rasta_adcdac_init2, NULL, NULL},
 	.remove = NULL,
 	.info = NULL
@@ -176,7 +176,7 @@ struct pci_drv_info gr_rasta_adcdac_info =
  *
  * The array must end with a NULL pointer.
  */
-struct rtems_drvmgr_bus_res *gr_rasta_adcdac_resources[] __attribute__((weak)) =
+struct drvmgr_bus_res *gr_rasta_adcdac_resources[] __attribute__((weak)) =
 {
 	NULL
 };
@@ -185,7 +185,7 @@ int gr_rasta_adcdac_resources_cnt = 0;
 void gr_rasta_adcdac_register_drv(void)
 {
 	DBG("Registering GR-RASTA-ADCDAC PCI driver\n");
-	rtems_drvmgr_drv_register(&gr_rasta_adcdac_info.general);
+	drvmgr_drv_register(&gr_rasta_adcdac_info.general);
 }
 
 void gr_rasta_adcdac_isr (void *arg)
@@ -209,7 +209,7 @@ void gr_rasta_adcdac_isr (void *arg)
 
 	/* ACK interrupt, this is because PCI is Level, so the IRQ Controller still drives the IRQ. */
 	if ( tmp )
-		rtems_drvmgr_interrupt_clear(priv->dev, 0);
+		drvmgr_interrupt_clear(priv->dev, 0);
 
 	DBG("RASTA-ADCDAC-IRQ: 0x%x\n", tmp);
 }
@@ -352,13 +352,13 @@ int gr_rasta_adcdac_hw_init2(struct gr_rasta_adcdac_priv *priv)
 /* Called when a PCI target is found with the PCI device and vendor ID 
  * given in gr_rasta_adcdac_ids[].
  */
-int gr_rasta_adcdac_init1(struct rtems_drvmgr_dev_info *dev)
+int gr_rasta_adcdac_init1(struct drvmgr_dev *dev)
 {
 	struct gr_rasta_adcdac_priv *priv;
 	struct pci_dev_info *devinfo;
 	int status;
 	uint32_t bar0, bar1, bar0_size, bar1_size;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 
 	priv = malloc(sizeof(struct gr_rasta_adcdac_priv));
 	if ( !priv )
@@ -408,7 +408,7 @@ int gr_rasta_adcdac_init1(struct rtems_drvmgr_dev_info *dev)
 	 * goes out on the PCI bus.
 	 * Only the 4 MSB bits have an effect;
 	 */
-	value = rtems_drvmgr_dev_key_get(priv->dev, "ahbmst2pci", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "ahbmst2pci", KEY_TYPE_INT);
 	if (value)
 		priv->ahbmst2pci_map = value->i;
 	else
@@ -443,12 +443,12 @@ int gr_rasta_adcdac_init1(struct rtems_drvmgr_dev_info *dev)
 	return ambapp_bus_register(dev, &priv->config);
 }
 
-int gr_rasta_adcdac_init2(struct rtems_drvmgr_dev_info *dev)
+int gr_rasta_adcdac_init2(struct drvmgr_dev *dev)
 {
 	struct gr_rasta_adcdac_priv *priv = dev->priv;
 
 	/* Clear any old interrupt requests */
-	rtems_drvmgr_interrupt_clear(dev, 0);
+	drvmgr_interrupt_clear(dev, 0);
 
 	/* Enable System IRQ so that GR-RASTA-ADCDAC PCI target interrupt 
 	 * goes through.
@@ -459,7 +459,7 @@ int gr_rasta_adcdac_init2(struct rtems_drvmgr_dev_info *dev)
 	 * be shared and PCI board 2 have not initialized and might
 	 * therefore drive interrupt already when entering init1().
 	 */
-	rtems_drvmgr_interrupt_register(
+	drvmgr_interrupt_register(
 		dev,
 		0,
 		"gr_rasta_adcdac",
@@ -470,10 +470,10 @@ int gr_rasta_adcdac_init2(struct rtems_drvmgr_dev_info *dev)
 }
 
 int ambapp_rasta_adcdac_int_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
 	const char *info,
-	rtems_drvmgr_isr handler,
+	drvmgr_isr handler,
 	void *arg)
 {
 	struct gr_rasta_adcdac_priv *priv = dev->parent->dev->priv;
@@ -507,9 +507,9 @@ int ambapp_rasta_adcdac_int_register(
 }
 
 int ambapp_rasta_adcdac_int_unregister(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg)
 {
 	struct gr_rasta_adcdac_priv *priv = dev->parent->dev->priv;
@@ -534,7 +534,7 @@ int ambapp_rasta_adcdac_int_unregister(
 }
 
 int ambapp_rasta_adcdac_int_unmask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq)
 {
 	struct gr_rasta_adcdac_priv *priv = dev->parent->dev->priv;
@@ -556,7 +556,7 @@ int ambapp_rasta_adcdac_int_unmask(
 }
 
 int ambapp_rasta_adcdac_int_mask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq)
 {
 	struct gr_rasta_adcdac_priv *priv = dev->parent->dev->priv;
@@ -578,7 +578,7 @@ int ambapp_rasta_adcdac_int_mask(
 }
 
 int ambapp_rasta_adcdac_int_clear(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq)
 {
 	struct gr_rasta_adcdac_priv *priv = dev->parent->dev->priv;
@@ -591,7 +591,7 @@ int ambapp_rasta_adcdac_int_clear(
 	return DRVMGR_OK;
 }
 
-int ambapp_rasta_adcdac_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params)
+int ambapp_rasta_adcdac_get_params(struct drvmgr_dev *dev, struct drvmgr_bus_params *params)
 {
 	struct gr_rasta_adcdac_priv *priv = dev->parent->dev->priv;
 
@@ -601,7 +601,7 @@ int ambapp_rasta_adcdac_get_params(struct rtems_drvmgr_dev_info *dev, struct rte
 	return 0;
 }
 
-void gr_rasta_adcdac_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
+void gr_rasta_adcdac_print_dev(struct drvmgr_dev *dev, int options)
 {
 	struct gr_rasta_adcdac_priv *priv = dev->priv;
 	struct pci_dev_info *devinfo = priv->devinfo;
@@ -644,7 +644,7 @@ void gr_rasta_adcdac_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 void gr_rasta_adcdac_print(int options)
 {
 	struct pci_drv_info *drv = &gr_rasta_adcdac_info;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	dev = drv->general.dev;
 	while(dev) {

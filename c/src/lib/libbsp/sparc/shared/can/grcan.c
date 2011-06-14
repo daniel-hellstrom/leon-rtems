@@ -110,7 +110,7 @@ struct grcan_config {
 };
 
 struct grcan_priv {
-	struct rtems_drvmgr_dev_info *dev;	/* Driver manager device */
+	struct drvmgr_dev *dev;	/* Driver manager device */
 	char devName[32];	/* Device Name */
 	unsigned int baseaddr, ram_base;
 	struct grcan_regs *regs;
@@ -228,10 +228,10 @@ static rtems_device_major_number grcan_driver_io_major = 0;
 int grcan_register_io(rtems_device_major_number *m);
 int grcan_device_init(struct grcan_priv *pDev);
 
-int grcan_init2(struct rtems_drvmgr_dev_info *dev);
-int grcan_init3(struct rtems_drvmgr_dev_info *dev);
+int grcan_init2(struct drvmgr_dev *dev);
+int grcan_init3(struct drvmgr_dev *dev);
 
-struct rtems_drvmgr_drv_ops grcan_ops = 
+struct drvmgr_drv_ops grcan_ops = 
 {
 	.init = {NULL, grcan_init2, grcan_init3, NULL},
 	.remove = NULL,
@@ -263,10 +263,10 @@ struct amba_drv_info grcan_drv_info =
 void grcan_register_drv (void)
 {
 	DBG("Registering GRCAN driver\n");
-	rtems_drvmgr_drv_register(&grcan_drv_info.general);
+	drvmgr_drv_register(&grcan_drv_info.general);
 }
 
-int grcan_init2(struct rtems_drvmgr_dev_info *dev)
+int grcan_init2(struct drvmgr_dev *dev)
 {
 	struct grcan_priv *priv;
 
@@ -282,7 +282,7 @@ int grcan_init2(struct rtems_drvmgr_dev_info *dev)
 	return DRVMGR_OK;
 }
 
-int grcan_init3(struct rtems_drvmgr_dev_info *dev)
+int grcan_init3(struct drvmgr_dev *dev)
 {
 	struct grcan_priv *priv;
 	char prefix[16];
@@ -313,7 +313,7 @@ int grcan_init3(struct rtems_drvmgr_dev_info *dev)
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Failed to get prefix, make sure of a unique FS name
 		 * by using the driver minor.
 		 */
@@ -377,7 +377,7 @@ int grcan_device_init(struct grcan_priv *pDev)
 	pDev->minor = pDev->dev->minor_drv;
 
 	/* Get frequency in Hz */
-	if ( rtems_drvmgr_freq_get(pDev->dev, DEV_APB_SLV, &pDev->corefreq_hz) ) {
+	if ( drvmgr_freq_get(pDev->dev, DEV_APB_SLV, &pDev->corefreq_hz) ) {
 		return -1;
 	}
 
@@ -454,12 +454,12 @@ static rtems_device_driver grcan_start(struct grcan_priv *pDev)
   }
 
   /* Setup receiver */
-  rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->rx, (void **)&pDev->regs->rx0addr);
+  drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->rx, (void **)&pDev->regs->rx0addr);
   /*pDev->regs->rx0addr = MEMAREA_TO_HW((unsigned int)pDev->rx);*/
   pDev->regs->rx0size = pDev->rxbuf_size;
 
   /* Setup Transmitter */
-  rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->tx, (void **)&pDev->regs->tx0addr);
+  drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->tx, (void **)&pDev->regs->tx0addr);
   /*pDev->regs->tx0addr = MEMAREA_TO_HW((unsigned int)pDev->tx);*/
   pDev->regs->tx0size = pDev->txbuf_size;
 
@@ -1170,12 +1170,12 @@ static rtems_device_driver grcan_open(rtems_device_major_number major, rtems_dev
 {
 	struct grcan_priv *pDev;
 	rtems_device_driver ret;
-	struct rtems_drvmgr_dev_info *dev;
-	union rtems_drvmgr_key_value *value;
+	struct drvmgr_dev *dev;
+	union drvmgr_key_value *value;
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&grcan_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grcan_drv_info.general, minor, &dev) ) {
 		DBG("Wrong minor %d\n", minor);
 		return RTEMS_INVALID_NAME;
 	}
@@ -1214,19 +1214,19 @@ static rtems_device_driver grcan_open(rtems_device_major_number major, rtems_dev
 	pDev->rxbuf_size = RX_BUF_SIZE;
 
 	/* Override default buffer sizes if available from bus resource */
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "txBufSize", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(pDev->dev, "txBufSize", KEY_TYPE_INT);
 	if ( value )
 		pDev->txbuf_size = value->i;
 
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "rxBufSize", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(pDev->dev, "rxBufSize", KEY_TYPE_INT);
 	if ( value )
 		pDev->rxbuf_size = value->i;
 
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "txBufAdr", KEY_TYPE_POINTER);
+	value = drvmgr_dev_key_get(pDev->dev, "txBufAdr", KEY_TYPE_POINTER);
 	if ( value )
 		pDev->txbuf_adr = value->ptr;
 
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "rxBufAdr", KEY_TYPE_POINTER);
+	value = drvmgr_dev_key_get(pDev->dev, "rxBufAdr", KEY_TYPE_POINTER);
 	if ( value )
 		pDev->rxbuf_adr = value->ptr;
 
@@ -1260,11 +1260,11 @@ out:
 static rtems_device_driver grcan_close(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	struct grcan_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&grcan_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grcan_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NAME;
 	}
 	pDev = (struct grcan_priv *)dev->priv;
@@ -1285,7 +1285,7 @@ static rtems_device_driver grcan_close(rtems_device_major_number major, rtems_de
 static rtems_device_driver grcan_read(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	struct grcan_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	rtems_libio_rw_args_t *rw_args;  
 	CANMsg *dest;
 	unsigned int count, left;
@@ -1293,7 +1293,7 @@ static rtems_device_driver grcan_read(rtems_device_major_number major, rtems_dev
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&grcan_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grcan_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NAME;
 	}
 	pDev = (struct grcan_priv *)dev->priv;
@@ -1367,7 +1367,7 @@ static rtems_device_driver grcan_read(rtems_device_major_number major, rtems_dev
 static rtems_device_driver grcan_write(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	struct grcan_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	rtems_libio_rw_args_t *rw_args;
 	CANMsg *source;
 	unsigned int count, left;
@@ -1375,7 +1375,7 @@ static rtems_device_driver grcan_write(rtems_device_major_number major, rtems_de
 
 	DBGC(DBG_TX,"\n");
 
-	if ( rtems_drvmgr_get_dev(&grcan_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grcan_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NAME;
 	}
 	pDev = (struct grcan_priv *)dev->priv;
@@ -1463,7 +1463,7 @@ static rtems_device_driver grcan_write(rtems_device_major_number major, rtems_de
 static rtems_device_driver grcan_ioctl(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	struct grcan_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	rtems_libio_ioctl_args_t *ioarg = (rtems_libio_ioctl_args_t *)arg;
 	unsigned int *data = ioarg->buffer;
 	struct grcan_timing timing;
@@ -1477,7 +1477,7 @@ static rtems_device_driver grcan_ioctl(rtems_device_major_number major, rtems_de
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&grcan_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grcan_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NAME;
 	}
 	pDev = (struct grcan_priv *)dev->priv;
@@ -1498,7 +1498,7 @@ static rtems_device_driver grcan_ioctl(rtems_device_major_number major, rtems_de
 		pDev->started = 1;
 
 		/* Register interrupt routine and enable IRQ at IRQ ctrl */
-		rtems_drvmgr_interrupt_register(dev, 0, "grcan", grcan_interrupt, pDev);
+		drvmgr_interrupt_register(dev, 0, "grcan", grcan_interrupt, pDev);
 
 		break;
 
@@ -1507,7 +1507,7 @@ static rtems_device_driver grcan_ioctl(rtems_device_major_number major, rtems_de
 			return RTEMS_RESOURCE_IN_USE;
 
 		/* Disable interrupts */
-		rtems_drvmgr_interrupt_unregister(dev, 0, grcan_interrupt, pDev);
+		drvmgr_interrupt_unregister(dev, 0, grcan_interrupt, pDev);
 
 		grcan_stop(pDev);
 		pDev->started = 0;

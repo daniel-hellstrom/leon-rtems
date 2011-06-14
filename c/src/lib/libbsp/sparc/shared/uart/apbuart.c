@@ -53,7 +53,7 @@ typedef struct {
 } apbuart_fifo;
 
 struct apbuart_priv {
-	struct rtems_drvmgr_dev_info	*dev;
+	struct drvmgr_dev	*dev;
 	ambapp_apb_uart		*regs;
 	int			irq;
 	int			minor;
@@ -89,10 +89,10 @@ struct apbuart_priv {
 int apbuart_register_io(rtems_device_major_number *m);
 int apbuart_device_init(struct apbuart_priv *priv);
 
-int apbuart_init2(struct rtems_drvmgr_dev_info *dev);
-int apbuart_init3(struct rtems_drvmgr_dev_info *dev);
+int apbuart_init2(struct drvmgr_dev *dev);
+int apbuart_init3(struct drvmgr_dev *dev);
 
-struct rtems_drvmgr_drv_ops apbuart_ops = 
+struct drvmgr_drv_ops apbuart_ops = 
 {
 	.init = {NULL, apbuart_init2, apbuart_init3, NULL},
 	.remove = NULL,
@@ -126,10 +126,10 @@ static rtems_device_major_number apbuart_driver_io_major = 0;
 void apbuart_register_drv (void)
 {
 	DBG("Registering APBUART driver\n");
-	rtems_drvmgr_drv_register(&apbuart_drv_info.general);
+	drvmgr_drv_register(&apbuart_drv_info.general);
 }
 
-int apbuart_init2(struct rtems_drvmgr_dev_info *dev)
+int apbuart_init2(struct drvmgr_dev *dev)
 {
 	struct apbuart_priv *priv;
 
@@ -153,7 +153,7 @@ int apbuart_init2(struct rtems_drvmgr_dev_info *dev)
 	return DRVMGR_OK;
 }
 
-int apbuart_init3(struct rtems_drvmgr_dev_info *dev)
+int apbuart_init3(struct drvmgr_dev *dev)
 {
 	struct apbuart_priv *priv;
 	char prefix[16];
@@ -180,7 +180,7 @@ int apbuart_init3(struct rtems_drvmgr_dev_info *dev)
 	 */
 
 	/* Get frequency */
-	if ( rtems_drvmgr_freq_get(dev, DEV_APB_SLV, &priv->freq_hz) ) {
+	if ( drvmgr_freq_get(dev, DEV_APB_SLV, &priv->freq_hz) ) {
 		return DRVMGR_FAIL;
 	}
 
@@ -190,7 +190,7 @@ int apbuart_init3(struct rtems_drvmgr_dev_info *dev)
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Failed to get prefix, make sure of a unique FS name
 		 * by using the driver minor.
 		 */
@@ -299,7 +299,7 @@ int apbuart_device_init(struct apbuart_priv *priv)
 	struct ambapp_core *pnpinfo;
 	int minor = priv->dev->minor_drv;
 	int rxFifoLen, txFifoLen;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 
 	/* Get device information from AMBA PnP information */
 	ambadev = (struct amba_dev_info *)priv->dev->businfo;
@@ -318,11 +318,11 @@ int apbuart_device_init(struct apbuart_priv *priv)
 	rxFifoLen = DEFAULT_RXBUF_SIZE;
 	txFifoLen = DEFAULT_TXBUF_SIZE;
 
-	value = rtems_drvmgr_dev_key_get(priv->dev, "rxFifoLen", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "rxFifoLen", KEY_TYPE_INT);
 	if ( value )
 		rxFifoLen = value->i;
 
-	value = rtems_drvmgr_dev_key_get(priv->dev, "txFifoLen", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "txFifoLen", KEY_TYPE_INT);
 	if ( value )
 		txFifoLen = value->i;
 
@@ -397,9 +397,9 @@ static rtems_device_driver apbuart_initialize(rtems_device_major_number  major, 
 static rtems_device_driver apbuart_open(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {  
 	struct apbuart_priv *uart;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
-	if ( rtems_drvmgr_get_dev(&apbuart_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&apbuart_drv_info.general, minor, &dev) ) {
 		DBG("Wrong minor %d\n", minor);
 		return RTEMS_INVALID_NAME;
 	}
@@ -458,9 +458,9 @@ static rtems_device_driver apbuart_open(rtems_device_major_number major, rtems_d
 static rtems_device_driver apbuart_close(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	struct apbuart_priv *uart;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
-	if ( rtems_drvmgr_get_dev(&apbuart_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&apbuart_drv_info.general, minor, &dev) ) {
 		DBG("Wrong minor %d\n", minor);
 		return RTEMS_INVALID_NAME;
 	}
@@ -486,9 +486,9 @@ static rtems_device_driver apbuart_read(rtems_device_major_number major, rtems_d
 	unsigned int count = 0, oldLevel;
 	unsigned char *buf;
 	struct apbuart_priv *uart;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
-	if ( rtems_drvmgr_get_dev(&apbuart_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&apbuart_drv_info.general, minor, &dev) ) {
 		DBG("Wrong minor %d\n", minor);
 		return RTEMS_INVALID_NAME;
 	}
@@ -544,9 +544,9 @@ static rtems_device_driver apbuart_write(rtems_device_major_number major, rtems_
 	char *buf;
 	int direct=0;
 	struct apbuart_priv *uart;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
-	if ( rtems_drvmgr_get_dev(&apbuart_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&apbuart_drv_info.general, minor, &dev) ) {
 		DBG("Wrong minor %d\n", minor);
 		return RTEMS_INVALID_NAME;
 	}
@@ -654,9 +654,9 @@ static rtems_device_driver apbuart_control(rtems_device_major_number major, rtem
 	unsigned int baudrate, blocking;
 	apbuart_stats *stats;
 	struct apbuart_priv *uart;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
-	if ( rtems_drvmgr_get_dev(&apbuart_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&apbuart_drv_info.general, minor, &dev) ) {
 		DBG("Wrong minor %d\n", minor);
 		return RTEMS_INVALID_NAME;
 	}
@@ -677,7 +677,7 @@ static rtems_device_driver apbuart_control(rtems_device_major_number major, rtem
 		apbuart_hw_open(uart);
 		uart->started = 1;
 		/* Setup interrupt handler & Enable IRQ */
-		rtems_drvmgr_interrupt_register(dev, 0, "apbuart",
+		drvmgr_interrupt_register(dev, 0, "apbuart",
 						apbuart_interrupt, uart);
 		break;
 
@@ -685,7 +685,7 @@ static rtems_device_driver apbuart_control(rtems_device_major_number major, rtem
 	case APBUART_STOP:
 		if ( !uart->started )
 			return RTEMS_INVALID_NAME;
-		rtems_drvmgr_interrupt_unregister(dev, 0, apbuart_interrupt, uart);
+		drvmgr_interrupt_unregister(dev, 0, apbuart_interrupt, uart);
 		apbuart_hw_close(uart);
 		uart->started = 0;
 		break;

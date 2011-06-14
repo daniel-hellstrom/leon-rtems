@@ -35,7 +35,7 @@
 #define ALLOC_BM 0x4
 
 struct gr1553_device {
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	int features;
 	int alloc;
 };
@@ -103,7 +103,7 @@ struct gr1553_device_feature *gr1553_list_find
 	return NULL;
 }
 
-struct rtems_drvmgr_dev_info **gr1553_bc_open(int minor)
+struct drvmgr_dev **gr1553_bc_open(int minor)
 {
 	struct gr1553_device_feature *feat;
 	
@@ -124,14 +124,14 @@ struct rtems_drvmgr_dev_info **gr1553_bc_open(int minor)
 	return &feat->dev->dev;
 }
 
-void gr1553_bc_close(struct rtems_drvmgr_dev_info **dev)
+void gr1553_bc_close(struct drvmgr_dev **dev)
 {
 	struct gr1553_device *d = (struct gr1553_device *)dev;
 
 	d->alloc &= ~ALLOC_BC;
 }
 
-struct rtems_drvmgr_dev_info **gr1553_rt_open(int minor)
+struct drvmgr_dev **gr1553_rt_open(int minor)
 {
 	struct gr1553_device_feature *feat;
 
@@ -152,14 +152,14 @@ struct rtems_drvmgr_dev_info **gr1553_rt_open(int minor)
 	return &feat->dev->dev;
 }
 
-void gr1553_rt_close(struct rtems_drvmgr_dev_info **dev)
+void gr1553_rt_close(struct drvmgr_dev **dev)
 {
 	struct gr1553_device *d = (struct gr1553_device *)dev;
 
 	d->alloc &= ~ALLOC_RT;
 }
 
-struct rtems_drvmgr_dev_info **gr1553_bm_open(int minor)
+struct drvmgr_dev **gr1553_bm_open(int minor)
 {
 	struct gr1553_device_feature *feat;
 	
@@ -180,14 +180,14 @@ struct rtems_drvmgr_dev_info **gr1553_bm_open(int minor)
 	return &feat->dev->dev;
 }
 
-void gr1553_bm_close(struct rtems_drvmgr_dev_info **dev)
+void gr1553_bm_close(struct drvmgr_dev **dev)
 {
 	struct gr1553_device *d = (struct gr1553_device *)dev;
 
 	d->alloc &= ~ALLOC_BM;
 }
 
-int gr1553_init2(struct rtems_drvmgr_dev_info *dev)
+int gr1553_init2(struct drvmgr_dev *dev)
 {
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
@@ -217,7 +217,7 @@ int gr1553_init2(struct rtems_drvmgr_dev_info *dev)
 /* Register the different functionalities that the
  * core supports.
  */
-int gr1553_init3(struct rtems_drvmgr_dev_info *dev)
+int gr1553_init3(struct drvmgr_dev *dev)
 {
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
@@ -268,7 +268,7 @@ int gr1553_init3(struct rtems_drvmgr_dev_info *dev)
 	return DRVMGR_OK;
 }
 
-struct rtems_drvmgr_drv_ops gr1553_ops =
+struct drvmgr_drv_ops gr1553_ops =
 {
 	{NULL, gr1553_init2, gr1553_init3, NULL},
 	NULL,
@@ -306,6 +306,6 @@ void gr1553_register(void)
 {
 	if ( gr1553_driver_registerd == 0 ) {
 		gr1553_driver_registerd = 1;
-	        rtems_drvmgr_drv_register(&gr1553_drv_info.general);
+	        drvmgr_drv_register(&gr1553_drv_info.general);
 	}
 }

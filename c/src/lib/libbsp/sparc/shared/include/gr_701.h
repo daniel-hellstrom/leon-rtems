@@ -31,7 +31,7 @@ extern "C" {
  * The gr_rasta_io_resources is declared weak so that the user can override the
  * default configuration.
  */
-extern struct rtems_drvmgr_bus_res *gr701_resources[];
+extern struct drvmgr_bus_res *gr701_resources[];
 
 #define GR701_OPTIONS_AMBA   0x01
 #define GR701_OPTIONS_IRQ    0x02

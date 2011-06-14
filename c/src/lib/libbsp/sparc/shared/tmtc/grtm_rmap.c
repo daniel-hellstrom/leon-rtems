@@ -46,13 +46,13 @@
 
 /**** START: RMAP STUFF ****/
 #define DESCRIPTOR_MAX 128
-#define WRITE_REG(pDev, adr, value) rtems_drvmgr_write_io32(pDev->dev->parent->dev, (uint32_t *)adr, (uint32_t)value)
-#define READ_REG_(pDev, adr, dstadr) rtems_drvmgr_read_io32(pDev->dev->parent->dev, (uint32_t *)adr, dstadr)
+#define WRITE_REG(pDev, adr, value) drvmgr_write_io32(pDev->dev->parent->dev, (uint32_t *)adr, (uint32_t)value)
+#define READ_REG_(pDev, adr, dstadr) drvmgr_read_io32(pDev->dev->parent->dev, (uint32_t *)adr, dstadr)
 #define READ_REG(pDev, adr) grtm_rmap_read_reg(pDev, (uint32_t *)adr)
-#define TRANSFER_FRM(pDev, dstadr, srcadr, length) rtems_drvmgr_write_mem(pDev->dev->parent->dev, dstadr, srcadr, length)
+#define TRANSFER_FRM(pDev, dstadr, srcadr, length) drvmgr_write_mem(pDev->dev->parent->dev, dstadr, srcadr, length)
 
 /* This call will take 128 bytes of buffer at stack */
-#define MEMSET(pDev, adr, c, length) rtems_drvmgr_write_memset(pDev->dev->parent->dev, adr, c, length)
+#define MEMSET(pDev, adr, c, length) drvmgr_write_memset(pDev->dev->parent->dev, adr, c, length)
 
 /**** END: RMAP STUFF ****/
 
@@ -388,7 +388,7 @@ struct grtm_ring {
 };
 
 struct grtm_priv {
-	struct rtems_drvmgr_dev_info	*dev;		/* Driver manager device */
+	struct drvmgr_dev	*dev;		/* Driver manager device */
 	char			devName[32];	/* Device Name */
 	struct grtm_regs	*regs;
 	int			irq;
@@ -449,10 +449,10 @@ static rtems_device_major_number grtm_driver_io_major = 0;
 static int grtm_register_io(rtems_device_major_number *m);
 static int grtm_device_init(struct grtm_priv *pDev);
 
-static int grtm_init2(struct rtems_drvmgr_dev_info *dev);
-static int grtm_init3(struct rtems_drvmgr_dev_info *dev);
+static int grtm_init2(struct drvmgr_dev *dev);
+static int grtm_init3(struct drvmgr_dev *dev);
 
-static struct rtems_drvmgr_drv_ops grtm_ops = 
+static struct drvmgr_drv_ops grtm_ops = 
 {
 	{NULL, grtm_init2, grtm_init3, NULL},
 	NULL,
@@ -483,17 +483,17 @@ static struct amba_drv_info grtm_rmap_drv_info =
 void grtm_rmap_register_drv (void)
 {
 	DBG("Registering RMAP-GRTM driver\n");
-	rtems_drvmgr_drv_register(&grtm_rmap_drv_info.general);
+	drvmgr_drv_register(&grtm_rmap_drv_info.general);
 }
 
 static uint32_t grtm_rmap_read_reg(struct grtm_priv *priv, uint32_t *adr)
 {
 	uint32_t result = 0;
-	rtems_drvmgr_read_io32(priv->dev->parent->dev, adr, &result);
+	drvmgr_read_io32(priv->dev->parent->dev, adr, &result);
 	return result;
 }
 
-static int grtm_init2(struct rtems_drvmgr_dev_info *dev)
+static int grtm_init2(struct drvmgr_dev *dev)
 {
 	struct grtm_priv *priv;
 
@@ -509,7 +509,7 @@ static int grtm_init2(struct rtems_drvmgr_dev_info *dev)
 	return DRVMGR_OK;
 }
 
-static int grtm_init3(struct rtems_drvmgr_dev_info *dev)
+static int grtm_init3(struct drvmgr_dev *dev)
 {
 	struct grtm_priv *priv;
 	char prefix[16];
@@ -539,7 +539,7 @@ static int grtm_init3(struct rtems_drvmgr_dev_info *dev)
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Failed to get prefix, make sure of a unique FS name
 		 * by using the driver minor.
 		 */
@@ -591,7 +591,7 @@ static int grtm_device_init(struct grtm_priv *pDev)
 {
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 
 	/* Get device information from AMBA PnP information */
 	ambadev = (struct amba_dev_info *)pDev->dev->businfo;
@@ -627,17 +627,17 @@ static int grtm_device_init(struct grtm_priv *pDev)
 
 	/* Override default 2k MAX FRAME length if available from bus resource */
 	pDev->frame_length_max = 2*1024;
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "maxFrameLength", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(pDev->dev, "maxFrameLength", KEY_TYPE_INT);
 	if ( value )
 		pDev->frame_length_max = value->i;
 
 	/* Default to allocate from partition 0 */
 	pDev->alloc_part_bd = 0;
 	pDev->alloc_part_frm = 0;
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "bdAllocPartition", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(pDev->dev, "bdAllocPartition", KEY_TYPE_INT);
 	if ( value )
 		pDev->alloc_part_bd = value->i;
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "frameAllocPartition", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(pDev->dev, "frameAllocPartition", KEY_TYPE_INT);
 	if ( value )
 		pDev->alloc_part_frm = value->i;
 
@@ -880,7 +880,7 @@ static int grtm_start(struct grtm_priv *pDev)
 
 	/* Set Descriptor Pointer Base register to point to first descriptor */
 	WRITE_REG(pDev, &regs->dma_bd, pDev->bds);
-	/*rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->bds, (void **)&regs->dma_bd);*/
+	/*drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->bds, (void **)&regs->dma_bd);*/
 	/*regs->dma_bd = (unsigned int)pDev->bds;*/
 
 	/* Set hardware options as defined by config */
@@ -956,11 +956,11 @@ static rtems_device_driver grtm_open(
 	void *arg)
 {
 	struct grtm_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&grtm_rmap_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grtm_rmap_drv_info.general, minor, &dev) ) {
 		DBG("Wrong minor %d\n", minor);
 		return RTEMS_INVALID_NUMBER;
 	}
@@ -1006,11 +1006,11 @@ static rtems_device_driver grtm_open(
 static rtems_device_driver grtm_close(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	struct grtm_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&grtm_rmap_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grtm_rmap_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NUMBER;
 	}
 	pDev = (struct grtm_priv *)dev->priv;
@@ -1187,7 +1187,7 @@ static int grtm_schedule_ready(struct grtm_priv *pDev, int ints_off)
 		 */
 		if ( curr_frm->flags & (GRTM_FLAGS_TRANSLATE|GRTM_FLAGS_TRANSLATE_AND_REMEMBER) ) {
 			/* Do translation */
-			rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)curr_frm->payload, (void **)&curr_bd->bd->address);
+			drvmgr_mmap_translate(pDev->dev, 0, (void *)curr_frm->payload, (void **)&curr_bd->bd->address);
 			if ( curr_frm->flags & GRTM_FLAGS_TRANSLATE_AND_REMEMBER ) {
 				if ( curr_frm->payload != curr_bd->bd->address ) {
 					/* Translation needed */
@@ -1281,7 +1281,7 @@ static int grtm_schedule_ready(struct grtm_priv *pDev, int ints_off)
 static rtems_device_driver grtm_ioctl(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	struct grtm_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	rtems_libio_ioctl_args_t *ioarg = (rtems_libio_ioctl_args_t *)arg;
 	unsigned int *data = ioarg->buffer;
 	int status;
@@ -1296,7 +1296,7 @@ static rtems_device_driver grtm_ioctl(rtems_device_major_number major, rtems_dev
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&grtm_rmap_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grtm_rmap_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NUMBER;
 	}
 	pDev = (struct grtm_priv *)dev->priv;
@@ -1314,7 +1314,7 @@ static rtems_device_driver grtm_ioctl(rtems_device_major_number major, rtems_dev
 			return status;
 		}
 		/* Register ISR & Enable interrupt */
-		rtems_drvmgr_interrupt_register(dev, 0, "grtm_rmap", grtm_interrupt, pDev);
+		drvmgr_interrupt_register(dev, 0, "grtm_rmap", grtm_interrupt, pDev);
 
 		/* Read and write are now open... */
 		break;
@@ -1325,7 +1325,7 @@ static rtems_device_driver grtm_ioctl(rtems_device_major_number major, rtems_dev
 		}
 
 		/* Disable interrupts */
-		rtems_drvmgr_interrupt_unregister(dev, 0, grtm_interrupt, pDev);
+		drvmgr_interrupt_unregister(dev, 0, grtm_interrupt, pDev);
 		grtm_stop(pDev);
 		pDev->running = 0;
 		break;

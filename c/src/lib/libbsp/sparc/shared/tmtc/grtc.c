@@ -243,7 +243,7 @@ struct grtc_frame_pool {
 };
 
 struct grtc_priv {
-	struct rtems_drvmgr_dev_info		*dev;		/* Driver manager device */
+	struct drvmgr_dev		*dev;		/* Driver manager device */
 	char			devName[32];	/* Device Name */
 	struct grtc_regs	*regs;		/* TC Hardware Register MAP */
 	int			irq;		/* IRQ number of TC core */
@@ -313,10 +313,10 @@ static rtems_device_major_number grtc_driver_io_major = 0;
 static int grtc_register_io(rtems_device_major_number *m);
 static int grtc_device_init(struct grtc_priv *pDev);
 
-static int grtc_init2(struct rtems_drvmgr_dev_info *dev);
-static int grtc_init3(struct rtems_drvmgr_dev_info *dev);
+static int grtc_init2(struct drvmgr_dev *dev);
+static int grtc_init3(struct drvmgr_dev *dev);
 
-static struct rtems_drvmgr_drv_ops grtc_ops = 
+static struct drvmgr_drv_ops grtc_ops = 
 {
 	{NULL, grtc_init2, grtc_init3, NULL},
 	NULL,
@@ -347,10 +347,10 @@ static struct amba_drv_info grtc_drv_info =
 void grtc_register_drv (void)
 {
 	DBG("Registering GRTC driver\n");
-	rtems_drvmgr_drv_register(&grtc_drv_info.general);
+	drvmgr_drv_register(&grtc_drv_info.general);
 }
 
-static int grtc_init2(struct rtems_drvmgr_dev_info *dev)
+static int grtc_init2(struct drvmgr_dev *dev)
 {
 	struct grtc_priv *priv;
 
@@ -366,7 +366,7 @@ static int grtc_init2(struct rtems_drvmgr_dev_info *dev)
 	return DRVMGR_OK;
 }
 
-static int grtc_init3(struct rtems_drvmgr_dev_info *dev)
+static int grtc_init3(struct drvmgr_dev *dev)
 {
 	struct grtc_priv *priv;
 	char prefix[16];
@@ -396,7 +396,7 @@ static int grtc_init3(struct rtems_drvmgr_dev_info *dev)
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Failed to get prefix, make sure of a unique FS name
 		 * by using the driver minor.
 		 */
@@ -783,11 +783,11 @@ static rtems_device_driver grtc_open(
 	void *arg)
 {
 	struct grtc_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&grtc_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grtc_drv_info.general, minor, &dev) ) {
 		DBG("Wrong minor %d\n", minor);
 		return RTEMS_INVALID_NUMBER;
 	}
@@ -839,11 +839,11 @@ static rtems_device_driver grtc_open(
 static rtems_device_driver grtc_close(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	struct grtc_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev; 
+	struct drvmgr_dev *dev; 
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&grtc_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grtc_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NUMBER;
 	}
 	pDev = (struct grtc_priv *)dev->priv;
@@ -865,7 +865,7 @@ static rtems_device_driver grtc_close(rtems_device_major_number major, rtems_dev
 static rtems_device_driver grtc_read(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	struct grtc_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	int count;
 	int left;
 	int timedout;
@@ -875,7 +875,7 @@ static rtems_device_driver grtc_read(rtems_device_major_number major, rtems_devi
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&grtc_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grtc_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NUMBER;
 	}
 	pDev = (struct grtc_priv *)dev->priv;
@@ -1528,7 +1528,7 @@ static int process_dma(struct grtc_priv *pDev)
 static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	struct grtc_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	rtems_libio_ioctl_args_t *ioarg = (rtems_libio_ioctl_args_t *)arg;
 	unsigned int *data = ioarg->buffer;
 	int status,frm_len,i,ret;
@@ -1547,7 +1547,7 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&grtc_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grtc_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NUMBER;
 	}
 	pDev = (struct grtc_priv *)dev->priv;
@@ -1565,7 +1565,7 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 			return status;
 		}
 		/* Register ISR and Unmask interrupt */
-		rtems_drvmgr_interrupt_register(pDev->dev, 0, "grtc", grtc_interrupt, pDev);
+		drvmgr_interrupt_register(pDev->dev, 0, "grtc", grtc_interrupt, pDev);
 
 		/* Read and write are now open... */
 		break;
@@ -1574,7 +1574,7 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 		if ( !pDev->running ) {
 			return RTEMS_RESOURCE_IN_USE;
 		}
-		rtems_drvmgr_interrupt_unregister(pDev->dev, 0, grtc_interrupt, pDev);
+		drvmgr_interrupt_unregister(pDev->dev, 0, grtc_interrupt, pDev);
 		grtc_stop(pDev);
 		pDev->running = 0;
 		break;
@@ -1635,7 +1635,7 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 					
 					/* Translate the base address into an address that the the CPU can understand */
 					mem = ((unsigned int)buf_arg->custom_buffer & ~1);
-					rtems_drvmgr_mmap_translate(pDev->dev, 1, (void *)mem, (void **)&pDev->buf);
+					drvmgr_mmap_translate(pDev->dev, 1, (void *)mem, (void **)&pDev->buf);
 				} else {
 					pDev->buf = buf_arg->custom_buffer;
 				}
@@ -1653,7 +1653,7 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 			}
 		}
 		/* Translate into a remote address so that GRTC core on a remote AMBA bus (for example over the PCI bus) gets a valid address */
-		rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->buf, (void **)&pDev->buf_remote);
+		drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->buf, (void **)&pDev->buf_remote);
 		break;
 
 		case GRTC_IOC_GET_BUF_PARAM:

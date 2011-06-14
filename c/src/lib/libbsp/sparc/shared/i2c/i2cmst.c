@@ -41,7 +41,7 @@
    data is written. The START is buffered in the sendstart member below */
 typedef struct gr_i2cmst_prv {
   rtems_libi2c_bus_t              i2clib_desc;
-  struct rtems_drvmgr_dev_info    *dev;
+  struct drvmgr_dev    *dev;
   gr_i2cmst_regs_t                *reg_ptr;
   unsigned int                    sysfreq;     /* System clock frequency in kHz */
   int                             minor;
@@ -297,10 +297,10 @@ int i2cmst_device_init(gr_i2cmst_prv_t *priv)
 
 /******************* Driver Manager Part ***********************/
 
-int i2cmst_init2(struct rtems_drvmgr_dev_info *dev);
-int i2cmst_init3(struct rtems_drvmgr_dev_info *dev);
+int i2cmst_init2(struct drvmgr_dev *dev);
+int i2cmst_init3(struct drvmgr_dev *dev);
 
-struct rtems_drvmgr_drv_ops i2cmst_ops = 
+struct drvmgr_drv_ops i2cmst_ops = 
 {
 	.init = {NULL, i2cmst_init2, i2cmst_init3, NULL},
 	.remove = NULL,
@@ -331,11 +331,11 @@ struct amba_drv_info i2cmst_drv_info =
 void i2cmst_register_drv (void)
 {
 	DBG("Registering I2CMST driver\n");
-	rtems_drvmgr_drv_register(&i2cmst_drv_info.general);
+	drvmgr_drv_register(&i2cmst_drv_info.general);
 }
 
 /* The I2CMST Driver is informed about a new hardware device */
-int i2cmst_init2(struct rtems_drvmgr_dev_info *dev)
+int i2cmst_init2(struct drvmgr_dev *dev)
 {
 	gr_i2cmst_prv_t *priv;
 
@@ -353,7 +353,7 @@ int i2cmst_init2(struct rtems_drvmgr_dev_info *dev)
 }
 
 /* Init stage 2 */
-int i2cmst_init3(struct rtems_drvmgr_dev_info *dev)
+int i2cmst_init3(struct drvmgr_dev *dev)
 {
 	gr_i2cmst_prv_t *priv;
 	char prefix[16];
@@ -378,7 +378,7 @@ int i2cmst_init3(struct rtems_drvmgr_dev_info *dev)
 	 */
 
 	/* Get frequency */
-	if ( rtems_drvmgr_freq_get(dev, DEV_APB_SLV, &priv->sysfreq) ) {
+	if ( drvmgr_freq_get(dev, DEV_APB_SLV, &priv->sysfreq) ) {
 		return DRVMGR_FAIL;
 	}
 	priv->sysfreq = priv->sysfreq / 1000; /* Convert to kHz */
@@ -391,7 +391,7 @@ int i2cmst_init3(struct rtems_drvmgr_dev_info *dev)
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Failed to get prefix, make sure of a unique FS name
 		 * by using the driver minor.
 		 */

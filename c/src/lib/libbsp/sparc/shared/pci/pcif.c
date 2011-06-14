@@ -93,7 +93,7 @@ unsigned char pcif_pci_irq_table[4] =
 
 /* Driver private data struture */
 struct pcif_priv {
-	struct rtems_drvmgr_dev_info	*dev;
+	struct drvmgr_dev	*dev;
 	struct pcif_regs		*regs;
 	int				irq;
 	int				minor;
@@ -108,12 +108,12 @@ struct pcif_priv {
 	uint32_t			devVend; /* Host PCI Vendor/Device ID */
 };
 
-int pcif_init1(struct rtems_drvmgr_dev_info *dev);
-int pcif_init3(struct rtems_drvmgr_dev_info *dev);
+int pcif_init1(struct drvmgr_dev *dev);
+int pcif_init3(struct drvmgr_dev *dev);
 
 /* PCIF DRIVER */
 
-struct rtems_drvmgr_drv_ops pcif_ops = 
+struct drvmgr_drv_ops pcif_ops = 
 {
 	.init = {pcif_init1, NULL, pcif_init3, NULL},
 	.remove = NULL,
@@ -145,7 +145,7 @@ struct amba_drv_info pcif_info =
 void pcif_register_drv(void)
 {
 	DBG("Registering PCIF driver\n");
-	rtems_drvmgr_drv_register(&pcif_info.general);
+	drvmgr_drv_register(&pcif_info.general);
 }
 
 int pcif_cfg_r32(pci_dev_t dev, int ofs, uint32_t *val)
@@ -383,7 +383,7 @@ int pcif_init(struct pcif_priv *priv)
 	struct ambapp_apb_info *apb;
 	struct ambapp_ahb_info *ahb;
 	int pin;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 	char keyname[6];
 	struct amba_dev_info *ainfo = priv->dev->businfo;
 
@@ -423,14 +423,14 @@ int pcif_init(struct pcif_priv *priv)
 
 			/* User may override Plug & Play IRQ */
 			keyname[3] = 'A' + (pin-1);
-			value = rtems_drvmgr_dev_key_get(priv->dev, keyname, KEY_TYPE_INT);
+			value = drvmgr_dev_key_get(priv->dev, keyname, KEY_TYPE_INT);
 			if ( value )
 				pcif_pci_irq_table[pin-1] = value->i;
 		}
 	}
 
 	priv->irq_mask = 0xf;
-	value = rtems_drvmgr_dev_key_get(priv->dev, "", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "", KEY_TYPE_INT);
 	if ( value )
 		priv->irq_mask = value->i & 0xf;
 
@@ -451,7 +451,7 @@ int pcif_init(struct pcif_priv *priv)
 /* Called when a core is found with the AMBA device and vendor ID 
  * given in pcif_ids[].
  */
-int pcif_init1(struct rtems_drvmgr_dev_info *dev)
+int pcif_init1(struct drvmgr_dev *dev)
 {
 	struct pcif_priv *priv;
 	struct pci_auto_setup pcif_auto_cfg;
@@ -507,7 +507,7 @@ int pcif_init1(struct rtems_drvmgr_dev_info *dev)
 	return pcibus_register(dev);
 }
 
-int pcif_init3(struct rtems_drvmgr_dev_info *dev)
+int pcif_init3(struct drvmgr_dev *dev)
 {
 	struct pcif_priv *priv = dev->priv;
 

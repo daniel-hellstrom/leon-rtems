@@ -34,7 +34,7 @@
 
 struct gradcdac_priv {
 	struct gradcdac_regs *regs;	/* Must be first */
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	char devName[48];
 
 	unsigned int freq;
@@ -54,13 +54,13 @@ struct gradcdac_priv {
 /* Print Info routines */
 void gradcdac_print(void *cookie);
 
-int gradcdac_init2(struct rtems_drvmgr_dev_info *dev);
-int gradcdac_init3(struct rtems_drvmgr_dev_info *dev);
+int gradcdac_init2(struct drvmgr_dev *dev);
+int gradcdac_init3(struct drvmgr_dev *dev);
 int gradcadc_device_init(struct gradcdac_priv *pDev);
 void gradcdac_adc_interrupt(void *arg);
 void gradcdac_dac_interrupt(void *arg);
 
-struct rtems_drvmgr_drv_ops gradcdac_ops = 
+struct drvmgr_drv_ops gradcdac_ops = 
 {
 	.init = {NULL, gradcdac_init2, gradcdac_init3, NULL},
 	.remove = NULL,
@@ -91,10 +91,10 @@ struct amba_drv_info gradcdac_drv_info =
 void gradcdac_register_drv (void)
 {
 	DBG("Registering GRADCDAC driver\n");
-	rtems_drvmgr_drv_register(&gradcdac_drv_info.general);
+	drvmgr_drv_register(&gradcdac_drv_info.general);
 }
 
-int gradcdac_init2(struct rtems_drvmgr_dev_info *dev)
+int gradcdac_init2(struct drvmgr_dev *dev)
 {
 	struct gradcdac_priv *priv;
 
@@ -112,7 +112,7 @@ int gradcdac_init2(struct rtems_drvmgr_dev_info *dev)
 }
 
 
-int gradcdac_init3(struct rtems_drvmgr_dev_info *dev)
+int gradcdac_init3(struct drvmgr_dev *dev)
 {
 	struct gradcdac_priv *priv = dev->priv;
 	char prefix[32];
@@ -128,7 +128,7 @@ int gradcdac_init3(struct rtems_drvmgr_dev_info *dev)
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Failed to get prefix, make sure of a unique FS name
 		 * by using the driver minor.
 		 */
@@ -159,7 +159,7 @@ void gradcdac_print_dev(struct gradcdac_priv *pDev)
 
 void gradcdac_print(void *cookie)
 {
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	struct gradcdac_priv *pDev;
 
 	if ( cookie ) {
@@ -208,7 +208,7 @@ int gradcadc_device_init(struct gradcdac_priv *pDev)
 	pDev->open = 0;
 	
 	/* Get frequency in Hz */
-	if ( rtems_drvmgr_freq_get(pDev->dev, DEV_APB_SLV, &pDev->freq) ) {
+	if ( drvmgr_freq_get(pDev->dev, DEV_APB_SLV, &pDev->freq) ) {
 		return -1;
 	}
 
@@ -234,7 +234,7 @@ void gradcdac_adc_interrupt(void *arg)
 void *gradcdac_open(char *devname)
 {
 	struct gradcdac_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	/* Find device by name */
 	dev = gradcdac_drv_info.general.dev;
@@ -374,13 +374,13 @@ int gradcdac_install_irq_handler(void *cookie, int adc, void (*isr)(void *cookie
 	if ( adc & GRADCDAC_ISR_ADC ){
 		pDev->isr_adc_arg = arg;
 		pDev->isr_adc = isr;
-		rtems_drvmgr_interrupt_register(pDev->dev, GRADCDAC_IRQ_ADC, "gradcdac_adc", gradcdac_adc_interrupt, pDev);
+		drvmgr_interrupt_register(pDev->dev, GRADCDAC_IRQ_ADC, "gradcdac_adc", gradcdac_adc_interrupt, pDev);
 	}
 
 	if ( adc & GRADCDAC_ISR_DAC ){
 		pDev->isr_dac_arg = arg;
 		pDev->isr_dac = isr;
-		rtems_drvmgr_interrupt_register(pDev->dev, GRADCDAC_IRQ_DAC, "gradcdac_dac", gradcdac_dac_interrupt, pDev);
+		drvmgr_interrupt_register(pDev->dev, GRADCDAC_IRQ_DAC, "gradcdac_dac", gradcdac_dac_interrupt, pDev);
 	}
 
 	return 0;
@@ -394,13 +394,13 @@ void gradcdac_uninstall_irq_handler(void *cookie, int adc)
 		return;
 
 	if ( adc & GRADCDAC_ISR_ADC ){
-		rtems_drvmgr_interrupt_unregister(pDev->dev, GRADCDAC_IRQ_ADC, gradcdac_adc_interrupt, pDev);
+		drvmgr_interrupt_unregister(pDev->dev, GRADCDAC_IRQ_ADC, gradcdac_adc_interrupt, pDev);
 		pDev->isr_adc = NULL;
 		pDev->isr_adc_arg = NULL;
 	}
 
 	if ( adc & GRADCDAC_ISR_DAC ){
-		rtems_drvmgr_interrupt_unregister(pDev->dev, GRADCDAC_IRQ_DAC, gradcdac_dac_interrupt, pDev);
+		drvmgr_interrupt_unregister(pDev->dev, GRADCDAC_IRQ_DAC, gradcdac_dac_interrupt, pDev);
 		pDev->isr_dac = NULL;
 		pDev->isr_dac_arg = NULL;
 	}

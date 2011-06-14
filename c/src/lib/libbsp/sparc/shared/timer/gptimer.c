@@ -106,7 +106,7 @@ struct gptimer_timer {
 
 /* GPTIMER Core private */
 struct gptimer_priv {
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	struct gptimer_regs *regs;
 	unsigned int base_clk;
 	unsigned int base_freq;
@@ -137,10 +137,10 @@ void gptimer_tlib_irq_register(struct tlib_drv *tdrv, tlib_isr_t func, void *dat
 struct tlib_drv gptimer_tlib_drv;
 int gptimer_device_init(struct gptimer_priv *priv);
 
-int gptimer_init1(struct rtems_drvmgr_dev_info *dev);
+int gptimer_init1(struct drvmgr_dev *dev);
 #ifdef GPTIMER_INFO
 static int gptimer_info(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	void (*print_line)(void *p, char *str),
 	void *p, int, char *argv[]);
 #define GTIMER_INFO_FUNC gptimer_info
@@ -148,7 +148,7 @@ static int gptimer_info(
 #define GTIMER_INFO_FUNC NULL
 #endif
 
-struct rtems_drvmgr_drv_ops gptimer_ops =
+struct drvmgr_drv_ops gptimer_ops =
 {
 	.init = {gptimer_init1, NULL, NULL, NULL},
 	.remove = NULL,
@@ -179,10 +179,10 @@ struct amba_drv_info gptimer_drv_info =
 void gptimer_register_drv (void)
 {
 	DBG("Registering GPTIMER driver\n");
-	rtems_drvmgr_drv_register(&gptimer_drv_info.general);
+	drvmgr_drv_register(&gptimer_drv_info.general);
 }
 
-int gptimer_init1(struct rtems_drvmgr_dev_info *dev)
+int gptimer_init1(struct drvmgr_dev *dev)
 {
 	struct gptimer_priv *priv;
 	struct gptimer_regs *regs;
@@ -191,7 +191,7 @@ int gptimer_init1(struct rtems_drvmgr_dev_info *dev)
 	int timer_hw_cnt, timer_cnt, timer_start;
 	int i, size;
 	struct gptimer_timer *timer;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 #ifdef RTEMS_DRVMGR_STARTUP
 	char timer_index[7];
 #endif
@@ -214,12 +214,12 @@ int gptimer_init1(struct rtems_drvmgr_dev_info *dev)
 	 */
 	timer_cnt = timer_hw_cnt;
 	timer_start = 0;
-	value = rtems_drvmgr_dev_key_get(dev, "timerStart", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(dev, "timerStart", KEY_TYPE_INT);
 	if ( value) {
 		timer_start = value->i;
 		timer_cnt = timer_hw_cnt - timer_start;
 	}
-	value = rtems_drvmgr_dev_key_get(dev, "timerCnt", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(dev, "timerCnt", KEY_TYPE_INT);
 	if ( value && (value->i < timer_cnt) ) {
 		timer_cnt = value->i;
 	}
@@ -237,7 +237,7 @@ int gptimer_init1(struct rtems_drvmgr_dev_info *dev)
 	priv->regs = regs;
 
 #ifdef RTEMS_DRVMGR_STARTUP
-	if ( rtems_drvmgr_on_rootbus(priv->dev) ) {
+	if ( drvmgr_on_rootbus(priv->dev) ) {
 		/* Bootloader has initialized the Timer prescaler to 1MHz,
 		 * this means that the AMBA Frequency is 1MHz * PRESCALER.
 		 */
@@ -251,7 +251,7 @@ int gptimer_init1(struct rtems_drvmgr_dev_info *dev)
 		/* The Base Frequency of the GPTIMER core is the same as the
 		 * frequency of the AMBA bus it is situated on.
 		 */
-		rtems_drvmgr_freq_get(dev, DEV_APB_SLV, &priv->base_clk);
+		drvmgr_freq_get(dev, DEV_APB_SLV, &priv->base_clk);
 	}
 
 	/* This core will may provide important Timer functionality
@@ -266,7 +266,7 @@ int gptimer_init1(struct rtems_drvmgr_dev_info *dev)
 	 * that doing so for the Root-Bus GPTIMER may affect the RTEMS Clock
 	 * so that Clock frequency is wrong.
 	 */
-	value = rtems_drvmgr_dev_key_get(priv->dev, "prescaler", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "prescaler", KEY_TYPE_INT);
 	if ( value )
 		regs->scaler_reload = value->i;
 
@@ -300,7 +300,7 @@ int gptimer_init1(struct rtems_drvmgr_dev_info *dev)
 
 	if ( priv->separate_interrupt == 0 ) {
 		/* Shared IRQ handler */
-		rtems_drvmgr_interrupt_register(
+		drvmgr_interrupt_register(
 			priv->dev,
 			0,
 			"gptimer_shared",
@@ -312,7 +312,7 @@ int gptimer_init1(struct rtems_drvmgr_dev_info *dev)
 	 * the timer must be registered at the Clock Driver.
 	 */
 #ifdef RTEMS_DRVMGR_STARTUP
-	value = rtems_drvmgr_dev_key_get(priv->dev, "clockTimer", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "clockTimer", KEY_TYPE_INT);
 	if ( value && (value->i < timer_cnt) ) {
 		LEON3_Timer_Regs = (void *)regs;
 		Clock_timer_register(timer_index[value->i]);
@@ -324,7 +324,7 @@ int gptimer_init1(struct rtems_drvmgr_dev_info *dev)
 
 #ifdef GPTIMER_INFO
 static int gptimer_info(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	void (*print_line)(void *p, char *str),
 	void *p, int argc, char *argv[])
 {
@@ -438,7 +438,7 @@ void gptimer_tlib_irq_reg(struct tlib_dev *hand, tlib_isr_t func, void *data)
 	struct gptimer_priv *priv = priv_from_timer(timer);
 
 	if ( priv->separate_interrupt ) {
-		rtems_drvmgr_interrupt_register(priv->dev, timer->tindex,
+		drvmgr_interrupt_register(priv->dev, timer->tindex,
 						"gptimer", func, data);
 	}
 
@@ -454,7 +454,7 @@ void gptimer_tlib_irq_unreg(struct tlib_dev *hand, tlib_isr_t func, void *data)
 	timer->tregs->ctrl &= ~GPTIMER_CTRL_IE;
 
 	if ( priv->separate_interrupt ) {
-		rtems_drvmgr_interrupt_unregister(priv->dev, timer->tindex,
+		drvmgr_interrupt_unregister(priv->dev, timer->tindex,
 						func, data);
 	} else {
 		timer->tdev.isr_func = NULL;

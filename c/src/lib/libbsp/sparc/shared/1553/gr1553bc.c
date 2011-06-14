@@ -45,7 +45,7 @@
 
 /* Needed by list for data pinter and BD translation */
 struct gr1553bc_priv {
-	struct rtems_drvmgr_dev_info **pdev;
+	struct drvmgr_dev **pdev;
 	struct gr1553b_regs *regs;
 	struct gr1553bc_list *list;
 	struct gr1553bc_list *alist;
@@ -321,7 +321,7 @@ int gr1553bc_list_table_alloc
 		/* Address given in Hardware accessible address, we
 		 * convert it into CPU-accessible address.
 		 */
-		rtems_drvmgr_mmap_translate(
+		drvmgr_mmap_translate(
 			*bcpriv->pdev,
 			1,
 			(void *)((unsigned int)bdtab_custom & ~0x1),
@@ -342,7 +342,7 @@ int gr1553bc_list_table_alloc
 	 * that into an address which the Hardware can understand
 	 */
 	if ( bcpriv ) {
-		rtems_drvmgr_mmap_translate(
+		drvmgr_mmap_translate(
 			*bcpriv->pdev,
 			0,
 			(void *)list->table_cpu,
@@ -1035,7 +1035,7 @@ int gr1553bc_slot_transfer(
 	if ( (unsigned int)dptr & 0x1 ) {
 		struct gr1553bc_priv *bcpriv = list->bc;
 
-		rtems_drvmgr_mmap_translate(
+		drvmgr_mmap_translate(
 			*bcpriv->pdev,
 			0,
 			(void *)((unsigned int)dptr & ~0x1),
@@ -1108,7 +1108,7 @@ int gr1553bc_slot_update
 		 * cores.
 		 */
 		if ( dataptr & 0x1 ) {
-			rtems_drvmgr_mmap_translate(
+			drvmgr_mmap_translate(
 				*bcpriv->pdev,
 				0,
 				(void *)(dataptr & ~0x1),
@@ -1248,7 +1248,7 @@ void gr1553bc_isr_std(union gr1553bc_bd *bd, void *data)
  */
 void *gr1553bc_open(int minor)
 {
-	struct rtems_drvmgr_dev_info **pdev = NULL;
+	struct drvmgr_dev **pdev = NULL;
 	struct gr1553bc_priv *priv = NULL;
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
@@ -1282,7 +1282,7 @@ void *gr1553bc_open(int minor)
 	gr1553bc_device_init(priv);
 
 	/* Register ISR handler (unmask at IRQ controller) */
-	if ( rtems_drvmgr_interrupt_register(*priv->pdev, 0, "gr1553bc",
+	if ( drvmgr_interrupt_register(*priv->pdev, 0, "gr1553bc",
 	     gr1553bc_isr, priv) ) {
 		goto fail;
 	}
@@ -1309,7 +1309,7 @@ void gr1553bc_close(void *bc)
 	gr1553bc_device_uninit(priv);
 
 	/* Remove interrupt handler (mask IRQ at IRQ controller) */
-	rtems_drvmgr_interrupt_unregister(*priv->pdev, 0, gr1553bc_isr, priv);
+	drvmgr_interrupt_unregister(*priv->pdev, 0, gr1553bc_isr, priv);
 
 	/* Free device */
 	gr1553_bc_close(priv->pdev);
@@ -1473,7 +1473,7 @@ void gr1553bc_device_init(struct gr1553bc_priv *priv)
 		(((uint32_t)priv->irq_log_p + (GR1553BC_IRQLOG_SIZE-1)) & 
 		~(GR1553BC_IRQLOG_SIZE-1));
 	/* Translate into Hardware a hardware accessible address */
-	rtems_drvmgr_mmap_translate(
+	drvmgr_mmap_translate(
 		*priv->pdev,
 		0,
 		(void *)priv->irq_log_base,

@@ -47,22 +47,22 @@ struct grlib_gptimer_regs {
 
 /* AMBA IMPLEMENTATION */
 
-int ambapp_bus_init1(struct rtems_drvmgr_bus_info *bus);
-int ambapp_bus_remove(struct rtems_drvmgr_bus_info *bus);
-int ambapp_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_info *dev);
-int ambapp_int_register(struct rtems_drvmgr_dev_info *dev, int index, const char *info, rtems_drvmgr_isr isr, void *arg);
-int ambapp_int_unregister(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
-int ambapp_int_clear(struct rtems_drvmgr_dev_info *dev, int index);
-int ambapp_int_mask(struct rtems_drvmgr_dev_info *dev, int index);
-int ambapp_int_unmask(struct rtems_drvmgr_dev_info *dev, int index);
-int ambapp_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params);
+int ambapp_bus_init1(struct drvmgr_bus *bus);
+int ambapp_bus_remove(struct drvmgr_bus *bus);
+int ambapp_unite(struct drvmgr_drv *drv, struct drvmgr_dev *dev);
+int ambapp_int_register(struct drvmgr_dev *dev, int index, const char *info, drvmgr_isr isr, void *arg);
+int ambapp_int_unregister(struct drvmgr_dev *dev, int index, drvmgr_isr isr, void *arg);
+int ambapp_int_clear(struct drvmgr_dev *dev, int index);
+int ambapp_int_mask(struct drvmgr_dev *dev, int index);
+int ambapp_int_unmask(struct drvmgr_dev *dev, int index);
+int ambapp_get_params(struct drvmgr_dev *dev, struct drvmgr_bus_params *params);
 int ambapp_bus_freq_get(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int options,
 	unsigned int *freq_hz);
-void ambapp_dev_info(struct rtems_drvmgr_dev_info *, void (*print)(void *p, char *str), void *p);
+void ambapp_dev_info(struct drvmgr_dev *, void (*print)(void *p, char *str), void *p);
 
-struct rtems_drvmgr_bus_ops ambapp_bus_ops =
+struct drvmgr_bus_ops ambapp_bus_ops =
 {
 	.init		= 
 	{
@@ -89,7 +89,7 @@ struct ambapp_priv {
 	struct ambapp_config		*config;
 };
 
-int ambapp_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_info *dev)
+int ambapp_unite(struct drvmgr_drv *drv, struct drvmgr_dev *dev)
 {
 	struct amba_drv_info *adrv;
 	struct amba_dev_id *id;
@@ -126,7 +126,7 @@ int ambapp_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_info
 	return 0;
 }
 
-static int ambapp_int_get(struct rtems_drvmgr_dev_info *dev, int index)
+static int ambapp_int_get(struct drvmgr_dev *dev, int index)
 {
 	int irq;
 
@@ -147,13 +147,13 @@ static int ambapp_int_get(struct rtems_drvmgr_dev_info *dev, int index)
 }
 
 int ambapp_int_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
 	const char *info,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg)
 {
-	struct rtems_drvmgr_dev_info *busdev;
+	struct drvmgr_dev *busdev;
 	struct ambapp_priv *priv;
 	int irq;
 
@@ -176,12 +176,12 @@ int ambapp_int_register(
 }
 
 int ambapp_int_unregister(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg)
 {
-	struct rtems_drvmgr_dev_info *busdev;
+	struct drvmgr_dev *busdev;
 	struct ambapp_priv *priv;
 	int irq;
 
@@ -204,10 +204,10 @@ int ambapp_int_unregister(
 }
 
 int ambapp_int_clear(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index)
 {
-	struct rtems_drvmgr_dev_info *busdev;
+	struct drvmgr_dev *busdev;
 	struct ambapp_priv *priv;
 	int irq;
 
@@ -230,10 +230,10 @@ int ambapp_int_clear(
 }
 
 int ambapp_int_mask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index)
 {
-	struct rtems_drvmgr_dev_info *busdev;
+	struct drvmgr_dev *busdev;
 	struct ambapp_priv *priv;
 	int irq;
 
@@ -256,10 +256,10 @@ int ambapp_int_mask(
 }
 
 int ambapp_int_unmask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index)
 {
-	struct rtems_drvmgr_dev_info *busdev;
+	struct drvmgr_dev *busdev;
 	struct ambapp_priv *priv;
 	int irq;
 
@@ -283,7 +283,7 @@ int ambapp_int_unmask(
 
 /* Assign frequency to an AMBA Bus */
 void ambapp_bus_freq_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int amba_interface,
 	unsigned int freq_hz
 	)
@@ -318,7 +318,7 @@ void ambapp_bus_freq_register(
 }
 
 int ambapp_bus_freq_get(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int options,
 	unsigned int *freq_hz)
 {
@@ -350,7 +350,7 @@ int ambapp_bus_freq_get(
 	return 0;
 }
 
-int ambapp_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params)
+int ambapp_get_params(struct drvmgr_dev *dev, struct drvmgr_bus_params *params)
 {
 	struct ambapp_priv *priv = dev->parent->priv;
 
@@ -364,7 +364,7 @@ int ambapp_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus
 
 #ifdef AMBAPPBUS_INFO
 void ambapp_dev_info(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	void (*print_line)(void *p, char *str),
 	void *p)
 {
@@ -467,7 +467,7 @@ void ambapp_dev_info(
 #endif
 
 /* Fix device in last stage */
-int ambapp_dev_fixup(struct rtems_drvmgr_dev_info *dev, struct amba_dev_info *pnp)
+int ambapp_dev_fixup(struct drvmgr_dev *dev, struct amba_dev_info *pnp)
 {
 	/* OCCAN speciality:
 	 *  Mulitple cores are supported through the same amba AHB interface.
@@ -478,14 +478,14 @@ int ambapp_dev_fixup(struct rtems_drvmgr_dev_info *dev, struct amba_dev_info *pn
 	 *  Now, lets detect sub cores.
 	 */
 	if ( (pnp->info.device == GAISLER_CANAHB) && (pnp->info.vendor == VENDOR_GAISLER) ) {
-		struct rtems_drvmgr_dev_info *newdev;
+		struct drvmgr_dev *newdev;
 		struct amba_dev_info *pnpinfo;
 		int subcores;
 		int core;
 
 		subcores = (pnp->info.ahb_slv->ver & 0x7) + 1;
 		for(core = 1; core < subcores; core++) {
-			rtems_drvmgr_alloc_dev(&newdev, sizeof(*pnpinfo));
+			drvmgr_alloc_dev(&newdev, sizeof(*pnpinfo));
 			memcpy(newdev, dev, sizeof(*newdev));
 			pnpinfo = (struct amba_dev_info *)(newdev+1);
 			memcpy(pnpinfo, pnp, sizeof(*pnp));
@@ -494,7 +494,7 @@ int ambapp_dev_fixup(struct rtems_drvmgr_dev_info *dev, struct amba_dev_info *pn
 			newdev->businfo = (void *)pnpinfo;
 
 			/* Register device */
-			rtems_drvmgr_dev_register(newdev);
+			drvmgr_dev_register(newdev);
 		}
 	} else if ( (pnp->info.device == GAISLER_GPIO) && (pnp->info.vendor == VENDOR_GAISLER) ) {
 		/* PIO[N] is connected to IRQ[N]. */
@@ -505,7 +505,7 @@ int ambapp_dev_fixup(struct rtems_drvmgr_dev_info *dev, struct amba_dev_info *pn
 
 struct ambapp_dev_reg_struct {
 	struct ambapp_bus		*abus;
-	struct rtems_drvmgr_bus_info	*bus;
+	struct drvmgr_bus	*bus;
 	struct ambapp_dev		*ahb_mst;
 	struct ambapp_dev		*ahb_slv;
 	struct ambapp_dev		*apb_slv;
@@ -518,7 +518,7 @@ void ambapp_core_register(
 	struct ambapp_dev_reg_struct *arg
 	)
 {
-	struct rtems_drvmgr_dev_info *newdev;
+	struct drvmgr_dev *newdev;
 	struct amba_dev_info *pnpinfo;
 	unsigned short device;
 	unsigned char vendor;
@@ -540,7 +540,7 @@ void ambapp_core_register(
 	DBG("CORE REGISTER DEV [%x:%x] MST: 0x%x, SLV: 0x%x, APB: 0x%x\n", vendor, device, (unsigned int)ahb_mst, (unsigned int)ahb_slv, (unsigned int)apb_slv);
 
 	/* Allocate a device */
-	rtems_drvmgr_alloc_dev(&newdev, sizeof(struct amba_dev_info));
+	drvmgr_alloc_dev(&newdev, sizeof(struct amba_dev_info));
 	pnpinfo = (struct amba_dev_info *)(newdev + 1);
 	newdev->next = NULL;
 	newdev->parent = arg->bus; /* Ourselfs */
@@ -588,7 +588,7 @@ void ambapp_core_register(
 	ambapp_dev_fixup(newdev, pnpinfo);
 
 	/* Register New Device */
-	rtems_drvmgr_dev_register(newdev);
+	drvmgr_dev_register(newdev);
 }
 
 /* Register one AMBA device */
@@ -669,7 +669,7 @@ int ambapp_dev_register(struct ambapp_dev *dev, int index, int maxpdepth, void *
 }
 
 /* Register all AMBA devices available on the AMBAPP bus */
-int ambapp_ids_register(struct rtems_drvmgr_bus_info *bus)
+int ambapp_ids_register(struct drvmgr_bus *bus)
 {
 	struct ambapp_priv *priv = bus->priv;
 	struct ambapp_bus *abus;
@@ -697,7 +697,7 @@ int ambapp_ids_register(struct rtems_drvmgr_bus_info *bus)
 
 /*** DEVICE FUNCTIONS ***/
 
-int ambapp_bus_register(struct rtems_drvmgr_dev_info *dev, struct ambapp_config *config)
+int ambapp_bus_register(struct drvmgr_dev *dev, struct ambapp_config *config)
 {
 	struct ambapp_priv *priv;
 
@@ -707,7 +707,7 @@ int ambapp_bus_register(struct rtems_drvmgr_dev_info *dev, struct ambapp_config 
 	DBG("AMBAPP BUS: initializing\n");
 
 	/* Register BUS */
-	rtems_drvmgr_alloc_bus(&dev->bus, sizeof(struct ambapp_priv));
+	drvmgr_alloc_bus(&dev->bus, sizeof(struct ambapp_priv));
 	priv = (struct ambapp_priv *)(dev->bus + 1);
 	priv->config = config;
 	if ( priv->config->bus_type == DRVMGR_BUS_TYPE_AMBAPP_DIST )
@@ -727,9 +727,9 @@ int ambapp_bus_register(struct rtems_drvmgr_dev_info *dev, struct ambapp_config 
 
 	/* Add resource configuration */
 	if ( priv->config->resources )
-		rtems_drvmgr_bus_res_add(dev->bus, priv->config->resources);
+		drvmgr_bus_res_add(dev->bus, priv->config->resources);
 
-	rtems_drvmgr_bus_register(dev->bus);
+	drvmgr_bus_register(dev->bus);
 
 	return DRVMGR_OK;
 }
@@ -737,13 +737,13 @@ int ambapp_bus_register(struct rtems_drvmgr_dev_info *dev, struct ambapp_config 
 /*** BUS INITIALIZE FUNCTIONS ***/
 
 /* Initialize the bus, register devices on this bus */
-int ambapp_bus_init1(struct rtems_drvmgr_bus_info *bus)
+int ambapp_bus_init1(struct drvmgr_bus *bus)
 {
 	/* Initialize the bus, register devices on this bus */
 	return ambapp_ids_register(bus);
 }
 
-int ambapp_bus_remove(struct rtems_drvmgr_bus_info *bus)
+int ambapp_bus_remove(struct drvmgr_bus *bus)
 {
 	return DRVMGR_OK;
 }

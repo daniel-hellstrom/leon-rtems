@@ -56,13 +56,13 @@ struct leon2_amba_dev_id {
 struct leon2_core {
 	struct leon2_amba_dev_id	id;	/* Core ID */
 	char				*name;	/* Name of Core */
-	struct rtems_drvmgr_key		*keys;	/* Core setup (location, IRQs) */
+	struct drvmgr_key		*keys;	/* Core setup (location, IRQs) */
 };
 
 struct leon2_bus {
 	struct leon2_core		*std_cores;	/* The LEON2 standard cores */
 	struct leon2_core		*custom_cores;	/* Custom cores on the same bus */
-	struct rtems_drvmgr_mmap_entry	*mmaps;		/* Memory map */
+	struct drvmgr_mmap_entry	*mmaps;		/* Memory map */
 };
 
 extern struct leon2_core drv_mgr_leon2_std_cores[];
@@ -75,7 +75,7 @@ struct leon2_amba_dev_info {
 };
 
 struct leon2_amba_drv_info {
-	struct rtems_drvmgr_drv_info	general;	/* General bus info */
+	struct drvmgr_drv	general;	/* General bus info */
 	/* AMBA specific bus information */
 	struct leon2_amba_dev_id	*ids;		/* Supported hardware */
 };
@@ -86,7 +86,7 @@ struct leon2_amba_drv_info {
  */
 int drv_mgr_leon2_init(
 	struct leon2_bus *bus_config,
-	struct rtems_drvmgr_bus_res *resources);
+	struct drvmgr_bus_res *resources);
 
 #ifdef __cplusplus
 }

@@ -49,12 +49,12 @@ struct grgpio_regs {
 };
 
 struct grgpio_isr {
-	rtems_drvmgr_isr isr;
+	drvmgr_isr isr;
 	void *arg;
 };
 
 struct grgpio_priv {
-	struct rtems_drvmgr_dev_info	*dev;
+	struct drvmgr_dev	*dev;
 	struct grgpio_regs		*regs;
 	int				irq;
 	int				minor;
@@ -72,10 +72,10 @@ struct grgpio_priv {
 
 int grgpio_device_init(struct grgpio_priv *priv);
 
-int grgpio_init1(struct rtems_drvmgr_dev_info *dev);
-int grgpio_init2(struct rtems_drvmgr_dev_info *dev);
+int grgpio_init1(struct drvmgr_dev *dev);
+int grgpio_init2(struct drvmgr_dev *dev);
 
-struct rtems_drvmgr_drv_ops grgpio_ops = 
+struct drvmgr_drv_ops grgpio_ops = 
 {
 	.init = {grgpio_init1, NULL, NULL, NULL},
 	.remove = NULL,
@@ -106,7 +106,7 @@ struct amba_drv_info grgpio_drv_info =
 void grgpio_register_drv (void)
 {
 	DBG("Registering GRGPIO driver\n");
-	rtems_drvmgr_drv_register(&grgpio_drv_info.general);
+	drvmgr_drv_register(&grgpio_drv_info.general);
 }
 
 /* Register GRGPIO pins as quick as possible to the GPIO library,
@@ -114,7 +114,7 @@ void grgpio_register_drv (void)
  * Note that since IRQ may not be available in init1, it is assumed
  * that the GPIOLibrary does not request IRQ routines until LEVEL 2.
  */
-int grgpio_init1(struct rtems_drvmgr_dev_info *dev)
+int grgpio_init1(struct drvmgr_dev *dev)
 {
 	struct grgpio_priv *priv;
 	int status, port;
@@ -242,7 +242,7 @@ int grgpio_grpiolib_irq_opts(void *handle, unsigned int options)
 {
 	struct grgpio_priv *priv;
 	int portnr;
-	rtems_drvmgr_isr isr;
+	drvmgr_isr isr;
 	void *arg;
 
 	portnr = grgpio_find_port(handle, &priv);
@@ -259,19 +259,19 @@ int grgpio_grpiolib_irq_opts(void *handle, unsigned int options)
 
 	if ( options & GPIOLIB_IRQ_DISABLE ) {
 		/* Disable interrupt at interrupt controller */
-		if ( rtems_drvmgr_interrupt_unregister(priv->dev, portnr, isr, arg) ) {
+		if ( drvmgr_interrupt_unregister(priv->dev, portnr, isr, arg) ) {
 			return -1;
 		}
 	}
 	if ( options & GPIOLIB_IRQ_CLEAR ) {
 		/* Clear interrupt at interrupt controller */
-		if ( rtems_drvmgr_interrupt_clear(priv->dev, portnr) ) {
+		if ( drvmgr_interrupt_clear(priv->dev, portnr) ) {
 			return -1;
 		}
 	}
 	if ( options & GPIOLIB_IRQ_ENABLE ) {
 		/* Enable interrupt at interrupt controller */
-		if ( rtems_drvmgr_interrupt_register(priv->dev, portnr, "grgpio", isr, arg) ) {
+		if ( drvmgr_interrupt_register(priv->dev, portnr, "grgpio", isr, arg) ) {
 			return -1;
 		}
 	}
@@ -343,7 +343,7 @@ int grgpio_gpiolib_get_info(void *handle, struct gpiolib_info *pinfo)
 	struct grgpio_priv *priv;
 	int portnr;
 	char prefix[48];
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	if ( !pinfo )
 		return -1;
@@ -357,7 +357,7 @@ int grgpio_gpiolib_get_info(void *handle, struct gpiolib_info *pinfo)
 	/* Get Filesystem name prefix */
 	dev = priv->dev;
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Failed to get prefix, make sure of a unique FS name
 		 * by using the driver minor.
 		 */
@@ -388,7 +388,7 @@ int grgpio_device_init(struct grgpio_priv *priv)
 {
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 	unsigned int mask;
 	int port_cnt;
 
@@ -416,7 +416,7 @@ int grgpio_device_init(struct grgpio_priv *priv)
 	/* Let the user configure the port count, this might be needed
 	 * when the GPIO lines must not be changed (assigned during bootup)
 	 */
-	value = rtems_drvmgr_dev_key_get(priv->dev, "nBits", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "nBits", KEY_TYPE_INT);
 	if ( value ) {
 		priv->port_cnt = value->i;
 	} else {
@@ -435,7 +435,7 @@ int grgpio_device_init(struct grgpio_priv *priv)
 	/* Let the user configure the BYPASS register, this might be needed
 	 * to select which cores can do I/O on a pin.
 	 */
-	value = rtems_drvmgr_dev_key_get(priv->dev, "bypass", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "bypass", KEY_TYPE_INT);
 	if ( value ) {
 		priv->bypass = value->i;
 	} else {

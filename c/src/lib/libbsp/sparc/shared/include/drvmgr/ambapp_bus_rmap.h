@@ -20,14 +20,14 @@ extern void ambapp_rmap_register(void);
 
 /* Allocate memory from the SpaceWire target's memory */
 extern void *ambapp_rmap_partition_memalign(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int partition,
 	size_t boundary,
 	size_t size);
 
 /* Register a partition of memory in the SpaceWire target */
 extern int ambapp_rmap_partition_create(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int partition,
 	unsigned int start,
 	size_t size);

@@ -35,15 +35,15 @@
  *  - from remote address to CPU local
  *  - from CPU local to remote
  */
-int rtems_drvmgr_mmap_translate(
-	struct rtems_drvmgr_dev_info *dev,
+int drvmgr_mmap_translate(
+	struct drvmgr_dev *dev,
 	int from_remote_to_cpu,
 	void *src_address,
 	void **dst_address)
 {
 	int ret;
 	void *dst;
-	struct rtems_drvmgr_mmap_entry *mmap;
+	struct drvmgr_mmap_entry *mmap;
 	char *src, *local_adr, *remote_adr;
 
 	if ( !dev || !dev->parent ) {

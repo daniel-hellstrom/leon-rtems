@@ -159,7 +159,7 @@ unsigned char at697_pci_irq_pio_table[4] =
 
 /* Driver private data struture */
 struct at697pci_priv {
-	struct rtems_drvmgr_dev_info	*dev;
+	struct drvmgr_dev	*dev;
 	struct at697pci_regs	*regs;
 	int			minor;
 
@@ -171,12 +171,12 @@ struct at697pci_priv {
 struct at697pci_priv *at697pcipriv = NULL;
 static int at697pci_minor = 0;
 
-int at697pci_init1(struct rtems_drvmgr_dev_info *dev);
-int at697pci_init2(struct rtems_drvmgr_dev_info *dev);
+int at697pci_init1(struct drvmgr_dev *dev);
+int at697pci_init2(struct drvmgr_dev *dev);
 
 /* AT697 PCI DRIVER */
 
-struct rtems_drvmgr_drv_ops at697pci_ops = 
+struct drvmgr_drv_ops at697pci_ops = 
 {
 	.init = {at697pci_init1, at697pci_init2, NULL, NULL},
 	.remove = NULL,
@@ -208,7 +208,7 @@ struct leon2_amba_drv_info at697pci_info =
 void at697pci_register_drv(void)
 {
 	DBG("Registering AT697 PCI driver\n");
-	rtems_drvmgr_drv_register(&at697pci_info.general);
+	drvmgr_drv_register(&at697pci_info.general);
 }
 
 /*  The configuration access functions uses the DMA functionality of the
@@ -470,7 +470,7 @@ int at697pci_hw_init(struct at697pci_priv *priv)
 int at697pci_init(struct at697pci_priv *priv)
 {
 	int pin;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 	char keyname_sysirq[6];
 	char keyname_pio[10];
 
@@ -489,7 +489,7 @@ int at697pci_init(struct at697pci_priv *priv)
 		if ( at697_pci_irq_table[pin-1] == 0xff ) {
 			/* User may override hardcoded IRQ setup */
 			keyname_sysirq[3] = 'A' + (pin-1);
-			value = rtems_drvmgr_dev_key_get(priv->dev,
+			value = drvmgr_dev_key_get(priv->dev,
 					keyname_sysirq, KEY_TYPE_INT);
 			if ( value )
 				at697_pci_irq_table[pin-1] = value->i;
@@ -497,7 +497,7 @@ int at697pci_init(struct at697pci_priv *priv)
 		if ( at697_pci_irq_pio_table[pin-1] == 0xff ) {
 			/* User may override hardcoded IRQ setup */
 			keyname_pio[3] = 'A' + (pin-1);
-			value = rtems_drvmgr_dev_key_get(priv->dev,
+			value = drvmgr_dev_key_get(priv->dev,
 						keyname_pio, KEY_TYPE_INT);
 			if ( value )
 				at697_pci_irq_pio_table[pin-1] = value->i;
@@ -510,13 +510,13 @@ int at697pci_init(struct at697pci_priv *priv)
 	 * Defualt is to map system RAM at pci address 0x40000000 and system
 	 * SDRAM to pci address 0x60000000
 	 */
-	value = rtems_drvmgr_dev_key_get(priv->dev, "tgtbar1", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "tgtbar1", KEY_TYPE_INT);
 	if (value)
 		priv->bar1_pci_adr = value->i;
 	else
 		priv->bar1_pci_adr = SYSTEM_MAINMEM_START; /* default */
 
-	value = rtems_drvmgr_dev_key_get(priv->dev, "tgtbar2", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "tgtbar2", KEY_TYPE_INT);
 	if (value)
 		priv->bar2_pci_adr = value->i;
 	else
@@ -533,7 +533,7 @@ int at697pci_init(struct at697pci_priv *priv)
 /* Called when a core is found with the AMBA device and vendor ID 
  * given in at697pci_ids[].
  */
-int at697pci_init1(struct rtems_drvmgr_dev_info *dev)
+int at697pci_init1(struct drvmgr_dev *dev)
 {
 	struct at697pci_priv *priv;
 	struct pci_auto_setup at697pci_auto_cfg;
@@ -578,7 +578,7 @@ int at697pci_init1(struct rtems_drvmgr_dev_info *dev)
 	return pcibus_register(dev);
 }
 
-int at697pci_init2(struct rtems_drvmgr_dev_info *dev)
+int at697pci_init2(struct drvmgr_dev *dev)
 {
 #if 0
 	struct at697pci_priv *priv = dev->priv;

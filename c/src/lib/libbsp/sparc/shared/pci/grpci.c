@@ -106,7 +106,7 @@ unsigned char grpci_pci_irq_table[4] =
 
 /* Driver private data struture */
 struct grpci_priv {
-	struct rtems_drvmgr_dev_info	*dev;
+	struct drvmgr_dev	*dev;
 	struct grpci_regs		*regs;
 	int				irq;
 	int				minor;
@@ -124,11 +124,11 @@ struct grpci_priv {
 	uint32_t			devVend; /* Host PCI Vendor/Device ID */
 };
 
-int grpci_init1(struct rtems_drvmgr_dev_info *dev);
+int grpci_init1(struct drvmgr_dev *dev);
 
 /* GRPCI DRIVER */
 
-struct rtems_drvmgr_drv_ops grpci_ops = 
+struct drvmgr_drv_ops grpci_ops = 
 {
 	.init = {grpci_init1, NULL, NULL, NULL},
 	.remove = NULL,
@@ -160,7 +160,7 @@ struct amba_drv_info grpci_info =
 void grpci_register_drv(void)
 {
 	DBG("Registering GRPCI driver\n");
-	rtems_drvmgr_drv_register(&grpci_info.general);
+	drvmgr_drv_register(&grpci_info.general);
 }
 
 int grpci_cfg_r32(pci_dev_t dev, int ofs, uint32_t *val)
@@ -471,7 +471,7 @@ int grpci_init(struct grpci_priv *priv)
 	struct ambapp_apb_info *apb;
 	struct ambapp_ahb_info *ahb;
 	int pin;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 	char keyname[6];
 	struct amba_dev_info *ainfo = priv->dev->businfo;
 
@@ -512,21 +512,21 @@ int grpci_init(struct grpci_priv *priv)
 
 			/* User may override Both hardcoded IRQ setup and Plug & Play IRQ */
 			keyname[3] = 'A' + (pin-1);
-			value = rtems_drvmgr_dev_key_get(priv->dev, keyname, KEY_TYPE_INT);
+			value = drvmgr_dev_key_get(priv->dev, keyname, KEY_TYPE_INT);
 			if ( value )
 				grpci_pci_irq_table[pin-1] = value->i;
 		}
 	}
 
 	/* User may override DEFAULT_BT_ENABLED to enable/disable byte twisting */
-	value = rtems_drvmgr_dev_key_get(priv->dev, "byteTwisting", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "byteTwisting", KEY_TYPE_INT);
 	if ( value )
 		priv->bt_enabled = value->i;
 
 	/* Use GRPCI target BAR1 to map CPU RAM to PCI, this is to make it
 	 * possible for PCI peripherals to do DMA directly to CPU memory.
 	 */
-	value = rtems_drvmgr_dev_key_get(priv->dev, "tgtbar1", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "tgtbar1", KEY_TYPE_INT);
 	if (value)
 		priv->bar1_pci_adr = value->i;
 	else
@@ -549,7 +549,7 @@ int grpci_init(struct grpci_priv *priv)
 /* Called when a core is found with the AMBA device and vendor ID 
  * given in grpci_ids[]. IRQ, Console does not work here
  */
-int grpci_init1(struct rtems_drvmgr_dev_info *dev)
+int grpci_init1(struct drvmgr_dev *dev)
 {
 	int status;
 	struct grpci_priv *priv;

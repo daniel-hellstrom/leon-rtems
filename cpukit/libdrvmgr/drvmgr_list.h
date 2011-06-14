@@ -21,7 +21,7 @@ extern "C" {
 #endif
 
 /*! List description, Singly link list with head and tail pointers. */
-struct rtems_drvmgr_list {
+struct drvmgr_list {
 	void	*head;	/*!< First entry in queue */
 	void	*tail;	/*!< Last entry in queue */
 	int	ofs;	/*!< Offset into head and tail to find next field */
@@ -51,22 +51,22 @@ struct rtems_drvmgr_list {
  * \param list The list to initialize
  * \param offset The number of bytes into the entry structure the next pointer is found
  */
-extern void rtems_drvmgr_list_init(struct rtems_drvmgr_list *list, int offset);
+extern void drvmgr_list_init(struct drvmgr_list *list, int offset);
 
 /*! Clear list */
-extern void rtems_drvmgr_list_empty(struct rtems_drvmgr_list *list);
+extern void drvmgr_list_empty(struct drvmgr_list *list);
 
 /*! Add entry to front of list */
-extern void rtems_drvmgr_list_add_head(struct rtems_drvmgr_list *list, void *entry);
+extern void drvmgr_list_add_head(struct drvmgr_list *list, void *entry);
 
 /*! Add entry to end of list */
-extern void rtems_drvmgr_list_add_tail(struct rtems_drvmgr_list *list, void *entry);
+extern void drvmgr_list_add_tail(struct drvmgr_list *list, void *entry);
 
 /*! Remove entry from front of list */
-extern void rtems_drvmgr_list_remove_head(struct rtems_drvmgr_list *list);
+extern void drvmgr_list_remove_head(struct drvmgr_list *list);
 
 /*! Remove entry from anywhere in list */
-extern void rtems_drvmgr_list_remove(struct rtems_drvmgr_list *list, void *entry);
+extern void drvmgr_list_remove(struct drvmgr_list *list, void *entry);
 
 #ifdef __cplusplus
 }

@@ -11,12 +11,12 @@
  * not the second time since the other driver (the one requiring 
  * service from the first) has been removed.
  */
-int rtems_drvmgr_bus_unregister(struct rtems_drvmgr_bus_info *bus)
+int drvmgr_bus_unregister(struct drvmgr_bus *bus)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
 	int err, removal_iterations;
-	struct rtems_drvmgr_dev_info *subdev, *subdev_next;
-	struct rtems_drvmgr_list *list;
+	struct drvmgr_dev *subdev, *subdev_next;
+	struct drvmgr_list *list;
 
 	removal_iterations = 2;
 remove_all_children:
@@ -24,7 +24,7 @@ remove_all_children:
 	subdev = bus->children;
 	while (subdev) {
 		subdev_next = subdev->next_in_bus;
-		if (rtems_drvmgr_dev_unregister(subdev) != DRVMGR_OK) {
+		if (drvmgr_dev_unregister(subdev) != DRVMGR_OK) {
 			/* An error occured */
 			err++;
 		}
@@ -52,7 +52,7 @@ remove_all_children:
 	} else {
 		list = &mgr->buses[bus->level];
 	}
-	rtems_drvmgr_list_remove(list, bus);
+	drvmgr_list_remove(list, bus);
 
 	/* All references to this bus has been removed at this point */
 	free(bus);
@@ -66,11 +66,11 @@ remove_all_children:
  *  - remove from driver list
  *  - remove from bus list
  */
-int rtems_drvmgr_dev_unregister(struct rtems_drvmgr_dev_info *dev)
+int drvmgr_dev_unregister(struct drvmgr_dev *dev)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
-	struct rtems_drvmgr_dev_info *subdev, **pprev;
-	struct rtems_drvmgr_list *list;
+	struct drvmgr_dev *subdev, **pprev;
+	struct drvmgr_list *list;
 	int err;
 
 	/* Remove children if this device exports a bus of devices. All 
@@ -78,7 +78,7 @@ int rtems_drvmgr_dev_unregister(struct rtems_drvmgr_dev_info *dev)
 	 * services this device provide.
 	 */
 	if (dev->bus) {
-		err = rtems_drvmgr_bus_unregister(dev->bus);
+		err = drvmgr_bus_unregister(dev->bus);
 		if (err != DRVMGR_OK)
 			return err;
 	}
@@ -120,7 +120,7 @@ int rtems_drvmgr_dev_unregister(struct rtems_drvmgr_dev_info *dev)
 	} else {
 		list = &mgr->devices[dev->level];
 	}
-	rtems_drvmgr_list_remove(list, dev);
+	drvmgr_list_remove(list, dev);
 
 	/* Remove device from parent bus list (no check if dev not in list) */
 	pprev = &dev->parent->children;

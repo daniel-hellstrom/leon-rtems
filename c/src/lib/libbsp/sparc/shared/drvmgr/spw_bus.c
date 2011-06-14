@@ -41,7 +41,7 @@ struct virq_entry {
 
 struct spw_bus_priv {
 	/* SpW-Bus driver handle */
-	struct rtems_drvmgr_bus_info *bus;
+	struct drvmgr_bus *bus;
 
 	/* User configuration */
 	struct spw_bus_config	*config;		/* User configuration */
@@ -60,34 +60,34 @@ struct spw_bus_priv {
 	char			virqs[4];		/* Virtual IRQ table, used to separate IRQ from different GPIO pins */
 };
 
-struct rtems_drvmgr_drv_info spw_bus_drv;
+struct drvmgr_drv spw_bus_drv;
 static int spw_bus_cnt = 0;
 
-int spw_bus_init1(struct rtems_drvmgr_bus_info *bus);
-int spw_bus_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_info *dev);
-int spw_bus_int_register(struct rtems_drvmgr_dev_info *dev, int index, const char *info, rtems_drvmgr_isr handler, void *arg);
-int spw_bus_int_unregister(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
-int spw_bus_int_clear(struct rtems_drvmgr_dev_info *dev, int index);
+int spw_bus_init1(struct drvmgr_bus *bus);
+int spw_bus_unite(struct drvmgr_drv *drv, struct drvmgr_dev *dev);
+int spw_bus_int_register(struct drvmgr_dev *dev, int index, const char *info, drvmgr_isr handler, void *arg);
+int spw_bus_int_unregister(struct drvmgr_dev *dev, int index, drvmgr_isr isr, void *arg);
+int spw_bus_int_clear(struct drvmgr_dev *dev, int index);
 
 int spw_bus_freq_get(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int options,
 	unsigned int *freq_hz);
 /* READ/WRITE access to SpaceWire target over RMAP */
-int spw_bus_memcpy(struct rtems_drvmgr_dev_info *dev, void *dest, const void *src, int n);
-int spw_bus_write_mem(struct rtems_drvmgr_dev_info *dev, void *dest, const void *src, int n);
-int spw_bus_read_io8(struct rtems_drvmgr_dev_info *dev, uint8_t *srcadr, uint8_t *result);
-int spw_bus_read_io16(struct rtems_drvmgr_dev_info *dev, uint16_t *srcadr, uint16_t *result);
-int spw_bus_read_io32(struct rtems_drvmgr_dev_info *dev, uint32_t *srcadr, uint32_t *result);
-int spw_bus_read_io64(struct rtems_drvmgr_dev_info *dev, uint64_t *srcadr, uint64_t *result);
-int spw_bus_write_io8(struct rtems_drvmgr_dev_info *dev, uint8_t *dstadr, uint8_t data);
-int spw_bus_write_io16(struct rtems_drvmgr_dev_info *dev, uint16_t *dstadr, uint16_t data);
-int spw_bus_write_io32(struct rtems_drvmgr_dev_info *dev, uint32_t *dstadr, uint32_t data);
-int spw_bus_write_io64(struct rtems_drvmgr_dev_info *dev, uint64_t *dstadr, uint64_t data);
-int spw_bus_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params);
+int spw_bus_memcpy(struct drvmgr_dev *dev, void *dest, const void *src, int n);
+int spw_bus_write_mem(struct drvmgr_dev *dev, void *dest, const void *src, int n);
+int spw_bus_read_io8(struct drvmgr_dev *dev, uint8_t *srcadr, uint8_t *result);
+int spw_bus_read_io16(struct drvmgr_dev *dev, uint16_t *srcadr, uint16_t *result);
+int spw_bus_read_io32(struct drvmgr_dev *dev, uint32_t *srcadr, uint32_t *result);
+int spw_bus_read_io64(struct drvmgr_dev *dev, uint64_t *srcadr, uint64_t *result);
+int spw_bus_write_io8(struct drvmgr_dev *dev, uint8_t *dstadr, uint8_t data);
+int spw_bus_write_io16(struct drvmgr_dev *dev, uint16_t *dstadr, uint16_t data);
+int spw_bus_write_io32(struct drvmgr_dev *dev, uint32_t *dstadr, uint32_t data);
+int spw_bus_write_io64(struct drvmgr_dev *dev, uint64_t *dstadr, uint64_t data);
+int spw_bus_get_params(struct drvmgr_dev *dev, struct drvmgr_bus_params *params);
 
 /* SPW RMAP bus operations */
-struct rtems_drvmgr_bus_ops spw_bus_ops =
+struct drvmgr_bus_ops spw_bus_ops =
 {
 	.init		= 
 			{
@@ -116,24 +116,24 @@ struct rtems_drvmgr_bus_ops spw_bus_ops =
 	.write_mem	= spw_bus_write_mem,
 };
 
-int spw_bus_dev_register(struct rtems_drvmgr_bus_info *bus, struct spw_node *node, int index)
+int spw_bus_dev_register(struct drvmgr_bus *bus, struct spw_node *node, int index)
 {
-	struct rtems_drvmgr_dev_info *newdev;
+	struct drvmgr_dev *newdev;
 	struct spw_bus_dev_info *info;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 	
 	int virq;
 	char virq_name[6];
 
 	/* Allocate new device and bus information */
-	rtems_drvmgr_alloc_dev(&newdev, sizeof(struct spw_bus_dev_info));
+	drvmgr_alloc_dev(&newdev, sizeof(struct spw_bus_dev_info));
 	info = (struct spw_bus_dev_info *)(newdev + 1);
 
 	/* Set Node ID */
 	info->spwid = node->id.spwid;
 
 	/* Get information from bus configuration */
-	value = rtems_drvmgr_key_val_get(node->keys, "DST_ADR", KEY_TYPE_INT);
+	value = drvmgr_key_val_get(node->keys, "DST_ADR", KEY_TYPE_INT);
 	if ( !value ) {
 		printk("spw_bus_dev_register: Failed getting resource DST_ADR\n");
 		info->dstadr = 0xfe;
@@ -141,7 +141,7 @@ int spw_bus_dev_register(struct rtems_drvmgr_bus_info *bus, struct spw_node *nod
 		DBG("spw_bus_dev_register: DST_ADR: 0x%02x\n", value->i);
 		info->dstadr = value->i;
 	}
-	value = rtems_drvmgr_key_val_get(node->keys, "DST_KEY", KEY_TYPE_INT);
+	value = drvmgr_key_val_get(node->keys, "DST_KEY", KEY_TYPE_INT);
 	if ( !value ) {
 		printk("spw_bus_dev_register: Failed getting resource DST_KEY\n");
 		info->dstkey = 0;
@@ -153,7 +153,7 @@ int spw_bus_dev_register(struct rtems_drvmgr_bus_info *bus, struct spw_node *nod
 	strcpy(virq_name, "VIRQX");
 	for (virq=1; virq<5; virq++) {
 		virq_name[4] = '0' + virq;
-		value = rtems_drvmgr_key_val_get(node->keys, virq_name, KEY_TYPE_INT);
+		value = drvmgr_key_val_get(node->keys, virq_name, KEY_TYPE_INT);
 		if ( !value ) {
 			/* IRQ is optional, this device does not support VIRQ[X] */
 			info->virqs[virq-1] = -1;
@@ -176,7 +176,7 @@ int spw_bus_dev_register(struct rtems_drvmgr_bus_info *bus, struct spw_node *nod
 	newdev->bus = NULL;
 
 	/* Register new device */
-	rtems_drvmgr_dev_register(newdev);
+	drvmgr_dev_register(newdev);
 
 	return 0;
 }
@@ -200,7 +200,7 @@ void spw_bus_isr(int irq, void *arg)
 
 	priv = (struct spw_bus_priv *)(pvirq - offsetof(struct spw_bus_priv, virqs) - (virq-1));
 
-	/*rtems_drvmgr_interrupt_mask(priv->bus->dev, -irq);*/
+	/*drvmgr_interrupt_mask(priv->bus->dev, -irq);*/
 	gpiolib_irq_disable(priv->config->virq_table[virq-1].handle);
 
 	/* Mark IRQ was received */
@@ -240,7 +240,7 @@ void spwbus_task(rtems_task_argument argument)
 				}
 
 				/* Reenable the handled IRQ */
-				/*rtems_drvmgr_interrupt_unmask(priv->bus->dev, -irq);*/
+				/*drvmgr_interrupt_unmask(priv->bus->dev, -irq);*/
 				gpiolib_irq_enable(priv->config->virq_table[virq-1].handle);
 
 				virq++;
@@ -263,7 +263,7 @@ void spwbus_task(rtems_task_argument argument)
 	rtems_task_delete(RTEMS_SELF);
 }
 
-int spw_bus_init1(struct rtems_drvmgr_bus_info *bus)
+int spw_bus_init1(struct drvmgr_bus *bus)
 {
 	struct spw_node *node;
 	int i;
@@ -285,7 +285,7 @@ int spw_bus_init1(struct rtems_drvmgr_bus_info *bus)
 	}
 
 	if ( priv->config->resources )
-		rtems_drvmgr_bus_res_add(bus, priv->config->resources);
+		drvmgr_bus_res_add(bus, priv->config->resources);
 
 	/* Create Semaphore used when doing IRQ/ISR registering/enabling etc. */
 	status = rtems_semaphore_create(
@@ -388,7 +388,7 @@ int spw_bus_init1(struct rtems_drvmgr_bus_info *bus)
 	return DRVMGR_OK;
 }
 
-int spw_bus_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_info *dev)
+int spw_bus_unite(struct drvmgr_drv *drv, struct drvmgr_dev *dev)
 {
 	struct spw_bus_dev_info *info;
 	struct spw_bus_drv_info *spwdrv;
@@ -422,7 +422,7 @@ int spw_bus_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_inf
 	return 0;
 }
 
-int spw_bus_int_get(struct rtems_drvmgr_dev_info *dev, int index)
+int spw_bus_int_get(struct drvmgr_dev *dev, int index)
 {
 	int virq;
 
@@ -443,13 +443,13 @@ int spw_bus_int_get(struct rtems_drvmgr_dev_info *dev, int index)
 }
 
 int spw_bus_int_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
 	const char *info,
-	rtems_drvmgr_isr handler,
+	drvmgr_isr handler,
 	void *arg)
 {
-	struct rtems_drvmgr_bus_info *bus;
+	struct drvmgr_bus *bus;
 	struct spw_bus_priv *priv;
 	int status, virq;
 	void *handle;
@@ -485,7 +485,7 @@ int spw_bus_int_register(
 
 		/* Already done 
 		gpioLib_ (priv->virq_table[virq].fd, 
-		rtems_drvmgr_interrupt_register(bus->dev, -irq, spw_bus_isr, priv);
+		drvmgr_interrupt_register(bus->dev, -irq, spw_bus_isr, priv);
 		*/
 	}
 
@@ -494,9 +494,9 @@ int spw_bus_int_register(
 	return 0;
 }
 
-int spw_bus_int_unregister(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg)
+int spw_bus_int_unregister(struct drvmgr_dev *dev, int index, drvmgr_isr isr, void *arg)
 {
-	struct rtems_drvmgr_bus_info *bus;
+	struct drvmgr_bus *bus;
 	struct spw_bus_priv *priv;
 	int virq, status;
 	void *handle;
@@ -520,7 +520,7 @@ int spw_bus_int_unregister(struct rtems_drvmgr_dev_info *dev, int index, rtems_d
 	status = genirq_unregister(priv->genirq, virq, isr, arg);
 	if ( status == 0 ) {
 		/* Register a ISR for the first registered handler */
-		/*rtems_drvmgr_interrupt_unregister(bus->dev, -irq, spw_bus_isr, priv);*/
+		/*drvmgr_interrupt_unregister(bus->dev, -irq, spw_bus_isr, priv);*/
 	}
 
 	rtems_semaphore_release(priv->irqlock);
@@ -531,9 +531,9 @@ int spw_bus_int_unregister(struct rtems_drvmgr_dev_info *dev, int index, rtems_d
 #warning FIX SPW-BUS IRQ ENABLING/DISABLING
 #if 0
 /* Enable interrupt */
-int spw_bus_int_enable(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg)
+int spw_bus_int_enable(struct drvmgr_dev *dev, int index, drvmgr_isr isr, void *arg)
 {
-	struct rtems_drvmgr_bus_info *bus;
+	struct drvmgr_bus *bus;
 	struct spw_bus_priv *priv;
 	int virq, status;
 	void *handle;
@@ -561,7 +561,7 @@ int spw_bus_int_enable(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmg
 			DBG("SpW-BUS: Failed to Enable IRQ for VIRQ%d\n", virq);
 		}
 		/*
-		rtems_drvmgr_interrupt_enable(bus->dev, -irq, spw_bus_isr, priv);
+		drvmgr_interrupt_enable(bus->dev, -irq, spw_bus_isr, priv);
 		*/
 	}
 
@@ -571,9 +571,9 @@ int spw_bus_int_enable(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmg
 }
 
 /* Disable interrupt */
-int spw_bus_int_disable(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg)
+int spw_bus_int_disable(struct drvmgr_dev *dev, int index, drvmgr_isr isr, void *arg)
 {
-	struct rtems_drvmgr_bus_info *bus;
+	struct drvmgr_bus *bus;
 	struct spw_bus_priv *priv;
 	int virq, status;
 	void *handle;
@@ -598,7 +598,7 @@ int spw_bus_int_disable(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvm
 		if ( gpiolib_irq_disable(handle) ) {
 			DBG("SpW-BUS: Failed to Disable IRQ for VIRQ%d\n", virq);
 		}
-		/*rtems_drvmgr_interrupt_disable(bus->dev, -irq, spw_bus_isr, priv);*/
+		/*drvmgr_interrupt_disable(bus->dev, -irq, spw_bus_isr, priv);*/
 	}
 
 	rtems_semaphore_release(priv->irqlock);
@@ -607,9 +607,9 @@ int spw_bus_int_disable(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvm
 }
 #endif
 
-int spw_bus_int_clear(struct rtems_drvmgr_dev_info *dev, int index)
+int spw_bus_int_clear(struct drvmgr_dev *dev, int index)
 {
-	struct rtems_drvmgr_bus_info *bus;
+	struct drvmgr_bus *bus;
 	struct spw_bus_priv *priv;
 	int virq;
 	void *handle;
@@ -627,7 +627,7 @@ int spw_bus_int_clear(struct rtems_drvmgr_dev_info *dev, int index)
 		return -1;
 
 	/* Register a ISR for the first registered handler */
-	/*rtems_drvmgr_interrupt_clear(bus->dev, -irq, spw_bus_isr, priv);*/
+	/*drvmgr_interrupt_clear(bus->dev, -irq, spw_bus_isr, priv);*/
 	if ( gpiolib_irq_clear(handle)) {
 		DBG("SpW-BUS: Failed to Clear IRQ for VIRQ%d\n", virq);
 	}
@@ -636,7 +636,7 @@ int spw_bus_int_clear(struct rtems_drvmgr_dev_info *dev, int index)
 }
 
 /* Copy */
-int spw_bus_memcpy(struct rtems_drvmgr_dev_info *dev, void *dest, const void *src, int n)
+int spw_bus_memcpy(struct drvmgr_dev *dev, void *dest, const void *src, int n)
 {
 	struct rmap_command_read readcmd;
 	int status;
@@ -702,7 +702,7 @@ int spw_bus_memcpy(struct rtems_drvmgr_dev_info *dev, void *dest, const void *sr
 }
 
 /* Note that ((unsigned char *)src)[n] will be overwitten with the RMAP DATA CRC */
-int spw_bus_write_mem(struct rtems_drvmgr_dev_info *dev, void *dest, const void *src, int n)
+int spw_bus_write_mem(struct drvmgr_dev *dev, void *dest, const void *src, int n)
 {
 	struct rmap_command_write writecmd;
 	int status;
@@ -752,7 +752,7 @@ int spw_bus_write_mem(struct rtems_drvmgr_dev_info *dev, void *dest, const void 
 }
 
 int spw_bus_freq_get(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int options,
 	unsigned int *freq_hz)
 {
@@ -765,7 +765,7 @@ int spw_bus_freq_get(
 	return -1;
 }
 
-int spw_bus_read_io8(struct rtems_drvmgr_dev_info *dev, uint8_t *srcadr, uint8_t *result)
+int spw_bus_read_io8(struct drvmgr_dev *dev, uint8_t *srcadr, uint8_t *result)
 {
 	if ( spw_bus_memcpy(dev, result, srcadr, 1) ) {
 		return -1;
@@ -773,7 +773,7 @@ int spw_bus_read_io8(struct rtems_drvmgr_dev_info *dev, uint8_t *srcadr, uint8_t
 	return 0;
 }
 
-int spw_bus_read_io16(struct rtems_drvmgr_dev_info *dev, uint16_t *srcadr, uint16_t *result)
+int spw_bus_read_io16(struct drvmgr_dev *dev, uint16_t *srcadr, uint16_t *result)
 {
 	if ( spw_bus_memcpy(dev, result, srcadr, 2) ) {
 		return -1;
@@ -781,7 +781,7 @@ int spw_bus_read_io16(struct rtems_drvmgr_dev_info *dev, uint16_t *srcadr, uint1
 	return 0;
 }
 
-int spw_bus_read_io32(struct rtems_drvmgr_dev_info *dev, uint32_t *srcadr, uint32_t *result)
+int spw_bus_read_io32(struct drvmgr_dev *dev, uint32_t *srcadr, uint32_t *result)
 {
 	if ( spw_bus_memcpy(dev, result, srcadr, 4) ) {
 		return -1;
@@ -789,7 +789,7 @@ int spw_bus_read_io32(struct rtems_drvmgr_dev_info *dev, uint32_t *srcadr, uint3
 	return 0;
 }
 
-int spw_bus_read_io64(struct rtems_drvmgr_dev_info *dev, uint64_t *srcadr, uint64_t *result)
+int spw_bus_read_io64(struct drvmgr_dev *dev, uint64_t *srcadr, uint64_t *result)
 {
 	if ( spw_bus_memcpy(dev, result, srcadr, 8) ) {
 		return -1;
@@ -797,7 +797,7 @@ int spw_bus_read_io64(struct rtems_drvmgr_dev_info *dev, uint64_t *srcadr, uint6
 	return 0;
 }
 
-int spw_bus_write_io8(struct rtems_drvmgr_dev_info *dev, uint8_t *dstadr, uint8_t data)
+int spw_bus_write_io8(struct drvmgr_dev *dev, uint8_t *dstadr, uint8_t data)
 {
 	uint8_t buf[2]; /* One byte extra room for RMAP DATA CRC */
 
@@ -808,7 +808,7 @@ int spw_bus_write_io8(struct rtems_drvmgr_dev_info *dev, uint8_t *dstadr, uint8_
 	return 0;
 }
 
-int spw_bus_write_io16(struct rtems_drvmgr_dev_info *dev, uint16_t *dstadr, uint16_t data)
+int spw_bus_write_io16(struct drvmgr_dev *dev, uint16_t *dstadr, uint16_t data)
 {
 	uint16_t buf[2]; /* One byte extra room for RMAP DATA CRC */
 
@@ -819,7 +819,7 @@ int spw_bus_write_io16(struct rtems_drvmgr_dev_info *dev, uint16_t *dstadr, uint
 	return 0;
 }
 
-int spw_bus_write_io32(struct rtems_drvmgr_dev_info *dev, uint32_t *dstadr, uint32_t data)
+int spw_bus_write_io32(struct drvmgr_dev *dev, uint32_t *dstadr, uint32_t data)
 {
 	uint32_t buf[2]; /* One byte extra room for RMAP DATA CRC */
 
@@ -830,7 +830,7 @@ int spw_bus_write_io32(struct rtems_drvmgr_dev_info *dev, uint32_t *dstadr, uint
 	return 0;
 }
 
-int spw_bus_write_io64(struct rtems_drvmgr_dev_info *dev, uint64_t *dstadr, uint64_t data)
+int spw_bus_write_io64(struct drvmgr_dev *dev, uint64_t *dstadr, uint64_t data)
 {
 	uint64_t buf[2]; /* One byte extra room for RMAP DATA CRC */
 
@@ -841,7 +841,7 @@ int spw_bus_write_io64(struct rtems_drvmgr_dev_info *dev, uint64_t *dstadr, uint
 	return 0;
 }
 
-int spw_bus_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params)
+int spw_bus_get_params(struct drvmgr_dev *dev, struct drvmgr_bus_params *params)
 {
 	struct spw_bus_priv *priv = dev->parent->priv;
 
@@ -855,17 +855,17 @@ int spw_bus_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bu
 /*** START: THIS SHOULD BE MOVED TO GRSPW DRIVER ***/
 struct grspw_priv {
    /* configuration parameters */ 
-   struct rtems_drvmgr_dev_info *dev; /* Driver manager device */
+   struct drvmgr_dev *dev; /* Driver manager device */
    char devName[32]; /* Device Name */
    void *regs;
 };
-extern struct rtems_drvmgr_drv_info grspw_drv_info;
+extern struct drvmgr_drv grspw_drv_info;
 
 /* Find GRSPW device from device name */
-static struct rtems_drvmgr_dev_info *grspw_find_dev(char *devName)
+static struct drvmgr_dev *grspw_find_dev(char *devName)
 {
-	struct rtems_drvmgr_drv_info *drv = &grspw_drv_info;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_drv *drv = &grspw_drv_info;
+	struct drvmgr_dev *dev;
 	struct grspw_priv *grspw_priv;
 
 	dev = drv->dev;
@@ -883,8 +883,8 @@ static struct rtems_drvmgr_dev_info *grspw_find_dev(char *devName)
 /* Called from USER to attach bus */
 int spw_bus_register(struct spw_bus_config *config)
 {
-	struct rtems_drvmgr_dev_info *grspw_dev;
-	struct rtems_drvmgr_bus_info *bus;
+	struct drvmgr_dev *grspw_dev;
+	struct drvmgr_bus *bus;
 	struct spw_bus_priv *priv;
 
 	DBG("SpW-BUS: finding GRSPW device\n");
@@ -901,7 +901,7 @@ int spw_bus_register(struct spw_bus_config *config)
 	}
 
 	/* Allocate Bus and private structures */
-	rtems_drvmgr_alloc_bus(&bus, sizeof(*priv));
+	drvmgr_alloc_bus(&bus, sizeof(*priv));
 	priv = (struct spw_bus_priv *)(bus + 1);
 
 	/* Save the configuration for later */
@@ -914,14 +914,14 @@ int spw_bus_register(struct spw_bus_config *config)
 	bus->dev = grspw_dev;
 	bus->priv = priv;
 	bus->children = NULL;
-	bus->ops = (struct rtems_drvmgr_bus_ops *)&spw_bus_ops;
+	bus->ops = (struct drvmgr_bus_ops *)&spw_bus_ops;
 	bus->dev_cnt = 0;
 	bus->reslist = NULL;
 	bus->mmaps = NULL;
 	priv->bus = bus;
 
 	DBG("SpW-BUS: registering bus\n");
-	rtems_drvmgr_bus_register(bus); /* this will call spw_bus_init to register the devices */
+	drvmgr_bus_register(bus); /* this will call spw_bus_init to register the devices */
 
 	return 0;
 }

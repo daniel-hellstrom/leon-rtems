@@ -18,7 +18,7 @@
 
 /* Private structure of SPWCUC driver. */
 struct spwcuc_priv {
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	struct spwcuc_regs *regs;
 	int open;
 	
@@ -59,10 +59,10 @@ int spwcuc_reset(void *spwcuc)
 void *spwcuc_open(int minor)
 {
 	struct spwcuc_priv *priv;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	/* Get Device from Minor */
-	if ( rtems_drvmgr_get_dev(&spwcuc_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&spwcuc_drv_info.general, minor, &dev) ) {
 		return NULL;
 	}
 
@@ -99,7 +99,7 @@ void spwcuc_int_enable(void *spwcuc)
 	struct spwcuc_priv *priv = (struct spwcuc_priv *)spwcuc;
 
 	/* Register and Enable Interrupt at Interrupt controller */
-	rtems_drvmgr_interrupt_enable(priv->dev, 0, "spwcuc", spwcuc_isr, priv);
+	drvmgr_interrupt_enable(priv->dev, 0, "spwcuc", spwcuc_isr, priv);
 }
 
 void spwcuc_int_disable(void *spwcuc)
@@ -107,7 +107,7 @@ void spwcuc_int_disable(void *spwcuc)
 	struct spwcuc_priv *priv = (struct spwcuc_priv *)spwcuc;
 
 	/* Enable Interrupt at Interrupt controller */
-	rtems_drvmgr_interrupt_unregister(priv->dev, 0, spwcuc_isr, priv);
+	drvmgr_interrupt_unregister(priv->dev, 0, spwcuc_isr, priv);
 }
 
 void spwcuc_clr_stats(void *spwcuc)
@@ -304,7 +304,7 @@ void spwcuc_isr(void *data)
 
 /*** INTERFACE TO DRIVER MANAGER ***/
 
-int spwcuc_init2(struct rtems_drvmgr_dev_info *dev)
+int spwcuc_init2(struct drvmgr_dev *dev)
 {
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
@@ -333,7 +333,7 @@ int spwcuc_init2(struct rtems_drvmgr_dev_info *dev)
 	return 0;
 }
 
-struct rtems_drvmgr_drv_ops spwcuc_ops =
+struct drvmgr_drv_ops spwcuc_ops =
 {
 	{NULL, spwcuc_init2, NULL, NULL},
 	NULL,
@@ -364,5 +364,5 @@ struct amba_drv_info spwcuc_drv_info =
 /* Register the SPWCUC Driver */
 void spwcuc_register(void)
 {
-	rtems_drvmgr_drv_register(&spwcuc_drv_info.general);
+	drvmgr_drv_register(&spwcuc_drv_info.general);
 }

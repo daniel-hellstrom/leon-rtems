@@ -25,7 +25,7 @@
  * Since the Driver Manager pci_bus layer implements IRQ by calling
  * pci_interrupt_* which translates into BSP_shared_interrupt_*, and the
  * root-bus also relies on BSP_shared_interrupt_*, it is safe for the GRPCI2
- * driver to use the rtems_drvmgr_interrupt_* routines since they will be
+ * driver to use the drvmgr_interrupt_* routines since they will be
  * accessing the same routines in the end. Otherwise the GRPCI2 driver must
  * have used the pci_interrupt_* routines.
  *
@@ -226,7 +226,7 @@ struct grpci2_pcibar_cfg grpci2_default_bar_mapping[6] = {
 
 /* Driver private data struture */
 struct grpci2_priv {
-	struct rtems_drvmgr_dev_info	*dev;
+	struct drvmgr_dev	*dev;
 	struct grpci2_regs		*regs;
 	char				irq;
 	char				irq_mode; /* IRQ Mode from CAPSTS REG */
@@ -244,12 +244,12 @@ struct grpci2_priv {
 	uint32_t			devVend; /* Host PCI Device/Vendor ID */
 };
 
-int grpci2_init1(struct rtems_drvmgr_dev_info *dev);
-int grpci2_init3(struct rtems_drvmgr_dev_info *dev);
+int grpci2_init1(struct drvmgr_dev *dev);
+int grpci2_init3(struct drvmgr_dev *dev);
 
 /* GRPCI2 DRIVER */
 
-struct rtems_drvmgr_drv_ops grpci2_ops = 
+struct drvmgr_drv_ops grpci2_ops = 
 {
 	.init = {grpci2_init1, NULL, grpci2_init3, NULL},
 	.remove = NULL,
@@ -281,7 +281,7 @@ struct amba_drv_info grpci2_info =
 void grpci2_register_drv(void)
 {
 	DBG("Registering GRPCI2 driver\n");
-	rtems_drvmgr_drv_register(&grpci2_info.general);
+	drvmgr_drv_register(&grpci2_info.general);
 }
 
 int grpci2_cfg_r32(pci_dev_t dev, int ofs, uint32_t *val)
@@ -690,7 +690,7 @@ int grpci2_init(struct grpci2_priv *priv)
 	struct ambapp_apb_info *apb;
 	struct ambapp_ahb_info *ahb;
 	int pin, erridx;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 	char keyname[6];
 	struct amba_dev_info *ainfo = priv->dev->businfo;
 	struct grpci2_pcibar_cfg *barcfg;
@@ -740,7 +740,7 @@ int grpci2_init(struct grpci2_priv *priv)
 
 			/* User may override Both hardcoded IRQ setup and Plug & Play IRQ */
 			keyname[3] = 'A' + (pin-1);
-			value = rtems_drvmgr_dev_key_get(priv->dev, keyname, KEY_TYPE_INT);
+			value = drvmgr_dev_key_get(priv->dev, keyname, KEY_TYPE_INT);
 			if (value)
 				grpci2_pci_irq_table[pin-1] = value->i;
 		}
@@ -751,12 +751,12 @@ int grpci2_init(struct grpci2_priv *priv)
 	}
 
 	/* User may override DEFAULT_BT_ENABLED to enable/disable byte twisting */
-	value = rtems_drvmgr_dev_key_get(priv->dev, "byteTwisting", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "byteTwisting", KEY_TYPE_INT);
 	if (value)
 		priv->bt_enabled = value->i;
 
 	/* Let user Configure the 6 target BARs */
-	value = rtems_drvmgr_dev_key_get(priv->dev, "tgtBarCfg", KEY_TYPE_POINTER);
+	value = drvmgr_dev_key_get(priv->dev, "tgtBarCfg", KEY_TYPE_POINTER);
 	if (value)
 		priv->barcfg = value->ptr;
 	else
@@ -777,7 +777,7 @@ int grpci2_init(struct grpci2_priv *priv)
 /* Called when a core is found with the AMBA device and vendor ID 
  * given in grpci2_ids[]. IRQ, Console does not work here
  */
-int grpci2_init1(struct rtems_drvmgr_dev_info *dev)
+int grpci2_init1(struct drvmgr_dev *dev)
 {
 	int status;
 	struct grpci2_priv *priv;
@@ -843,12 +843,12 @@ int grpci2_init1(struct rtems_drvmgr_dev_info *dev)
 	return pcibus_register(dev);
 }
 
-int grpci2_init3(struct rtems_drvmgr_dev_info *dev)
+int grpci2_init3(struct drvmgr_dev *dev)
 {
 	struct grpci2_priv *priv = dev->priv;
 
 	/* Install and Enable PCI Error interrupt handler */
-	rtems_drvmgr_interrupt_register(dev, 0, "grpci2", grpci2_err_isr, priv);
+	drvmgr_interrupt_register(dev, 0, "grpci2", grpci2_err_isr, priv);
 
 	/* Unmask Error IRQ and all PCI interrupts at PCI Core. For this to be
 	 * safe every PCI board have to be resetted (no IRQ generation) before

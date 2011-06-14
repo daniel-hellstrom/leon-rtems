@@ -14,7 +14,7 @@
  * the devmgr_confdefs.h. No specifc drivers needed by BSP since IRQ/TIMER/UART
  * is not drvmgr drivers.
  */
-struct rtems_drvmgr_drv_reg_func rtems_drvmgr_drivers[] __attribute__((weak)) =
+struct drvmgr_drv_reg_func drvmgr_drivers[] __attribute__((weak)) =
 {
           {NULL} /* End array with NULL */
 };
@@ -39,7 +39,7 @@ struct leon2_bus leon2_bus_config __attribute__((weak)) =
  * LEON2 cores, it is up to the driver to look at the configuration paramters
  * once started.
  */
-struct rtems_drvmgr_drv_res leon2_amba_res[] __attribute__((weak)) =
+struct drvmgr_drv_res leon2_amba_res[] __attribute__((weak)) =
 {
         RES_EMPTY
 };

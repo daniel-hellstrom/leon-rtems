@@ -34,7 +34,7 @@ extern void apbuart_cons_register_drv(void);
 /* All drivers included by BSP, this is overridden by the user by including
  * the devmgr_confdefs.h. By default the Timer and UART driver is included.
  */
-struct rtems_drvmgr_drv_reg_func rtems_drvmgr_drivers[] __attribute__((weak)) =
+struct drvmgr_drv_reg_func drvmgr_drivers[] __attribute__((weak)) =
 {
   {gptimer_register_drv},
   {apbuart_cons_register_drv},
@@ -45,7 +45,7 @@ struct rtems_drvmgr_drv_reg_func rtems_drvmgr_drivers[] __attribute__((weak)) =
  * so that the user may override it, if the defualt settings are not
  * enough.
  */
-struct rtems_drvmgr_bus_res grlib_drv_resources __attribute__((weak)) =
+struct drvmgr_bus_res grlib_drv_resources __attribute__((weak)) =
 {
   .next = NULL,
   .resource =

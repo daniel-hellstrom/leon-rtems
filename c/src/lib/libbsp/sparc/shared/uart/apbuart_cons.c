@@ -47,7 +47,7 @@
 
 struct apbuart_priv {
 	struct console_dev condev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	ambapp_apb_uart *regs;
 	char devName[32];
 	void *cookie;
@@ -72,10 +72,10 @@ void apbuart_dbg_out_char(struct console_dev *, char c);
 
 void apbuart_isr(void *arg);
 
-int apbuart_init1(struct rtems_drvmgr_dev_info *dev);
+int apbuart_init1(struct drvmgr_dev *dev);
 #ifdef APBUART_INFO
 static int apbuart_info(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	void (*print_line)(void *p, char *str),
 	void *p, int, char *argv[]);
 #define APBUART_INFO_FUNC apbuart_info
@@ -83,7 +83,7 @@ static int apbuart_info(
 #define APBUART_INFO_FUNC NULL
 #endif
 
-struct rtems_drvmgr_drv_ops apbuart_ops = 
+struct drvmgr_drv_ops apbuart_ops = 
 {
 	.init = {apbuart_init1, NULL, NULL, NULL},
 	.remove = NULL,
@@ -115,7 +115,7 @@ static struct amba_drv_info apbuart_drv_info =
 void apbuart_cons_register_drv (void)
 {
 	DBG("Registering APBUART Console driver\n");
-	rtems_drvmgr_drv_register(&apbuart_drv_info.general);
+	drvmgr_drv_register(&apbuart_drv_info.general);
 }
 
 /* Interrupt mode routines */
@@ -160,12 +160,12 @@ struct console_dbg_ops apbuart_dbg_ops = {
 	.out_char = apbuart_dbg_out_char,
 };
 
-int apbuart_init1(struct rtems_drvmgr_dev_info *dev)
+int apbuart_init1(struct drvmgr_dev *dev)
 {
 	struct apbuart_priv *priv;
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 	char prefix[32];
 	unsigned int db;
 
@@ -194,19 +194,19 @@ int apbuart_init1(struct rtems_drvmgr_dev_info *dev)
 	 * this behaviour by setting the syscon option to 0, same goes for
 	 * printk() debug console (dbgcon=0).
 	 */
-	if ( rtems_drvmgr_on_rootbus(dev) && (dev->minor_drv == 0) )
+	if ( drvmgr_on_rootbus(dev) && (dev->minor_drv == 0) )
 		priv->condev.flags = CONSOLE_FLAG_SYSCON | CONSOLE_FLAG_DBGCON;
 	else
 		priv->condev.flags = 0;
 
-	value = rtems_drvmgr_dev_key_get(priv->dev, "syscon", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "syscon", KEY_TYPE_INT);
 	if ( value ) {
 		if ( value->i )
 			priv->condev.flags |= CONSOLE_FLAG_SYSCON;
 		else
 			priv->condev.flags &= ~CONSOLE_FLAG_SYSCON;
 	}
-	value = rtems_drvmgr_dev_key_get(priv->dev, "dbgcon", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "dbgcon", KEY_TYPE_INT);
 	if ( value ) {
 		if ( value->i )
 			priv->condev.flags |= CONSOLE_FLAG_DBGCON;
@@ -218,7 +218,7 @@ int apbuart_init1(struct rtems_drvmgr_dev_info *dev)
 	priv->condev.fsname = NULL;
 
 	/* Select 0=Polled, 1=IRQ, 2=Task-Driven UART Mode */
-	value = rtems_drvmgr_dev_key_get(priv->dev, "mode", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(priv->dev, "mode", KEY_TYPE_INT);
 	if ( value )
 		priv->mode = value->i;
 	else
@@ -233,7 +233,7 @@ int apbuart_init1(struct rtems_drvmgr_dev_info *dev)
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Got special prefix, this means we have a bus prefix
 		 * And we should use our "bus minor"
 		 */
@@ -251,7 +251,7 @@ int apbuart_init1(struct rtems_drvmgr_dev_info *dev)
 
 #ifdef APBUART_INFO
 static int apbuart_info(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	void (*print_line)(void *p, char *str),
 	void *p, int argc, char *argv[])
 {
@@ -347,7 +347,7 @@ int apbuart_firstOpen(int major, int minor, void *arg)
 
 	if ( uart->mode != TERMIOS_POLLED ) {
 		/* Register interrupt and enable it */
-		rtems_drvmgr_interrupt_register(uart->dev, 0, "apbuart",
+		drvmgr_interrupt_register(uart->dev, 0, "apbuart",
 						apbuart_isr, uart);
 
 		uart->sending = 0;
@@ -372,7 +372,7 @@ int apbuart_lastClose(int major, int minor, void *arg)
 		}
 
 		/* Disable and unregister interrupt handler */
-		rtems_drvmgr_interrupt_unregister(uart->dev, 0, apbuart_isr, uart);
+		drvmgr_interrupt_unregister(uart->dev, 0, apbuart_isr, uart);
 	}
 
 	/* Disable TX/RX if not used for DEBUG */
@@ -486,7 +486,7 @@ int apbuart_set_attributes(int minor, const struct termios *t)
 
 	if ( baud > 0 ){
 		/* Get APBUART core frequency */
-		rtems_drvmgr_freq_get(uart->dev, DEV_APB_SLV, &core_clk_hz);
+		drvmgr_freq_get(uart->dev, DEV_APB_SLV, &core_clk_hz);
 
 		/* Calculate Baud rate generator "scaler" number */
 		scaler = (((core_clk_hz*10)/(baud*8))-5)/10;

@@ -38,7 +38,7 @@ struct router_regs {
 
 struct router_priv {
 	char devName[32];
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	struct router_regs *regs;
 	int minor;
 	int open;
@@ -89,9 +89,9 @@ static rtems_device_major_number router_driver_io_major = 0;
 /* Driver prototypes */
 int router_register_io(rtems_device_major_number *m);
 
-int router_init2(struct rtems_drvmgr_dev_info *dev);
+int router_init2(struct drvmgr_dev *dev);
 
-struct rtems_drvmgr_drv_ops router_ops = 
+struct drvmgr_drv_ops router_ops = 
 {
 	.init = {NULL,  router_init2, NULL, NULL},
 	.remove = NULL,
@@ -122,10 +122,10 @@ struct amba_drv_info router_drv_info =
 
 void router_register_drv (void)
 {
-	rtems_drvmgr_drv_register(&router_drv_info.general);
+	drvmgr_drv_register(&router_drv_info.general);
 }
 
-int router_init2(struct rtems_drvmgr_dev_info *dev)
+int router_init2(struct drvmgr_dev *dev)
 {
 	struct router_priv *priv = dev->priv;
 	struct amba_dev_info *ambadev;
@@ -167,7 +167,7 @@ int router_init2(struct rtems_drvmgr_dev_info *dev)
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Failed to get prefix, make sure of a unique FS name
 		 * by using the driver minor.
 		 */
@@ -229,9 +229,9 @@ static rtems_device_driver router_open(
 	)
 {
 	struct router_priv *priv;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
-	if ( rtems_drvmgr_get_dev(&router_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&router_drv_info.general, minor, &dev) ) {
 		ROUTER_DBG("Wrong minor %d\n", minor);
 		return RTEMS_INVALID_NAME;
 	}
@@ -253,9 +253,9 @@ static rtems_device_driver router_close(
         )
 {
 	struct router_priv *priv;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
-	if ( rtems_drvmgr_get_dev(&router_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&router_drv_info.general, minor, &dev) ) {
 		ROUTER_DBG("Wrong minor %d\n", minor);
 		return RTEMS_INVALID_NAME;
 	}
@@ -429,11 +429,11 @@ static rtems_device_driver router_control(
 	)
 {
 	struct router_priv *priv;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	rtems_libio_ioctl_args_t *ioarg = (rtems_libio_ioctl_args_t *) arg;
 	void *argp = (void *)ioarg->buffer;
 
-	if ( rtems_drvmgr_get_dev(&router_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&router_drv_info.general, minor, &dev) ) {
 		ROUTER_DBG("Wrong minor %d\n", minor);
 		return RTEMS_INVALID_NAME;
 	}

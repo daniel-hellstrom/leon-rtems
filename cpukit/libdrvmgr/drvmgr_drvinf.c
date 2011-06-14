@@ -22,12 +22,12 @@
 /* Get device pointer from knowing the Driver and the Driver minor 
  * that was assigned to it
  */
-int rtems_drvmgr_get_dev(
-	struct rtems_drvmgr_drv_info *drv,
+int drvmgr_get_dev(
+	struct drvmgr_drv *drv,
 	int minor,
-	struct rtems_drvmgr_dev_info **pdev)
+	struct drvmgr_dev **pdev)
 {
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	if ( !drv )
 		return -1;
 	dev = drv->dev;
@@ -44,8 +44,8 @@ int rtems_drvmgr_get_dev(
 }
 
 /* Get Bus frequency in HZ from bus driver */
-int rtems_drvmgr_freq_get(
-	struct rtems_drvmgr_dev_info *dev,
+int drvmgr_freq_get(
+	struct drvmgr_dev *dev,
 	int options, 
 	unsigned int *freq_hz)
 {
@@ -56,9 +56,9 @@ int rtems_drvmgr_freq_get(
 }
 
 /* Get driver prefix */
-int rtems_drvmgr_get_dev_prefix(struct rtems_drvmgr_dev_info *dev, char *dev_prefix)
+int drvmgr_get_dev_prefix(struct drvmgr_dev *dev, char *dev_prefix)
 {
-	struct rtems_drvmgr_bus_params params;
+	struct drvmgr_bus_params params;
 	if ( !dev || !dev->parent || !dev->parent->ops->get_params)
 		return -1;
 
@@ -71,11 +71,11 @@ int rtems_drvmgr_get_dev_prefix(struct rtems_drvmgr_dev_info *dev, char *dev_pre
 }
 
 /* Register an interrupt */
-int rtems_drvmgr_interrupt_register(
-	struct rtems_drvmgr_dev_info *dev,
+int drvmgr_interrupt_register(
+	struct drvmgr_dev *dev,
 	int index,
 	const char *info,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg)
 {
 	if ( !dev || !dev->parent || !dev->parent->ops->int_register)
@@ -88,10 +88,10 @@ int rtems_drvmgr_interrupt_register(
 }
 
 /* Unregister an interrupt */
-int rtems_drvmgr_interrupt_unregister(
-	struct rtems_drvmgr_dev_info *dev,
+int drvmgr_interrupt_unregister(
+	struct drvmgr_dev *dev,
 	int index,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg)
 {
 	if ( !dev || !dev->parent || !dev->parent->ops->int_unregister)
@@ -103,8 +103,8 @@ int rtems_drvmgr_interrupt_unregister(
 	return dev->parent->ops->int_unregister(dev, index, isr, arg);
 }
 
-int rtems_drvmgr_interrupt_clear(
-	struct rtems_drvmgr_dev_info *dev,
+int drvmgr_interrupt_clear(
+	struct drvmgr_dev *dev,
 	int index)
 {
 	if ( !dev || !dev->parent || !dev->parent->ops->int_clear)
@@ -113,8 +113,8 @@ int rtems_drvmgr_interrupt_clear(
 	return dev->parent->ops->int_clear(dev, index);
 }
 
-int rtems_drvmgr_interrupt_unmask(
-	struct rtems_drvmgr_dev_info *dev,
+int drvmgr_interrupt_unmask(
+	struct drvmgr_dev *dev,
 	int index)
 {
 	if ( !dev || !dev->parent || !dev->parent->ops->int_unmask)
@@ -123,8 +123,8 @@ int rtems_drvmgr_interrupt_unmask(
 	return dev->parent->ops->int_unmask(dev, index);
 }
 
-int rtems_drvmgr_interrupt_mask(
-	struct rtems_drvmgr_dev_info *dev,
+int drvmgr_interrupt_mask(
+	struct drvmgr_dev *dev,
 	int index)
 {
 	if ( !dev || !dev->parent || !dev->parent->ops->int_mask)
@@ -133,7 +133,7 @@ int rtems_drvmgr_interrupt_mask(
 	return dev->parent->ops->int_mask(dev, index);
 }
 
-int rtems_drvmgr_on_rootbus(struct rtems_drvmgr_dev_info *dev)
+int drvmgr_on_rootbus(struct drvmgr_dev *dev)
 {
 	if ( dev->parent && dev->parent->dev && dev->parent->dev->parent )
 		return 0;

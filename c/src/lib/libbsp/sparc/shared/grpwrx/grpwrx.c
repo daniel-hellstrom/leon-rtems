@@ -176,7 +176,7 @@ struct grpwrx_ring {
 };
 
 struct grpwrx_priv {
-	struct rtems_drvmgr_dev_info	*dev;		/* Driver manager device */
+	struct drvmgr_dev	*dev;		/* Driver manager device */
 	char			devName[32];	/* Device Name */
 	struct grpwrx_regs	*regs;
 	int			irq;
@@ -231,10 +231,10 @@ static rtems_device_major_number grpwrx_driver_io_major = 0;
 static int grpwrx_register_io(rtems_device_major_number *m);
 static int grpwrx_device_init(struct grpwrx_priv *pDev);
 
-static int grpwrx_init2(struct rtems_drvmgr_dev_info *dev);
-static int grpwrx_init3(struct rtems_drvmgr_dev_info *dev);
+static int grpwrx_init2(struct drvmgr_dev *dev);
+static int grpwrx_init3(struct drvmgr_dev *dev);
 
-static struct rtems_drvmgr_drv_ops grpwrx_ops = 
+static struct drvmgr_drv_ops grpwrx_ops = 
 {
 	{NULL, grpwrx_init2, grpwrx_init3, NULL},
 	NULL,
@@ -265,10 +265,10 @@ static struct amba_drv_info grpwrx_drv_info =
 void grpwrx_register_drv (void)
 {
 	DBG("Registering GRPWRX driver\n");
-	rtems_drvmgr_drv_register(&grpwrx_drv_info.general);
+	drvmgr_drv_register(&grpwrx_drv_info.general);
 }
 
-static int grpwrx_init2(struct rtems_drvmgr_dev_info *dev)
+static int grpwrx_init2(struct drvmgr_dev *dev)
 {
 	struct grpwrx_priv *priv;
 
@@ -284,7 +284,7 @@ static int grpwrx_init2(struct rtems_drvmgr_dev_info *dev)
 	return DRVMGR_OK;
 }
 
-static int grpwrx_init3(struct rtems_drvmgr_dev_info *dev)
+static int grpwrx_init3(struct drvmgr_dev *dev)
 {
 	struct grpwrx_priv *priv;
 	char prefix[32];
@@ -314,7 +314,7 @@ static int grpwrx_init3(struct rtems_drvmgr_dev_info *dev)
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Failed to get prefix, make sure of a unique FS name
 		 * by using the driver minor.
 		 */
@@ -526,7 +526,7 @@ static int grpwrx_start(struct grpwrx_priv *pDev)
 	regs->dma_status = GRPWRX_DMA_STS_ALL;
 
 	/* Set Descriptor Pointer Base register to point to first descriptor */
-	rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->bds, (void **)&transaddr);
+	drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->bds, (void **)&transaddr);
 	regs->dma_bd = transaddr;
 
 	DBG("GRPWRX: set bd to 0x%08x\n",transaddr);
@@ -576,11 +576,11 @@ static rtems_device_driver grpwrx_open(
 	void *arg)
 {
 	struct grpwrx_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&grpwrx_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grpwrx_drv_info.general, minor, &dev) ) {
 		DBG("Wrong minor %d\n", minor);
 		return RTEMS_INVALID_NUMBER;
 	}
@@ -625,11 +625,11 @@ static rtems_device_driver grpwrx_open(
 static rtems_device_driver grpwrx_close(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	struct grpwrx_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&grpwrx_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grpwrx_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NUMBER;
 	}
 	pDev = (struct grpwrx_priv *)dev->priv;
@@ -785,7 +785,7 @@ static int grpwrx_schedule_ready(struct grpwrx_priv *pDev, int ints_off)
 		 */
 		if ( curr_frm->flags & (GRPWRX_FLAGS_TRANSLATE|GRPWRX_FLAGS_TRANSLATE_AND_REMEMBER) ) {
 			/* Do translation */
-			rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)curr_frm->payload, (void **)&transaddr);
+			drvmgr_mmap_translate(pDev->dev, 0, (void *)curr_frm->payload, (void **)&transaddr);
 			curr_bd->bd->address = transaddr;
 			if ( curr_frm->flags & GRPWRX_FLAGS_TRANSLATE_AND_REMEMBER ) {
 				if ( curr_frm->payload != curr_bd->bd->address ) {
@@ -916,7 +916,7 @@ static void grpwrx_printstatus(struct grpwrx_priv *pDev, struct grpwrx_print_sta
 static rtems_device_driver grpwrx_ioctl(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	struct grpwrx_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	rtems_libio_ioctl_args_t *ioarg = (rtems_libio_ioctl_args_t *)arg;
 	unsigned int *data = ioarg->buffer;
 	int status;
@@ -932,7 +932,7 @@ static rtems_device_driver grpwrx_ioctl(rtems_device_major_number major, rtems_d
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&grpwrx_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grpwrx_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NUMBER;
 	}
 	pDev = (struct grpwrx_priv *)dev->priv;
@@ -950,7 +950,7 @@ static rtems_device_driver grpwrx_ioctl(rtems_device_major_number major, rtems_d
 			return status;
 		}
 		/* Register interrupt handler & Enable interrupt */
-		rtems_drvmgr_interrupt_register(dev, 0, "grpwrx", grpwrx_interrupt, pDev);
+		drvmgr_interrupt_register(dev, 0, "grpwrx", grpwrx_interrupt, pDev);
 
 		/* Read and write are now open... */
 		break;
@@ -961,7 +961,7 @@ static rtems_device_driver grpwrx_ioctl(rtems_device_major_number major, rtems_d
 		}
 
 		/* Disable interrupts */
-		rtems_drvmgr_interrupt_unregister(dev, 0, grpwrx_interrupt, pDev);
+		drvmgr_interrupt_unregister(dev, 0, grpwrx_interrupt, pDev);
 		grpwrx_stop(pDev);
 		pDev->running = 0;
 		break;

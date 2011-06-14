@@ -30,32 +30,32 @@
 #define DBG(args...)
 
 int ambapp_leon2_int_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
 	const char *info,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg);
 int ambapp_leon2_int_unregister(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg);
 int ambapp_leon2_int_clear(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index);
 int ambapp_leon2_int_mask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq);
 int ambapp_leon2_int_unmask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq);
 int ambapp_leon2_get_params(
-	struct rtems_drvmgr_dev_info *dev,
-	struct rtems_drvmgr_bus_params *params);
+	struct drvmgr_dev *dev,
+	struct drvmgr_bus_params *params);
 
-int ambapp_leon2_init1(struct rtems_drvmgr_dev_info *dev);
-int ambapp_leon2_init2(struct rtems_drvmgr_dev_info *dev);
-int ambapp_leon2_remove(struct rtems_drvmgr_dev_info *dev);
+int ambapp_leon2_init1(struct drvmgr_dev *dev);
+int ambapp_leon2_init2(struct drvmgr_dev *dev);
+int ambapp_leon2_remove(struct drvmgr_dev *dev);
 
 struct ambappl2_priv {
 	struct ambapp_bus abus;
@@ -71,7 +71,7 @@ struct ambapp_ops ambapp_leon2_ops = {
 	.get_params = ambapp_leon2_get_params
 };
 
-struct rtems_drvmgr_drv_ops ambapp_ops = 
+struct drvmgr_drv_ops ambapp_ops = 
 {
 	.init = {ambapp_leon2_init1, ambapp_leon2_init2, NULL, NULL},
 	.remove = ambapp_leon2_remove,
@@ -102,13 +102,13 @@ struct leon2_amba_drv_info ambapp_bus_drv_leon2 =
 
 void ambapp_leon2_register(void)
 {
-	rtems_drvmgr_drv_register(&ambapp_bus_drv_leon2.general);
+	drvmgr_drv_register(&ambapp_bus_drv_leon2.general);
 }
 
 /* Function called from a hard configuration */
-int ambapp_leon2_init1(struct rtems_drvmgr_dev_info *dev)
+int ambapp_leon2_init1(struct drvmgr_dev *dev)
 {
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 	struct ambappl2_priv *priv = dev->priv;
 	struct leon2_amba_dev_info *devinfo;
 	struct ambapp_config *config;
@@ -134,7 +134,7 @@ int ambapp_leon2_init1(struct rtems_drvmgr_dev_info *dev)
 
 	/* Try to get Configuration from resource configuration */
 
-	value = rtems_drvmgr_dev_key_get(dev, "busFreq", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(dev, "busFreq", KEY_TYPE_INT);
 	if ( value ) {
 		/* Set frequency of AMBA bus if specified by user. The frequency
 		 * must be for AHB bus which IOAREA matches (AHB bus 0).
@@ -150,85 +150,85 @@ int ambapp_leon2_init1(struct rtems_drvmgr_dev_info *dev)
 	/* Note that this can be overrided by a driver on the AMBA PnP bus.*/
 	ambapp_freq_init(&priv->abus, NULL, freq_hz);
 
-	value = rtems_drvmgr_dev_key_get(dev, "drvRes", KEY_TYPE_POINTER);
+	value = drvmgr_dev_key_get(dev, "drvRes", KEY_TYPE_POINTER);
 	if ( !value ) {
 		DBG("ambapp_leon2_init1: Failed getting resource drvRes\n");
 		config->resources = NULL;
 	} else {
 		DBG("ambapp_leon2_init1: drvRes: 0x%08x\n", (unsigned int)value->ptr);
-		config->resources = (struct rtems_drvmgr_bus_res *)value->ptr;
+		config->resources = (struct drvmgr_bus_res *)value->ptr;
 	}
 
 	/* Initialize the AMBA Bus */
 	return ambapp_bus_register(dev, config);
 }
 
-int ambapp_leon2_init2(struct rtems_drvmgr_dev_info *dev)
+int ambapp_leon2_init2(struct drvmgr_dev *dev)
 {
 	return 0;
 }
 
-int ambapp_leon2_remove(struct rtems_drvmgr_dev_info *dev)
+int ambapp_leon2_remove(struct drvmgr_dev *dev)
 {
 	return 0;
 }
 
 int ambapp_leon2_int_register
 	(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
 	const char *info,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg
 	)
 {
 	/* Let LEON2 bus handle interrupt requests */
-	return rtems_drvmgr_interrupt_register(dev->parent->dev, index, info, isr, arg);
+	return drvmgr_interrupt_register(dev->parent->dev, index, info, isr, arg);
 }
 
 int ambapp_leon2_int_unregister
 	(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg
 	)
 {
 	/* Let LEON2 bus handle interrupt requests */
-	return rtems_drvmgr_interrupt_unregister(dev->parent->dev, index, isr, arg);
+	return drvmgr_interrupt_unregister(dev->parent->dev, index, isr, arg);
 }
 
 int ambapp_leon2_int_clear
 	(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index
 	)
 {
 	/* Let LEON2 bus handle interrupt requests */
-	return rtems_drvmgr_interrupt_clear(dev->parent->dev, index);
+	return drvmgr_interrupt_clear(dev->parent->dev, index);
 }
 
 int ambapp_leon2_int_mask
 	(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index
 	)
 {
 	/* Let LEON2 bus handle interrupt requests */
-	return rtems_drvmgr_interrupt_mask(dev->parent->dev, index);
+	return drvmgr_interrupt_mask(dev->parent->dev, index);
 }
 
 int ambapp_leon2_int_unmask
 	(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index
 	)
 {
 	/* Let LEON2 bus handle interrupt requests */
-	return rtems_drvmgr_interrupt_unmask(dev->parent->dev, index);
+	return drvmgr_interrupt_unmask(dev->parent->dev, index);
 }
 
-int ambapp_leon2_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params)
+int ambapp_leon2_get_params(struct drvmgr_dev *dev, struct drvmgr_bus_params *params)
 {
 	params->dev_prefix = "";
 	return 0;

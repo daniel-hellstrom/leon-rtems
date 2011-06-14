@@ -150,7 +150,7 @@
 
 struct spictrl_priv {
 	rtems_libi2c_bus_t		i2clib_desc;
-	struct rtems_drvmgr_dev_info	*dev;
+	struct drvmgr_dev	*dev;
 	struct spictrl_regs		*regs;
 	int				irq;
 	int				minor;
@@ -174,10 +174,10 @@ struct spictrl_priv {
 
 int spictrl_device_init(struct spictrl_priv *priv);
 
-int spictrl_init2(struct rtems_drvmgr_dev_info *dev);
-int spictrl_init3(struct rtems_drvmgr_dev_info *dev);
+int spictrl_init2(struct drvmgr_dev *dev);
+int spictrl_init3(struct drvmgr_dev *dev);
 
-struct rtems_drvmgr_drv_ops spictrl_ops = 
+struct drvmgr_drv_ops spictrl_ops = 
 {
 	.init = {NULL, spictrl_init2, spictrl_init3, NULL},
 	.remove = NULL,
@@ -208,10 +208,10 @@ struct amba_drv_info spictrl_drv_info =
 void spictrl_register_drv (void)
 {
 	DBG("Registering SPICTRL driver\n");
-	rtems_drvmgr_drv_register(&spictrl_drv_info.general);
+	drvmgr_drv_register(&spictrl_drv_info.general);
 }
 
-int spictrl_init2(struct rtems_drvmgr_dev_info *dev)
+int spictrl_init2(struct drvmgr_dev *dev)
 {
 	struct spictrl_priv *priv;
 
@@ -228,7 +228,7 @@ int spictrl_init2(struct rtems_drvmgr_dev_info *dev)
 	return DRVMGR_OK;
 }
 
-int spictrl_init3(struct rtems_drvmgr_dev_info *dev)
+int spictrl_init3(struct drvmgr_dev *dev)
 {
 	struct spictrl_priv *priv;
 	char prefix[16];
@@ -253,7 +253,7 @@ int spictrl_init3(struct rtems_drvmgr_dev_info *dev)
 	 */
 
 	/* Get frequency */
-	if ( rtems_drvmgr_freq_get(dev, DEV_APB_SLV, &priv->core_freq_hz) ) {
+	if ( drvmgr_freq_get(dev, DEV_APB_SLV, &priv->core_freq_hz) ) {
 		return DRVMGR_FAIL;
 	}
 
@@ -265,7 +265,7 @@ int spictrl_init3(struct rtems_drvmgr_dev_info *dev)
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Failed to get prefix, make sure of a unique FS name
 		 * by using the driver minor.
 		 */
@@ -977,7 +977,7 @@ int spictrl_device_init(struct spictrl_priv *priv)
 {
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 
 	/* Get device information from AMBA PnP information */
 	ambadev = (struct amba_dev_info *)priv->dev->businfo;
@@ -998,7 +998,7 @@ int spictrl_device_init(struct spictrl_priv *priv)
 	priv->regs->mode = 0;
 
 	/* Get custom */
-	value = rtems_drvmgr_dev_key_get(priv->dev, "slvSelFunc", KEY_TYPE_POINTER);
+	value = drvmgr_dev_key_get(priv->dev, "slvSelFunc", KEY_TYPE_POINTER);
 	if ( value ) {
 		priv->slvSelFunc = value->ptr;
 	}

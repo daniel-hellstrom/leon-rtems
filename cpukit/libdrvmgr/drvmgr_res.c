@@ -12,11 +12,11 @@
 #include <drvmgr/drvmgr.h>
 
 /* Find all the resource keys for a device among all bus resources */
-int rtems_drvmgr_keys_get(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_key **keys)
+int drvmgr_keys_get(struct drvmgr_dev *dev, struct drvmgr_key **keys)
 {
-	struct rtems_drvmgr_bus_info *bus;
-	struct rtems_drvmgr_bus_res *node;
-	struct rtems_drvmgr_drv_res *res;
+	struct drvmgr_bus *bus;
+	struct drvmgr_bus_res *node;
+	struct drvmgr_drv_res *res;
 	uint64_t drv_id;
 
 	bus = dev->parent;
@@ -54,11 +54,11 @@ int rtems_drvmgr_keys_get(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr
 }
 
 /* Return key that matches key name */
-struct rtems_drvmgr_key *rtems_drvmgr_key_get(
-	struct rtems_drvmgr_key *keys,
+struct drvmgr_key *drvmgr_key_get(
+	struct drvmgr_key *keys,
 	char *key_name)
 {
-	struct rtems_drvmgr_key *key;
+	struct drvmgr_key *key;
 
 	if ( !keys )
 		return NULL;
@@ -73,14 +73,14 @@ struct rtems_drvmgr_key *rtems_drvmgr_key_get(
 	return NULL;
 }
 
-union rtems_drvmgr_key_value *rtems_drvmgr_key_val_get(
-	struct rtems_drvmgr_key *keys,
+union drvmgr_key_value *drvmgr_key_val_get(
+	struct drvmgr_key *keys,
 	char *key_name,
 	int key_type)
 {
-	struct rtems_drvmgr_key *key_match;
+	struct drvmgr_key *key_match;
 	
-	key_match = rtems_drvmgr_key_get(keys, key_name);
+	key_match = drvmgr_key_get(keys, key_name);
 	if ( key_match ) {
 		/* Found key, put pointer to value into */
 		if ( (key_type == -1) || (key_match->key_type == key_type) ) {
@@ -90,18 +90,18 @@ union rtems_drvmgr_key_value *rtems_drvmgr_key_val_get(
 	return NULL;
 }
 
-union rtems_drvmgr_key_value *rtems_drvmgr_dev_key_get(
-	struct rtems_drvmgr_dev_info *dev,
+union drvmgr_key_value *drvmgr_dev_key_get(
+	struct drvmgr_dev *dev,
 	char *key_name,
 	int key_type)
 {
-	struct rtems_drvmgr_key *keys = NULL;
+	struct drvmgr_key *keys = NULL;
 
 	/* Find first entry in key array for the device */
-	if ( rtems_drvmgr_keys_get(dev, &keys) ) {
+	if ( drvmgr_keys_get(dev, &keys) ) {
 		return NULL;
 	}
 
 	/* Find a specific key among the device keys */
-	return rtems_drvmgr_key_val_get(keys, key_name, key_type);
+	return drvmgr_key_val_get(keys, key_name, key_type);
 }

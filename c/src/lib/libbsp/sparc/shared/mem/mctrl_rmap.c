@@ -26,7 +26,7 @@
 #include <drvmgr/ambapp_bus_rmap.h>
 
 /* This call will take 128 bytes of buffer at stack */
-#define MEMSET(pDev, adr, c, length) rtems_drvmgr_write_memset(pDev->dev->parent->dev, adr, c, length)
+#define MEMSET(pDev, adr, c, length) drvmgr_write_memset(pDev->dev->parent->dev, adr, c, length)
 
 #define DBG(args...)
 /*#define DBG(args...) printk(args)*/
@@ -42,15 +42,15 @@ struct mctrl_ops {
 };
 
 struct mctrl_priv {
-	struct rtems_drvmgr_dev_info	*dev;
+	struct drvmgr_dev	*dev;
 	void			*regs;
 	unsigned int		mcfg[8];	/* The wanted memory configuration */
 	unsigned int		configured;	/* Determines what mcfgs was configured by user */
 	struct mctrl_ops	*ops;		/* Operation may depend on hardware */
 };
 
-static int mctrl_init1(struct rtems_drvmgr_dev_info *dev);
-static int mctrl_remove(struct rtems_drvmgr_dev_info *dev);
+static int mctrl_init1(struct drvmgr_dev *dev);
+static int mctrl_remove(struct drvmgr_dev *dev);
 
 /* Standard MCFG registers */
 static void mctrl_set_std(struct mctrl_priv *priv, int index, void *regs, unsigned int regval);
@@ -60,7 +60,7 @@ static struct mctrl_ops std_mctrl_ops =
 	mctrl_set_std
 };
 
-static struct rtems_drvmgr_drv_ops mctrl_ops = 
+static struct drvmgr_drv_ops mctrl_ops = 
 {
 	.init = {mctrl_init1,NULL, NULL, NULL},
 	.remove = mctrl_remove,
@@ -93,17 +93,17 @@ static struct amba_drv_info mctrl_drv_info =
 void mctrl_rmap_register_drv (void)
 {
 	DBG("Registering MCTRL driver\n");
-	rtems_drvmgr_drv_register(&mctrl_drv_info.general);
+	drvmgr_drv_register(&mctrl_drv_info.general);
 }
 
-static int mctrl_init1(struct rtems_drvmgr_dev_info *dev)
+static int mctrl_init1(struct drvmgr_dev *dev)
 {
 	struct mctrl_priv *priv;
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
 	int i;
 	char res_name[16];
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 	unsigned int start, length;
 
 	DBG("MCTRL[%d] on bus %s\n", dev->minor_drv, dev->parent->dev->name);
@@ -155,7 +155,7 @@ static int mctrl_init1(struct rtems_drvmgr_dev_info *dev)
 	strcpy(res_name, "mcfgX");
 	for(i=0; i<8; i++) {
 		res_name[4] = '1' + i;
-		value = rtems_drvmgr_dev_key_get(priv->dev, res_name, KEY_TYPE_INT);
+		value = drvmgr_dev_key_get(priv->dev, res_name, KEY_TYPE_INT);
 		if ( value ) {
 			priv->mcfg[i] = value->i;
 			priv->configured |= (1<<i);
@@ -176,12 +176,12 @@ static int mctrl_init1(struct rtems_drvmgr_dev_info *dev)
 	for (i=0; i<9; i++) {
 		strcpy(res_name, "washXStart");
 		res_name[4] = '0' + i;
-		value = rtems_drvmgr_dev_key_get(priv->dev, res_name, KEY_TYPE_INT);
+		value = drvmgr_dev_key_get(priv->dev, res_name, KEY_TYPE_INT);
 		if ( value ) {
 			start = value->i;
 			strcpy(res_name, "washXLength");
 			res_name[4] = '0' + i;
-			value = rtems_drvmgr_dev_key_get(priv->dev, res_name, KEY_TYPE_INT);
+			value = drvmgr_dev_key_get(priv->dev, res_name, KEY_TYPE_INT);
 			if ( value ) {
 				length = value->i;
 
@@ -198,12 +198,12 @@ static int mctrl_init1(struct rtems_drvmgr_dev_info *dev)
 	for (i=0; i<9; i++) {
 		strcpy(res_name, "partXStart");
 		res_name[4] = '0' + i;
-		value = rtems_drvmgr_dev_key_get(priv->dev, res_name, KEY_TYPE_INT);
+		value = drvmgr_dev_key_get(priv->dev, res_name, KEY_TYPE_INT);
 		if ( value ) {
 			start = value->i;
 			strcpy(res_name, "partXLength");
 			res_name[4] = '0' + i;
-			value = rtems_drvmgr_dev_key_get(priv->dev, res_name, KEY_TYPE_INT);
+			value = drvmgr_dev_key_get(priv->dev, res_name, KEY_TYPE_INT);
 			if ( value ) {
 				length = value->i;
 
@@ -218,7 +218,7 @@ static int mctrl_init1(struct rtems_drvmgr_dev_info *dev)
 	return DRVMGR_OK;
 }
 
-static int mctrl_remove(struct rtems_drvmgr_dev_info *dev)
+static int mctrl_remove(struct drvmgr_dev *dev)
 {
 	/* Nothing to be done */
 	DBG("Removing %s\n", dev->name);
@@ -231,5 +231,5 @@ static void mctrl_set_std(struct mctrl_priv *priv, int index, void *regs, unsign
 	struct mctrl_regs *pregs = regs;
 
 	/* Store new value */
-	rtems_drvmgr_write_io32(priv->dev->parent->dev, (uint32_t *)&pregs->mcfg[index], (uint32_t)regval);
+	drvmgr_write_io32(priv->dev->parent->dev, (uint32_t *)&pregs->mcfg[index], (uint32_t)regval);
 }

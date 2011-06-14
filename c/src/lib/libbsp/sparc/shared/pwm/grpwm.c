@@ -147,7 +147,7 @@ struct grpwm_regs {
 
 /*** DRIVER PRIVATE STRUCTURE ***/
 struct grpwm_priv {
-	struct rtems_drvmgr_dev_info	*dev;
+	struct drvmgr_dev	*dev;
 	struct grpwm_regs		*regs;
 	unsigned char			devName[32];
 	int				irq;
@@ -178,10 +178,10 @@ int grpwm_register_io(rtems_device_major_number *m);
 static int grpwm_driver_io_registered = 0;
 static rtems_device_major_number grpwm_driver_io_major = 0;
 
-int grpwm_init2(struct rtems_drvmgr_dev_info *dev);
-int grpwm_init3(struct rtems_drvmgr_dev_info *dev);
+int grpwm_init2(struct drvmgr_dev *dev);
+int grpwm_init3(struct drvmgr_dev *dev);
 
-struct rtems_drvmgr_drv_ops grpwm_ops = 
+struct drvmgr_drv_ops grpwm_ops = 
 {
 	.init = {NULL, grpwm_init2, grpwm_init3, NULL},
 	.remove = NULL,
@@ -212,10 +212,10 @@ struct amba_drv_info grpwm_drv_info =
 void grpwm_register_drv (void)
 {
 	DBG("Registering GRPWM driver\n");
-	rtems_drvmgr_drv_register(&grpwm_drv_info.general);
+	drvmgr_drv_register(&grpwm_drv_info.general);
 }
 
-int grpwm_init2(struct rtems_drvmgr_dev_info *dev)
+int grpwm_init2(struct drvmgr_dev *dev)
 {
 	struct grpwm_priv *priv;
 
@@ -232,7 +232,7 @@ int grpwm_init2(struct rtems_drvmgr_dev_info *dev)
 	return DRVMGR_OK;
 }
 
-int grpwm_init3(struct rtems_drvmgr_dev_info *dev)
+int grpwm_init3(struct drvmgr_dev *dev)
 {
 	struct grpwm_priv *priv = dev->priv;
 	char prefix[16];
@@ -263,7 +263,7 @@ int grpwm_init3(struct rtems_drvmgr_dev_info *dev)
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Failed to get prefix, make sure of a unique FS name
 		 * by using the driver minor.
 		 */
@@ -551,9 +551,9 @@ static rtems_device_driver grpwm_open(rtems_device_major_number major, rtems_dev
 {
 	struct grpwm_priv *priv;
 	rtems_device_driver ret;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
-	if ( rtems_drvmgr_get_dev(&grpwm_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grpwm_drv_info.general, minor, &dev) ) {
 		DBG("Wrong minor %d\n", minor);
 		return RTEMS_INVALID_NAME;
 	}
@@ -583,9 +583,9 @@ out:
 static rtems_device_driver grpwm_close(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	struct grpwm_priv *priv;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
-	if ( rtems_drvmgr_get_dev(&grpwm_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grpwm_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NAME;
 	}
 	priv = (struct grpwm_priv *)dev->priv;
@@ -613,10 +613,10 @@ static rtems_device_driver grpwm_ioctl(rtems_device_major_number major, rtems_de
 {
 
 	struct grpwm_priv *priv;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	rtems_libio_ioctl_args_t *ioarg = (rtems_libio_ioctl_args_t *)arg;
 
-	if ( rtems_drvmgr_get_dev(&grpwm_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grpwm_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NAME;
 	}
 	priv = (struct grpwm_priv *)dev->priv;
@@ -723,7 +723,7 @@ static rtems_device_driver grpwm_ioctl(rtems_device_major_number major, rtems_de
 
 			if ( data & GRPWM_IRQ_CLEAR ) {
 				priv->regs->ipend |= (1<<channel);
-				rtems_drvmgr_interrupt_clear(priv->dev, pwm->irqindex);
+				drvmgr_interrupt_clear(priv->dev, pwm->irqindex);
 			}
 			if ( (data & 0x3) && !pwm->isr ) {
 				/* Enable IRQ but no ISR */
@@ -757,7 +757,7 @@ int grpwm_device_init(struct grpwm_priv *priv)
 {
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 	int mask, i, sepirq;
 	unsigned int wabits;
 	struct grpwm_chan_priv *pwm;
@@ -834,7 +834,7 @@ int grpwm_device_init(struct grpwm_priv *priv)
 			 * we do it now.
 			 */
 			mask |= (1 << pwm->irqindex);
-			rtems_drvmgr_interrupt_register(
+			drvmgr_interrupt_register(
 				priv->dev,
 				pwm->irqindex,
 				"grpwm",

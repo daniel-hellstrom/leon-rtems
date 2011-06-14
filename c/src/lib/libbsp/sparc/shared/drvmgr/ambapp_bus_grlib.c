@@ -29,32 +29,32 @@
 /*#define DBG(args...) printk(args)*/
 
 int ambapp_grlib_int_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
 	const char *info,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg);
 int ambapp_grlib_int_unregister(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg);
 int ambapp_grlib_int_clear(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq);
 int ambapp_grlib_int_mask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq);
 int ambapp_grlib_int_unmask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq);
 int ambapp_grlib_get_params(
-	struct rtems_drvmgr_dev_info *dev,
-	struct rtems_drvmgr_bus_params *params);
+	struct drvmgr_dev *dev,
+	struct drvmgr_bus_params *params);
 
-int ambapp_grlib_init1(struct rtems_drvmgr_dev_info *dev);
-int ambapp_grlib_init2(struct rtems_drvmgr_dev_info *dev);
-int ambapp_grlib_remove(struct rtems_drvmgr_dev_info *dev);
+int ambapp_grlib_init1(struct drvmgr_dev *dev);
+int ambapp_grlib_init2(struct drvmgr_dev *dev);
+int ambapp_grlib_remove(struct drvmgr_dev *dev);
 
 struct ambapp_ops ambapp_grlib_ops = {
 	.int_register = ambapp_grlib_int_register,
@@ -65,14 +65,14 @@ struct ambapp_ops ambapp_grlib_ops = {
 	.get_params = ambapp_grlib_get_params
 };
 
-struct rtems_drvmgr_drv_ops ambapp_grlib_drv_ops = 
+struct drvmgr_drv_ops ambapp_grlib_drv_ops = 
 {
 	.init = {ambapp_grlib_init1, ambapp_grlib_init2, NULL, NULL},
 	.remove = ambapp_grlib_remove,
 	.info = NULL,
 };
 
-struct rtems_drvmgr_drv_info ambapp_bus_drv_grlib = 
+struct drvmgr_drv ambapp_bus_drv_grlib = 
 {
 	DRVMGR_OBJ_DRV,			/* Driver */
 	NULL,				/* Next driver */
@@ -89,7 +89,7 @@ static struct grlib_config *drv_mgr_grlib_config = NULL;
 
 void ambapp_grlib_register(void)
 {
-	rtems_drvmgr_drv_register(&ambapp_bus_drv_grlib);
+	drvmgr_drv_register(&ambapp_bus_drv_grlib);
 }
 
 int drv_mgr_grlib_init(struct grlib_config *config)
@@ -99,13 +99,13 @@ int drv_mgr_grlib_init(struct grlib_config *config)
 	drv_mgr_grlib_config = config;
 
 	/* Register root device driver */
-	rtems_drvmgr_root_drv_register(&ambapp_bus_drv_grlib);
+	drvmgr_root_drv_register(&ambapp_bus_drv_grlib);
 
 	return 0;
 }
 
 /* Function called from Driver Manager Initialization Stage 1 */
-int ambapp_grlib_init1(struct rtems_drvmgr_dev_info *dev)
+int ambapp_grlib_init1(struct drvmgr_dev *dev)
 {
 	struct ambapp_config *config;
 
@@ -127,22 +127,22 @@ int ambapp_grlib_init1(struct rtems_drvmgr_dev_info *dev)
 	return ambapp_bus_register(dev, config);
 }
 
-int ambapp_grlib_init2(struct rtems_drvmgr_dev_info *dev)
+int ambapp_grlib_init2(struct drvmgr_dev *dev)
 {
 	return 0;
 }
 
-int ambapp_grlib_remove(struct rtems_drvmgr_dev_info *dev)
+int ambapp_grlib_remove(struct drvmgr_dev *dev)
 {
 	return 0;
 }
 
 int ambapp_grlib_int_register
 	(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
 	const char *info,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg
 	)
 {
@@ -151,9 +151,9 @@ int ambapp_grlib_int_register
 
 int ambapp_grlib_int_unregister
 	(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg
 	)
 {
@@ -162,7 +162,7 @@ int ambapp_grlib_int_unregister
 
 int ambapp_grlib_int_clear
 	(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq)
 {
 	BSP_shared_interrupt_clear(irq);
@@ -171,7 +171,7 @@ int ambapp_grlib_int_clear
 
 int ambapp_grlib_int_mask
 	(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq
 	)
 {
@@ -181,7 +181,7 @@ int ambapp_grlib_int_mask
 
 int ambapp_grlib_int_unmask
 	(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq
 	)
 {
@@ -189,7 +189,7 @@ int ambapp_grlib_int_unmask
 	return DRVMGR_OK;
 }
 
-int ambapp_grlib_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params)
+int ambapp_grlib_get_params(struct drvmgr_dev *dev, struct drvmgr_bus_params *params)
 {
 	/* Leave params->freq_hz untouched for default */
 	params->dev_prefix = "";

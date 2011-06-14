@@ -129,7 +129,7 @@ struct greth_softc
 {
 
    struct arpcom arpcom;
-   struct rtems_drvmgr_dev_info *dev;		/* Driver manager device */
+   struct drvmgr_dev *dev;		/* Driver manager device */
    char devName[32];
 
    greth_regs *regs;
@@ -459,8 +459,8 @@ auto_neg_done:
     sc->rx_ptr = 0;
 
     /* Translate the base address into an address that the BRM core can understand */
-    rtems_drvmgr_mmap_translate(sc->dev, 0, (void *)sc->txdesc, (void **)&sc->txdesc_remote);
-    rtems_drvmgr_mmap_translate(sc->dev, 0, (void *)sc->rxdesc, (void **)&sc->rxdesc_remote);
+    drvmgr_mmap_translate(sc->dev, 0, (void *)sc->txdesc, (void **)&sc->txdesc_remote);
+    drvmgr_mmap_translate(sc->dev, 0, (void *)sc->rxdesc, (void **)&sc->rxdesc_remote);
     regs->txdesc = (int) sc->txdesc_remote;
     regs->rxdesc = (int) sc->rxdesc_remote;
 
@@ -471,7 +471,7 @@ auto_neg_done:
       {
               sc->txdesc[i].ctrl = 0;
               if (!(sc->gbit_mac)) {
-                      rtems_drvmgr_mmap_translate(sc->dev, 0, (void *)malloc(GRETH_MAXBUF_LEN), (void **)&sc->txdesc[i].addr);
+                      drvmgr_mmap_translate(sc->dev, 0, (void *)malloc(GRETH_MAXBUF_LEN), (void **)&sc->txdesc[i].addr);
               }
 #ifdef GRETH_DEBUG
               /* printf("TXBUF: %08x\n", (int) sc->txdesc[i].addr); */
@@ -485,7 +485,7 @@ auto_neg_done:
                   m->m_data += 2;
 	  m->m_pkthdr.rcvif = &sc->arpcom.ac_if;
           sc->rxmbuf[i] = m;
-          rtems_drvmgr_mmap_translate(sc->dev, 0, (void *)mtod(m, uint32_t *), (void **)&sc->rxdesc[i].addr);
+          drvmgr_mmap_translate(sc->dev, 0, (void *)mtod(m, uint32_t *), (void **)&sc->rxdesc[i].addr);
           sc->rxdesc[i].ctrl = GRETH_RXD_ENABLE | GRETH_RXD_IRQ;
 #ifdef GRETH_DEBUG
 /* 	  printf("RXBUF: %08x\n", (int) sc->rxdesc[i].addr); */
@@ -514,7 +514,7 @@ auto_neg_done:
     regs->status = 0xffffffff;
 
     /* install interrupt handler */
-    rtems_drvmgr_interrupt_register(sc->dev, 0, "greth", greth_interrupt, sc);
+    drvmgr_interrupt_register(sc->dev, 0, "greth", greth_interrupt, sc);
 
     regs->ctrl |= GRETH_CTRL_RXEN | (sc->fd << 4) | GRETH_CTRL_RXIRQ | (sc->sp << 7) | (sc->gb << 8);
 
@@ -678,7 +678,7 @@ again:
                                     m->m_data += 2;
                             dp->rxmbuf[dp->rx_ptr] = m;
                             m->m_pkthdr.rcvif = ifp;
-                            rtems_drvmgr_mmap_translate(dp->dev, 0, (void *)mtod (m, uint32_t *), (void **)&dp->rxdesc[dp->rx_ptr].addr);
+                            drvmgr_mmap_translate(dp->dev, 0, (void *)mtod (m, uint32_t *), (void **)&dp->rxdesc[dp->rx_ptr].addr);
                             dp->rxPackets++;
                     }
                     if (dp->rx_ptr == dp->rxbufs - 1) {
@@ -733,7 +733,7 @@ sendpacket (struct ifnet *ifp, struct mbuf *m)
 
     len = 0;
     temp = (unsigned char *) NO_CACHE_LOAD(&dp->txdesc[dp->tx_ptr].addr);
-    rtems_drvmgr_mmap_translate(dp->dev, 1, (void *)temp, (void **)&temp);
+    drvmgr_mmap_translate(dp->dev, 1, (void *)temp, (void **)&temp);
 #ifdef GRETH_DEBUG
     printf("TXD: 0x%08x : BUF: 0x%08x\n", (int) m->m_data, (int) temp);
 #endif
@@ -847,7 +847,7 @@ sendpacket_gbit (struct ifnet *ifp, struct mbuf *m)
             printf("\n");
 #endif
             len += m->m_len;
-            rtems_drvmgr_mmap_translate(dp->dev, 0, (void *)(uint32_t *)m->m_data, (void **)&dp->txdesc[dp->tx_ptr].addr);
+            drvmgr_mmap_translate(dp->dev, 0, (void *)(uint32_t *)m->m_data, (void **)&dp->txdesc[dp->tx_ptr].addr);
 
             /* Wrap around? */
             if (dp->tx_ptr < dp->txbufs-1) {
@@ -1237,10 +1237,10 @@ int greth_register_io(rtems_device_major_number *m);
 int greth_device_init(struct greth_softc *sc);
 int network_interface_add(struct rtems_bsdnet_ifconfig *interface);
 
-int greth_init2(struct rtems_drvmgr_dev_info *dev);
-int greth_init3(struct rtems_drvmgr_dev_info *dev);
+int greth_init2(struct drvmgr_dev *dev);
+int greth_init3(struct drvmgr_dev *dev);
 
-struct rtems_drvmgr_drv_ops greth_ops = 
+struct drvmgr_drv_ops greth_ops = 
 {
 	.init	=
 		{
@@ -1277,10 +1277,10 @@ struct amba_drv_info greth_drv_info =
 void greth_register_drv (void)
 {
 	DBG("Registering GRETH driver\n");
-	rtems_drvmgr_drv_register(&greth_drv_info.general);
+	drvmgr_drv_register(&greth_drv_info.general);
 }
 
-int greth_init2(struct rtems_drvmgr_dev_info *dev)
+int greth_init2(struct drvmgr_dev *dev)
 {
 	struct greth_softc *priv;
 
@@ -1296,7 +1296,7 @@ int greth_init2(struct rtems_drvmgr_dev_info *dev)
 	return DRVMGR_OK;
 }
 
-int greth_init3(struct rtems_drvmgr_dev_info *dev)
+int greth_init3(struct drvmgr_dev *dev)
 {
     struct greth_softc *sc;
     struct rtems_bsdnet_ifconfig *ifp;
@@ -1331,7 +1331,7 @@ int greth_device_init(struct greth_softc *sc)
 {
     struct amba_dev_info *ambadev;
     struct ambapp_core *pnpinfo;
-    union rtems_drvmgr_key_value *value;
+    union drvmgr_key_value *value;
 
     /* Get device information from AMBA PnP information */
     ambadev = (struct amba_dev_info *)sc->dev->businfo;
@@ -1357,15 +1357,15 @@ int greth_device_init(struct greth_softc *sc)
     sc->rxbufs = 32;
     sc->phyaddr = -1;
 
-    value = rtems_drvmgr_dev_key_get(sc->dev, "txDescs", KEY_TYPE_INT);
+    value = drvmgr_dev_key_get(sc->dev, "txDescs", KEY_TYPE_INT);
     if ( value && (value->i <= 128) )
         sc->txbufs = value->i;
 
-    value = rtems_drvmgr_dev_key_get(sc->dev, "rxDescs", KEY_TYPE_INT);
+    value = drvmgr_dev_key_get(sc->dev, "rxDescs", KEY_TYPE_INT);
     if ( value && (value->i <= 128) )
         sc->rxbufs = value->i;
 
-    value = rtems_drvmgr_dev_key_get(sc->dev, "phyAdr", KEY_TYPE_INT);
+    value = drvmgr_dev_key_get(sc->dev, "phyAdr", KEY_TYPE_INT);
     if ( value && (value->i < 32) )
         sc->phyaddr = value->i;
 

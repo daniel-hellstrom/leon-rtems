@@ -46,35 +46,35 @@
 
 #define DBG(args...)
 /*#define DBG(args...) printk(args)*/
-int pcibus_bus_init1(struct rtems_drvmgr_bus_info *bus);
-int pcibus_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_info *dev);
+int pcibus_bus_init1(struct drvmgr_bus *bus);
+int pcibus_unite(struct drvmgr_drv *drv, struct drvmgr_dev *dev);
 int pcibus_int_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
 	const char *info,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg);
 int pcibus_int_unregister(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg);
 int pcibus_int_clear(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index);
 int pcibus_freq_get(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int options,
 	unsigned int *freq_hz);
 
-int pcibus_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params);
+int pcibus_get_params(struct drvmgr_dev *dev, struct drvmgr_bus_params *params);
 
 void pcibus_dev_info(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	void (*print_line)(void *p, char *str),
 	void *p);
 
-struct rtems_drvmgr_bus_ops pcibus_ops =
+struct drvmgr_bus_ops pcibus_ops =
 {
 	.init		= 
 			{
@@ -105,7 +105,7 @@ struct rtems_drvmgr_bus_ops pcibus_ops =
  * the user may override it from the project file, if the default settings are
  * not enough.
  */
-struct rtems_drvmgr_bus_res pcibus_drv_resources __attribute__((weak)) =
+struct drvmgr_bus_res pcibus_drv_resources __attribute__((weak)) =
 {
 	.next = NULL,
 	.resource =
@@ -115,7 +115,7 @@ struct rtems_drvmgr_bus_res pcibus_drv_resources __attribute__((weak)) =
 };
 
 struct pcibus_priv {
-	struct rtems_drvmgr_dev_info	*dev;
+	struct drvmgr_dev	*dev;
 };
 
 static int compatible(struct pci_dev_id *id, struct pci_dev_id_match *drv)
@@ -130,8 +130,8 @@ static int compatible(struct pci_dev_id *id, struct pci_dev_id_match *drv)
 		return 0;
 }
 
-int pcibus_unite(struct rtems_drvmgr_drv_info *drv,
-			struct rtems_drvmgr_dev_info *dev)
+int pcibus_unite(struct drvmgr_drv *drv,
+			struct drvmgr_dev *dev)
 {
 	struct pci_drv_info *pdrv;
 	struct pci_dev_id_match *drvid;
@@ -164,7 +164,7 @@ int pcibus_unite(struct rtems_drvmgr_drv_info *drv,
 	return 0;
 }
 
-static int pcibus_int_get(struct rtems_drvmgr_dev_info *dev, int index)
+static int pcibus_int_get(struct drvmgr_dev *dev, int index)
 {
 	int irq;
 
@@ -188,13 +188,13 @@ static int pcibus_int_get(struct rtems_drvmgr_dev_info *dev, int index)
 
 /* Use standard PCI facility to register interrupt handler */
 int pcibus_int_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
 	const char *info,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg)
 {
-	struct rtems_drvmgr_dev_info *busdev;
+	struct drvmgr_dev *busdev;
 	struct ambapp_priv *priv;
 	int irq;
 
@@ -214,12 +214,12 @@ int pcibus_int_register(
 
 /* Use standard PCI facility to unregister interrupt handler */
 int pcibus_int_unregister(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg)
 {
-	struct rtems_drvmgr_dev_info *busdev;
+	struct drvmgr_dev *busdev;
 	struct ambapp_priv *priv;
 	int irq;
 
@@ -240,9 +240,9 @@ int pcibus_int_unregister(
 #if 0
 /* Use standard PCI facility to enable interrupt */
 int pcibus_int_enable(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg)
 {
 	int irq;
@@ -257,9 +257,9 @@ int pcibus_int_enable(
 
 /* Use standard PCI facility to disable interrupt */
 int pcibus_int_disable(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg)
 {
 	int irq;
@@ -275,7 +275,7 @@ int pcibus_int_disable(
 
 /* Use standard PCI facility to clear interrupt */
 int pcibus_int_clear(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index)
 {
 	int irq;
@@ -291,7 +291,7 @@ int pcibus_int_clear(
 }
 
 int pcibus_freq_get(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int options,
 	unsigned int *freq_hz)
 {
@@ -300,7 +300,7 @@ int pcibus_freq_get(
 	return 0;
 }
 
-int pcibus_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params)
+int pcibus_get_params(struct drvmgr_dev *dev, struct drvmgr_bus_params *params)
 {
 	/* No device prefix */
 	params->dev_prefix = NULL;
@@ -310,7 +310,7 @@ int pcibus_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus
 
 #ifdef PCIBUS_INFO
 void pcibus_dev_info(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	void (*print_line)(void *p, char *str),
 	void *p)
 {
@@ -390,8 +390,8 @@ void pcibus_dev_info(
 
 int pcibus_dev_register(struct pci_dev *dev, void *arg)
 {
-	struct rtems_drvmgr_bus_info *pcibus = arg;
-	struct rtems_drvmgr_dev_info *newdev;
+	struct drvmgr_bus *pcibus = arg;
+	struct drvmgr_dev *newdev;
 	struct pci_dev_info *pciinfo;
 	int i, type;
 	struct pcibus_res *pcibusres;
@@ -402,7 +402,7 @@ int pcibus_dev_register(struct pci_dev *dev, void *arg)
 	DBG("PCI DEV REGISTER: %x:%x:%x\n", PCI_DEV_EXPAND(pcidev));
 
 	/* Allocate a device */
-	rtems_drvmgr_alloc_dev(&newdev, 24 + sizeof(struct pci_dev_info));
+	drvmgr_alloc_dev(&newdev, 24 + sizeof(struct pci_dev_info));
 	newdev->next = NULL;
 	newdev->parent = pcibus; /* Ourselfs */
 	newdev->minor_drv = 0;
@@ -460,7 +460,7 @@ int pcibus_dev_register(struct pci_dev *dev, void *arg)
 		pciinfo->id.vendor, pciinfo->id.device);
 
 	/* Register New Device */
-	rtems_drvmgr_dev_register(newdev);
+	drvmgr_dev_register(newdev);
 
 	/* If device is a bridge we scan the secondary (child) devices */
 	if (dev->flags & PCI_DEV_BRIDGE) {
@@ -475,14 +475,14 @@ int pcibus_dev_register(struct pci_dev *dev, void *arg)
 
 int pcibus_dev_register(pci_dev_t pcidev, void *arg)
 {
-	struct rtems_drvmgr_bus_info *pcibus = arg;
-	struct rtems_drvmgr_dev_info *newdev;
+	struct drvmgr_bus *pcibus = arg;
+	struct drvmgr_dev *newdev;
 	struct pci_dev_info *pciinfo;
 
 	DBG("PCI DEV REGISTER: %x:%x:%x\n", PCI_DEV_EXPAND(pcidev));
 
 	/* Allocate a device */
-	rtems_drvmgr_alloc_dev(&newdev, 24 + sizeof(struct pci_dev_info));
+	drvmgr_alloc_dev(&newdev, 24 + sizeof(struct pci_dev_info));
 	newdev->next = NULL;
 	newdev->parent = pcibus; /* Ourselfs */
 	newdev->minor_drv = 0;
@@ -531,7 +531,7 @@ int pcibus_dev_register(pci_dev_t pcidev, void *arg)
 		pciinfo->id.vendor, pciinfo->id.device);
 
 	/* Register New Device */
-	rtems_drvmgr_dev_register(newdev);
+	drvmgr_dev_register(newdev);
 
 	return 0;
 }
@@ -539,7 +539,7 @@ int pcibus_dev_register(pci_dev_t pcidev, void *arg)
 #endif
 
 /* Register all AMBA devices available on the AMBAPP bus */
-static int pcibus_devs_register(struct rtems_drvmgr_bus_info *bus)
+static int pcibus_devs_register(struct drvmgr_bus *bus)
 {
 #ifdef USE_PCI_CFG_LIB
 	pci_for_each_dev(&pci_hb, pcibus_dev_register, bus);
@@ -551,14 +551,14 @@ static int pcibus_devs_register(struct rtems_drvmgr_bus_info *bus)
 
 /*** DEVICE FUNCTIONS ***/
 
-int pcibus_register(struct rtems_drvmgr_dev_info *dev)
+int pcibus_register(struct drvmgr_dev *dev)
 {
 	struct pcibus_priv *priv;
 
 	DBG("PCI BUS: initializing\n");
 
 	/* Create BUS */
-	rtems_drvmgr_alloc_bus(&dev->bus, sizeof(struct pcibus_priv));
+	drvmgr_alloc_bus(&dev->bus, sizeof(struct pcibus_priv));
 	dev->bus->bus_type = DRVMGR_BUS_TYPE_PCI;
 	dev->bus->next = NULL;
 	dev->bus->dev = dev;
@@ -570,21 +570,21 @@ int pcibus_register(struct rtems_drvmgr_dev_info *dev)
 
 	/* Add resource configuration if user overrided the default empty cfg */
 	if (pcibus_drv_resources.resource[0].drv_id != 0)
-		rtems_drvmgr_bus_res_add(dev->bus, &pcibus_drv_resources);
+		drvmgr_bus_res_add(dev->bus, &pcibus_drv_resources);
 
 	/* Init BUS private structures */
 	priv = (struct pcibus_priv *)(dev->bus + 1);
 	dev->bus->priv = priv;	
 
 	/* Register BUS */
-	rtems_drvmgr_bus_register(dev->bus);
+	drvmgr_bus_register(dev->bus);
 
 	return DRVMGR_OK;
 }
 
 /*** BUS INITIALIZE FUNCTIONS ***/
 
-int pcibus_bus_init1(struct rtems_drvmgr_bus_info *bus)
+int pcibus_bus_init1(struct drvmgr_bus *bus)
 {
 	return pcibus_devs_register(bus);
 }

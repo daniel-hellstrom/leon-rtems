@@ -130,7 +130,7 @@ typedef struct {
 
 typedef struct {
    /* configuration parameters */ 
-   struct rtems_drvmgr_dev_info *dev; /* Driver manager device */
+   struct drvmgr_dev *dev; /* Driver manager device */
    char devName[32]; /* Device Name */
    LEON3_SPACEWIRE_Regs_Map *regs;
    spw_config config;
@@ -381,10 +381,10 @@ static rtems_device_major_number grspw_driver_io_major = 0;
 int grspw_register_io(rtems_device_major_number *m);
 int grspw_device_init(GRSPW_DEV *pDev);
 
-int grspw_init2(struct rtems_drvmgr_dev_info *dev);
-int grspw_init3(struct rtems_drvmgr_dev_info *dev);
+int grspw_init2(struct drvmgr_dev *dev);
+int grspw_init3(struct drvmgr_dev *dev);
 
-struct rtems_drvmgr_drv_ops grspw_ops = 
+struct drvmgr_drv_ops grspw_ops = 
 {
 	.init = {NULL,  grspw_init2, grspw_init3, NULL},
 	.remove = NULL,
@@ -417,10 +417,10 @@ struct amba_drv_info grspw_drv_info =
 void grspw_register_drv (void)
 {
 	SPACEWIRE_DBG("Registering GRSPW driver\n");
-	rtems_drvmgr_drv_register(&grspw_drv_info.general);
+	drvmgr_drv_register(&grspw_drv_info.general);
 }
 
-int grspw_init2(struct rtems_drvmgr_dev_info *dev)
+int grspw_init2(struct drvmgr_dev *dev)
 {
 	GRSPW_DEV *priv;
 
@@ -437,7 +437,7 @@ int grspw_init2(struct rtems_drvmgr_dev_info *dev)
 	return DRVMGR_OK;
 }
 
-int grspw_init3(struct rtems_drvmgr_dev_info *dev)
+int grspw_init3(struct drvmgr_dev *dev)
 {
 	GRSPW_DEV *priv;
 	char prefix[16];
@@ -464,7 +464,7 @@ int grspw_init3(struct rtems_drvmgr_dev_info *dev)
 	 */
 
 	/* Get frequency in Hz */
-	if ( rtems_drvmgr_freq_get(dev, DEV_APB_SLV, &priv->core_freq_khz) ) {
+	if ( drvmgr_freq_get(dev, DEV_APB_SLV, &priv->core_freq_khz) ) {
 		return DRVMGR_FAIL;
 	}
 	/* Convert from Hz -> kHz */
@@ -476,7 +476,7 @@ int grspw_init3(struct rtems_drvmgr_dev_info *dev)
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Failed to get prefix, make sure of a unique FS name
 		 * by using the driver minor.
 		 */
@@ -528,7 +528,7 @@ int grspw_device_init(GRSPW_DEV *pDev)
 {
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 
 	/* Get device information from AMBA PnP information */
 	ambadev = (struct amba_dev_info *)pDev->dev->businfo;
@@ -576,39 +576,39 @@ int grspw_device_init(GRSPW_DEV *pDev)
 
 	/* Get Configuration from Bus resources (Let user override defaults) */
 
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "txBdCnt", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(pDev->dev, "txBdCnt", KEY_TYPE_INT);
 	if ( value )
 		pDev->txbufcnt = value->i;
 
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "rxBdCnt", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(pDev->dev, "rxBdCnt", KEY_TYPE_INT);
 	if ( value )
 		pDev->rxbufcnt = value->i;
 
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "txDataSize", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(pDev->dev, "txDataSize", KEY_TYPE_INT);
 	if ( value )
 		pDev->txdbufsize = value->i;
 
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "txHdrSize", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(pDev->dev, "txHdrSize", KEY_TYPE_INT);
 	if ( value )
 		pDev->txhbufsize = value->i;
 
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "rxPktSize", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(pDev->dev, "rxPktSize", KEY_TYPE_INT);
 	if ( value )
 		pDev->rxbufsize = value->i;
 	
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "rxDmaArea", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(pDev->dev, "rxDmaArea", KEY_TYPE_INT);
 	if ( value )
 		pDev->rx_dma_area = value->i;
 
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "txDataDmaArea", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(pDev->dev, "txDataDmaArea", KEY_TYPE_INT);
 	if ( value )
 		pDev->tx_data_dma_area = value->i;
 
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "txHdrDmaArea", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(pDev->dev, "txHdrDmaArea", KEY_TYPE_INT);
 	if ( value )
 		pDev->tx_hdr_dma_area = value->i;
 
-	value = rtems_drvmgr_dev_key_get(pDev->dev, "bdDmaArea", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(pDev->dev, "bdDmaArea", KEY_TYPE_INT);
 	if ( value )
 		pDev->bd_dma_area = value->i;
 
@@ -655,7 +655,7 @@ static int grspw_buffer_alloc(GRSPW_DEV *pDev)
 #warning Check size?
 		if ( pDev->rx_dma_area & 1 ) {
 			/* Address given in remote address */
-			rtems_drvmgr_mmap_translate(pDev->dev, 1, (void *)(pDev->rx_dma_area & ~1), (void **)&pDev->ptr_rxbuf0);
+			drvmgr_mmap_translate(pDev->dev, 1, (void *)(pDev->rx_dma_area & ~1), (void **)&pDev->ptr_rxbuf0);
 		} else {
 			pDev->ptr_rxbuf0 = pDev->rx_dma_area;
 		}
@@ -670,7 +670,7 @@ static int grspw_buffer_alloc(GRSPW_DEV *pDev)
 	if ( pDev->tx_data_dma_area ) {
 		if ( pDev->tx_data_dma_area & 1 ) {
 			/* Address given in remote address */
-			rtems_drvmgr_mmap_translate(pDev->dev, 1, (void *)(pDev->tx_data_dma_area & ~1), (void **)&pDev->ptr_txdbuf0);
+			drvmgr_mmap_translate(pDev->dev, 1, (void *)(pDev->tx_data_dma_area & ~1), (void **)&pDev->ptr_txdbuf0);
 		} else {
 			pDev->ptr_txdbuf0 = pDev->tx_data_dma_area;
 		}
@@ -685,7 +685,7 @@ static int grspw_buffer_alloc(GRSPW_DEV *pDev)
 	if ( pDev->tx_hdr_dma_area ) {
 		if ( pDev->tx_hdr_dma_area & 1 ) {
 			/* Address given in remote address */
-			rtems_drvmgr_mmap_translate(pDev->dev, 1, (void *)(pDev->tx_hdr_dma_area & ~1), (void **)&pDev->ptr_txhbuf0);
+			drvmgr_mmap_translate(pDev->dev, 1, (void *)(pDev->tx_hdr_dma_area & ~1), (void **)&pDev->ptr_txhbuf0);
 		} else {
 			pDev->ptr_txhbuf0 = pDev->tx_hdr_dma_area;
 		}
@@ -700,7 +700,7 @@ static int grspw_buffer_alloc(GRSPW_DEV *pDev)
 	if ( pDev->bd_dma_area ) {
 		if ( pDev->bd_dma_area & 1 ) {
 			/* Address given in remote address */
-			rtems_drvmgr_mmap_translate(pDev->dev, 1, (void *)(pDev->bd_dma_area & ~1), (void **)&pDev->ptr_bd0);
+			drvmgr_mmap_translate(pDev->dev, 1, (void *)(pDev->bd_dma_area & ~1), (void **)&pDev->ptr_bd0);
 		} else {
 			pDev->ptr_bd0 = pDev->bd_dma_area;
 		}
@@ -714,9 +714,9 @@ static int grspw_buffer_alloc(GRSPW_DEV *pDev)
 	}
 
 	/* Translate into remote address */
-	rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->ptr_rxbuf0, (void **)&pDev->ptr_rxbuf0_remote);
-	rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->ptr_txdbuf0,(void **)&pDev->ptr_txdbuf0_remote);
-	rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->ptr_txhbuf0, (void **)&pDev->ptr_txhbuf0_remote);
+	drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->ptr_rxbuf0, (void **)&pDev->ptr_rxbuf0_remote);
+	drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->ptr_txdbuf0,(void **)&pDev->ptr_txdbuf0_remote);
+	drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->ptr_txhbuf0, (void **)&pDev->ptr_txhbuf0_remote);
 	return 0;
 }
 
@@ -826,10 +826,10 @@ static rtems_device_driver grspw_open(
         ) 
 {
 	GRSPW_DEV *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	SPACEWIRE_DBGC(DBGSPW_IOCALLS, "open [%i,%i]\n", major, minor);
 
-	if ( rtems_drvmgr_get_dev(&grspw_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grspw_drv_info.general, minor, &dev) ) {
 		SPACEWIRE_DBG("Wrong minor %d\n", minor);
 		return RTEMS_INVALID_NAME;
 	}
@@ -886,9 +886,9 @@ static rtems_device_driver grspw_close(
 	)
 {	
 	GRSPW_DEV *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
-	if ( rtems_drvmgr_get_dev(&grspw_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grspw_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NAME;
 	}
 	pDev = (GRSPW_DEV *)dev->priv;
@@ -916,10 +916,10 @@ static rtems_device_driver grspw_read(
 	rtems_libio_rw_args_t *rw_args;
 	unsigned int count = 0;
 	GRSPW_DEV *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	int status;
 
-	if ( rtems_drvmgr_get_dev(&grspw_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grspw_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NAME;
 	}
 	pDev = (GRSPW_DEV *)dev->priv;
@@ -982,9 +982,9 @@ static rtems_device_driver grspw_write(
 {
 	rtems_libio_rw_args_t *rw_args;
 	GRSPW_DEV *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
-	if ( rtems_drvmgr_get_dev(&grspw_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grspw_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NAME;
 	}
 	pDev = (GRSPW_DEV *)dev->priv;
@@ -1027,11 +1027,11 @@ static rtems_device_driver grspw_control(
 	rtems_device_driver ret;
 	rtems_libio_ioctl_args_t *ioarg = (rtems_libio_ioctl_args_t *) arg;
 	GRSPW_DEV *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	SPACEWIRE_DBGC(DBGSPW_IOCALLS, "ctrl [%i,%i]\n", major, minor);
 
-	if ( rtems_drvmgr_get_dev(&grspw_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grspw_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NAME;
 	}
 	pDev = (GRSPW_DEV *)dev->priv;
@@ -1442,7 +1442,7 @@ static rtems_device_driver grspw_control(
 				 * System clock has been read from timer inited
 				 * by RTEMS loader (mkprom)
 				 */
-				rtems_drvmgr_freq_get(pDev->dev, DEV_APB_SLV,
+				drvmgr_freq_get(pDev->dev, DEV_APB_SLV,
 					&pDev->core_freq_khz);
 				/* Convert from Hz -> kHz */
 				pDev->core_freq_khz = pDev->core_freq_khz / 1000;
@@ -1491,7 +1491,7 @@ static rtems_device_driver grspw_control(
 			}
 			pDev->running = 1;
 			/* Register interrupt routine and unmask IRQ */
-			rtems_drvmgr_interrupt_register(pDev->dev, 0, "grspw", grspw_interrupt, pDev);
+			drvmgr_interrupt_register(pDev->dev, 0, "grspw", grspw_interrupt, pDev);
 
 			break;
 
@@ -1500,7 +1500,7 @@ static rtems_device_driver grspw_control(
 				return RTEMS_INVALID_NAME;
 			}
 			/* Disable interrupts */
-			rtems_drvmgr_interrupt_unregister(dev, 0, grspw_interrupt, pDev);
+			drvmgr_interrupt_unregister(dev, 0, grspw_interrupt, pDev);
 
 			pDev->running = 0;
 
@@ -1578,8 +1578,8 @@ static int grspw_hw_init(GRSPW_DEV *pDev) {
 	pDev->tx = (SPACEWIRE_TXBD *) &pDev->rx[SPACEWIRE_RXBUFS_NR];
 
 	/* Translate into remote address */
-	rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->rx, (void **)&pDev->rx_remote);
-	rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->tx, (void **)&pDev->tx_remote);
+	drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->rx, (void **)&pDev->rx_remote);
+	drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->tx, (void **)&pDev->tx_remote);
 
 	SPACEWIRE_DBG("hw_init [minor %i]\n", pDev->minor);
 
@@ -1968,7 +1968,7 @@ static void check_rx_errors(GRSPW_DEV *pDev, int ctrl)
 }
 
 
-void grspw_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
+void grspw_print_dev(struct drvmgr_dev *dev, int options)
 {
 	GRSPW_DEV *pDev = dev->priv;
 	struct amba_dev_info *devinfo;
@@ -1990,7 +1990,7 @@ void grspw_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 void grspw_print(int options)
 {
 	struct amba_drv_info *drv = &grspw_drv_info;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	dev = drv->general.dev;
 	while(dev) {

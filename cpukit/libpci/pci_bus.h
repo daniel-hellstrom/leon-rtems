@@ -95,28 +95,28 @@ struct pci_dev_info {
 };
 
 struct pci_drv_info {
-	struct rtems_drvmgr_drv_info	general;	/* General bus info */
+	struct drvmgr_drv	general;	/* General bus info */
 	/* PCI specific bus information */
 	struct pci_dev_id_match		*ids;		/* Supported hardware */
 };
 
 #if 0
-extern uint8_t pcibus_cfg_r8(struct rtems_drvmgr_dev_info *dev, int ofs);
-extern uint16_t pcibus_cfg_r16(struct rtems_drvmgr_dev_info *dev, int ofs);
-extern uint32_t pcibus_cfg_r32(struct rtems_drvmgr_dev_info *dev, int ofs);
+extern uint8_t pcibus_cfg_r8(struct drvmgr_dev *dev, int ofs);
+extern uint16_t pcibus_cfg_r16(struct drvmgr_dev *dev, int ofs);
+extern uint32_t pcibus_cfg_r32(struct drvmgr_dev *dev, int ofs);
 
-extern void pcibus_cfg_w8(struct rtems_drvmgr_dev_info *dev, int ofs, uint8_t value);
-extern void pcibus_cfg_w16(struct rtems_drvmgr_dev_info *dev, int ofs, uint16_t value);
-extern void pcibus_cfg_w32(struct rtems_drvmgr_dev_info *dev, int ofs, uint32_t value);
+extern void pcibus_cfg_w8(struct drvmgr_dev *dev, int ofs, uint8_t value);
+extern void pcibus_cfg_w16(struct drvmgr_dev *dev, int ofs, uint16_t value);
+extern void pcibus_cfg_w32(struct drvmgr_dev *dev, int ofs, uint32_t value);
 #endif
 
 /* Weak default PCI driver resources, override this from project configuration
  * to set PCI Bus resources used to configure PCI device drivers.
  */
-extern struct rtems_drvmgr_bus_res pcibus_drv_resources;
+extern struct drvmgr_bus_res pcibus_drv_resources;
 
 /* Attach a PCI bus on top of a PCI Host device */
-extern int pcibus_register(struct rtems_drvmgr_dev_info *dev);
+extern int pcibus_register(struct drvmgr_dev *dev);
 
 #ifdef __cplusplus
 }

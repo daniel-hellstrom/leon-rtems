@@ -342,25 +342,25 @@ extern void gr1553_register(void);
 /* Allocate a BC device. Minor is assigned to a device in the order
  * they are registered to the driver.
  */
-extern struct rtems_drvmgr_dev_info **gr1553_bc_open(int minor);
+extern struct drvmgr_dev **gr1553_bc_open(int minor);
 /* Free a BC device previously allocated */
-extern void gr1553_bc_close(struct rtems_drvmgr_dev_info **dev);
+extern void gr1553_bc_close(struct drvmgr_dev **dev);
 
 /*** RT Device allocation ***/
 /* Allocate a BC device. Minor is assigned to a device in the order
  * they are registered to the driver.
  */
-extern struct rtems_drvmgr_dev_info **gr1553_rt_open(int minor);
+extern struct drvmgr_dev **gr1553_rt_open(int minor);
 /* Free a BC device previously allocated */
-extern void gr1553_rt_close(struct rtems_drvmgr_dev_info **dev);
+extern void gr1553_rt_close(struct drvmgr_dev **dev);
 
 /*** BM Device allocation ***/
 /* Allocate a BC device. Minor is assigned to a device in the order
  * they are registered to the driver.
  */
-extern struct rtems_drvmgr_dev_info **gr1553_bm_open(int minor);
+extern struct drvmgr_dev **gr1553_bm_open(int minor);
 /* Free a BC device previously allocated */
-extern void gr1553_bm_close(struct rtems_drvmgr_dev_info **dev);
+extern void gr1553_bm_close(struct drvmgr_dev **dev);
 
 #ifdef __cplusplus
 }

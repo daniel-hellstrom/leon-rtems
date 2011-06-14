@@ -136,7 +136,7 @@ struct graes_ring {
 };
 
 struct graes_priv {
-	struct rtems_drvmgr_dev_info	*dev;		/* Driver manager device */
+	struct drvmgr_dev	*dev;		/* Driver manager device */
 	char			devName[32];	/* Device Name */
 	struct graes_regs	*regs;
 	int			irq;
@@ -191,10 +191,10 @@ static rtems_device_major_number graes_driver_io_major = 0;
 static int graes_register_io(rtems_device_major_number *m);
 static int graes_device_init(struct graes_priv *pDev);
 
-static int graes_init2(struct rtems_drvmgr_dev_info *dev);
-static int graes_init3(struct rtems_drvmgr_dev_info *dev);
+static int graes_init2(struct drvmgr_dev *dev);
+static int graes_init3(struct drvmgr_dev *dev);
 
-static struct rtems_drvmgr_drv_ops graes_ops = 
+static struct drvmgr_drv_ops graes_ops = 
 {
 	{NULL, graes_init2, graes_init3, NULL},
 	NULL,
@@ -225,10 +225,10 @@ static struct amba_drv_info graes_drv_info =
 void graes_register_drv (void)
 {
 	DBG("Registering GRAES driver\n");
-	rtems_drvmgr_drv_register(&graes_drv_info.general);
+	drvmgr_drv_register(&graes_drv_info.general);
 }
 
-static int graes_init2(struct rtems_drvmgr_dev_info *dev)
+static int graes_init2(struct drvmgr_dev *dev)
 {
 	struct graes_priv *priv;
 
@@ -244,7 +244,7 @@ static int graes_init2(struct rtems_drvmgr_dev_info *dev)
 	return DRVMGR_OK;
 }
 
-static int graes_init3(struct rtems_drvmgr_dev_info *dev)
+static int graes_init3(struct drvmgr_dev *dev)
 {
 	struct graes_priv *priv;
 	char prefix[32];
@@ -276,7 +276,7 @@ static int graes_init3(struct rtems_drvmgr_dev_info *dev)
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Failed to get prefix, make sure of a unique FS name
 		 * by using the driver minor.
 		 */
@@ -464,7 +464,7 @@ static int graes_start(struct graes_priv *pDev)
 
 
 	/* Set Descriptor Pointer Base register to point to first descriptor */
-	rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->bds, (void **)&transaddr);
+	drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->bds, (void **)&transaddr);
 	regs->dma_bd = transaddr;
 	
 	DBG("GRAES: set bd to 0x%08x\n",transaddr);
@@ -511,11 +511,11 @@ static rtems_device_driver graes_open(
 	void *arg)
 {
 	struct graes_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&graes_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&graes_drv_info.general, minor, &dev) ) {
 		DBG("Wrong minor %d\n", minor);
 		return RTEMS_INVALID_NUMBER;
 	}
@@ -560,11 +560,11 @@ static rtems_device_driver graes_open(
 static rtems_device_driver graes_close(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	struct graes_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&graes_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&graes_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NUMBER;
 	}
 	pDev = (struct graes_priv *)dev->priv;
@@ -697,7 +697,7 @@ static unsigned int graes_trans(struct graes_priv *pDev, struct graes_block *cur
 	 */
 	if ( curr_frm->flags & (GRAES_FLAGS_TRANSLATE|GRAES_FLAGS_TRANSLATE_AND_REMEMBER) ) {
 		/* Do translation */
-		rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)addr_in, (void **)&addr);
+		drvmgr_mmap_translate(pDev->dev, 0, (void *)addr_in, (void **)&addr);
 		if ( curr_frm->flags & GRAES_FLAGS_TRANSLATE_AND_REMEMBER ) {
 			if ( addr_in != addr ) {
 				/* Translation needed */
@@ -768,7 +768,7 @@ static int graes_schedule_ready(struct graes_priv *pDev, int ints_off)
 			curr_bd->bd->u.d[i++] = addr;
 		}
 
-		rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)curr_bd->next->bd, (void **)&naddr);
+		drvmgr_mmap_translate(pDev->dev, 0, (void *)curr_bd->next->bd, (void **)&naddr);
 		curr_bd->bd->u.d[i++] = naddr;
 		
 		if ( curr_bd->next == pDev->_ring ){
@@ -899,7 +899,7 @@ static void graes_printstatus(struct graes_priv *pDev, struct graes_print_status
 static rtems_device_driver graes_ioctl(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	struct graes_priv *pDev;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	rtems_libio_ioctl_args_t *ioarg = (rtems_libio_ioctl_args_t *)arg;
 	unsigned int *data = ioarg->buffer;
 	int status;
@@ -915,7 +915,7 @@ static rtems_device_driver graes_ioctl(rtems_device_major_number major, rtems_de
 
 	FUNCDBG();
 
-	if ( rtems_drvmgr_get_dev(&graes_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&graes_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NUMBER;
 	}
 	pDev = (struct graes_priv *)dev->priv;
@@ -933,7 +933,7 @@ static rtems_device_driver graes_ioctl(rtems_device_major_number major, rtems_de
 			return status;
 		}
 		/* Register interrupt handler and unmask IRQ at IRQ ctrl */
-		rtems_drvmgr_interrupt_register(dev, 0, "graes", graes_interrupt, pDev);
+		drvmgr_interrupt_register(dev, 0, "graes", graes_interrupt, pDev);
 
 		/* Read and write are now open... */
 		break;
@@ -944,7 +944,7 @@ static rtems_device_driver graes_ioctl(rtems_device_major_number major, rtems_de
 		}
 
 		/* Disable interrupts */
-		rtems_drvmgr_interrupt_unregister(dev, 0, graes_interrupt, pDev);
+		drvmgr_interrupt_unregister(dev, 0, graes_interrupt, pDev);
 		graes_stop(pDev);
 		pDev->running = 0;
 		break;

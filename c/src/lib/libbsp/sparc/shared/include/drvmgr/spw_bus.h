@@ -40,7 +40,7 @@ struct spw_id {
 struct spw_node {
 	struct spw_id			id;	/* Node ID */
 	char				*name;	/* Name of Target */
-	struct rtems_drvmgr_key		*keys;	/* Target setup (Destination address, Destination Key) */
+	struct drvmgr_key		*keys;	/* Target setup (Destination address, Destination Key) */
 };
 
 /* spw_node.keys that must be defined for SpaceWire targets 
@@ -62,7 +62,7 @@ struct spw_bus_config {
 	int				maxlen;		/* Maximum length */
 	struct spw_node			*nodes;		/* Bus configuration (SpaceWire nodes available) */
 	char				devName[32];	/* GRSPW Dev name bus is attached to */
-	struct rtems_drvmgr_bus_res	*resources;	/* Driver resouces present on the bus */
+	struct drvmgr_bus_res	*resources;	/* Driver resouces present on the bus */
 	struct spwbus_virq_config	virq_table[4];	/* Virtual IRQ number to GPIO translation table */
 };
 
@@ -83,20 +83,20 @@ struct spw_bus_dev_info {
 #define SPWBUS_VIRQ4 4
 
 struct spw_bus_drv_info {
-	struct rtems_drvmgr_drv_info	general;	/* General bus info */
+	struct drvmgr_drv	general;	/* General bus info */
 	/* SpW RMAP specific bus information */
 	struct spw_id			*ids;		/* Supported target hardware */
 };
 
-extern int rtems_drvmgr_memcpy(struct rtems_drvmgr_dev_info *dev, void *dest, const void *src, int n);
-extern unsigned char rtems_drvmgr_read_byte(struct rtems_drvmgr_dev_info *dev, unsigned char *address);
-extern unsigned short rtems_drvmgr_read_word(struct rtems_drvmgr_dev_info *dev, unsigned short *address);
-extern unsigned int rtems_drvmgr_read_dword(struct rtems_drvmgr_dev_info *dev, unsigned int *address);
-extern unsigned long long rtems_drvmgr_read_qword(struct rtems_drvmgr_dev_info *dev, unsigned long long *address);
-extern int rtems_drvmgr_write_byte(struct rtems_drvmgr_dev_info *dev, unsigned char *address, unsigned char data);
-extern int rtems_drvmgr_write_word(struct rtems_drvmgr_dev_info *dev, unsigned short *address, unsigned short data);
-extern int rtems_drvmgr_write_dword(struct rtems_drvmgr_dev_info *dev, unsigned int *address, unsigned int data);
-extern int rtems_drvmgr_write_qword(struct rtems_drvmgr_dev_info *dev, unsigned long long *address, unsigned long long data);
+extern int drvmgr_memcpy(struct drvmgr_dev *dev, void *dest, const void *src, int n);
+extern unsigned char drvmgr_read_byte(struct drvmgr_dev *dev, unsigned char *address);
+extern unsigned short drvmgr_read_word(struct drvmgr_dev *dev, unsigned short *address);
+extern unsigned int drvmgr_read_dword(struct drvmgr_dev *dev, unsigned int *address);
+extern unsigned long long drvmgr_read_qword(struct drvmgr_dev *dev, unsigned long long *address);
+extern int drvmgr_write_byte(struct drvmgr_dev *dev, unsigned char *address, unsigned char data);
+extern int drvmgr_write_word(struct drvmgr_dev *dev, unsigned short *address, unsigned short data);
+extern int drvmgr_write_dword(struct drvmgr_dev *dev, unsigned int *address, unsigned int data);
+extern int drvmgr_write_qword(struct drvmgr_dev *dev, unsigned long long *address, unsigned long long data);
 
 #ifdef __cplusplus
 }

@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-extern struct rtems_drvmgr_drv_reg_func rtems_drvmgr_drivers[];
+extern struct drvmgr_drv_reg_func drvmgr_drivers[];
 
 #ifdef CONFIGURE_INIT
 
@@ -162,7 +162,7 @@ extern void graes_register_drv(void);
 extern void grpwrx_register_drv(void);
 	
 /* CONFIGURE DRIVER MANAGER */
-struct rtems_drvmgr_drv_reg_func rtems_drvmgr_drivers[] =
+struct drvmgr_drv_reg_func drvmgr_drivers[] =
 {
 	/*** AMBA Plug & Play Drivers ***/
 #ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GPTIMER

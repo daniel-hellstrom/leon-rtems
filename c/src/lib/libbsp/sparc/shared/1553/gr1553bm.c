@@ -43,7 +43,7 @@
 #endif
 
 struct gr1553bm_priv {
-	struct rtems_drvmgr_dev_info **pdev;
+	struct drvmgr_dev **pdev;
 	struct gr1553b_regs *regs;
 
 	void *buffer;
@@ -136,7 +136,7 @@ static void gr1553bm_hw_stop(struct gr1553bm_priv *priv)
 /* Open device by number */
 void *gr1553bm_open(int minor)
 {
-	struct rtems_drvmgr_dev_info **pdev = NULL;
+	struct drvmgr_dev **pdev = NULL;
 	struct gr1553bm_priv *priv = NULL;
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
@@ -220,7 +220,7 @@ int gr1553bm_config(void *bm, struct gr1553bm_config *cfg)
 			 * to convert it intoTranslate into Hardware a
 			 * hardware accessible address
 			 */
-			rtems_drvmgr_mmap_translate(
+			drvmgr_mmap_translate(
 				*priv->pdev,
 				1,
 				(void *)((unsigned int)cfg->buffer_custom & ~1),
@@ -240,7 +240,7 @@ int gr1553bm_config(void *bm, struct gr1553bm_config *cfg)
 	/* Translate address of buffer base into address that Hardware must
 	 * use to access the buffer.
 	 */
-	rtems_drvmgr_mmap_translate(
+	drvmgr_mmap_translate(
 		*priv->pdev,
 		0,
 		(void *)priv->buffer_base,
@@ -280,7 +280,7 @@ int gr1553bm_start(void *bm)
 	priv->buffer_end = priv->buffer_base + priv->cfg.buffer_size;
 
 	/* Register ISR handler and unmask IRQ source at IRQ controller */
-	if (rtems_drvmgr_interrupt_register(*priv->pdev, 0, "gr1553bm", gr1553bm_isr, priv))
+	if (drvmgr_interrupt_register(*priv->pdev, 0, "gr1553bm", gr1553bm_isr, priv))
 		return -3;
 
 	/* Start hardware and set priv->started */
@@ -302,7 +302,7 @@ void gr1553bm_stop(void *bm)
 	 */
 
 	/* Unregister ISR handler and unmask 1553 IRQ source at IRQ ctrl */
-	rtems_drvmgr_interrupt_unregister(*priv->pdev, 0, gr1553bm_isr, priv);
+	drvmgr_interrupt_unregister(*priv->pdev, 0, gr1553bm_isr, priv);
 }
 
 int gr1553bm_started(void *bm)

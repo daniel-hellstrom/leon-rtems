@@ -1,15 +1,15 @@
 #include <drvmgr/drvmgr.h>
 #include <drvmgr/drvmgr_list.h>
 
-int rtems_drvmgr_for_each_dev(
-	struct rtems_drvmgr_list *devlist,
+int drvmgr_for_each_dev(
+	struct drvmgr_list *devlist,
 	unsigned int state_set_mask,
 	unsigned int state_clr_mask,
-	int (*func)(struct rtems_drvmgr_dev_info *dev, void *arg),
+	int (*func)(struct drvmgr_dev *dev, void *arg),
 	void *arg
 	)
 {
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	int ret;
 
 	/* Get First Device */

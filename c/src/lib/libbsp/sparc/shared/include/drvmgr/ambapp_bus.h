@@ -66,7 +66,7 @@ struct amba_dev_id {
 };
 
 struct amba_drv_info {
-	struct rtems_drvmgr_drv_info	general;	/* General bus info */
+	struct drvmgr_drv	general;	/* General bus info */
 	/* AMBA specific bus information */
 	struct amba_dev_id		*ids;		/* Supported hardware */
 };
@@ -78,32 +78,32 @@ struct amba_dev_info {
 
 struct ambapp_ops {
 	int	(*int_register)
-		(struct rtems_drvmgr_dev_info *dev, int index, const char *info, rtems_drvmgr_isr isr, void *arg);
+		(struct drvmgr_dev *dev, int index, const char *info, drvmgr_isr isr, void *arg);
 	int	(*int_unregister)
-		(struct rtems_drvmgr_dev_info *dev, int index, rtems_drvmgr_isr isr, void *arg);
-	int	(*int_clear)(struct rtems_drvmgr_dev_info *dev, int index);
-	int	(*int_mask)(struct rtems_drvmgr_dev_info *dev, int index);
-	int	(*int_unmask)(struct rtems_drvmgr_dev_info *dev, int index);
+		(struct drvmgr_dev *dev, int index, drvmgr_isr isr, void *arg);
+	int	(*int_clear)(struct drvmgr_dev *dev, int index);
+	int	(*int_mask)(struct drvmgr_dev *dev, int index);
+	int	(*int_unmask)(struct drvmgr_dev *dev, int index);
 	int	(*get_params)
-		(struct rtems_drvmgr_dev_info *, struct rtems_drvmgr_bus_params *);
+		(struct drvmgr_dev *, struct drvmgr_bus_params *);
 };
 
 struct ambapp_config {
 	struct ambapp_bus		*abus;		/* Prescanned AMBA PnP bus */
 	struct ambapp_ops		*ops;		/* AMBA bus operations */
-	struct rtems_drvmgr_mmap_entry	*mmaps;		/* Bus memory map */
-	struct rtems_drvmgr_bus_res	*resources;	/* Driver Resources */
+	struct drvmgr_mmap_entry	*mmaps;		/* Bus memory map */
+	struct drvmgr_bus_res	*resources;	/* Driver Resources */
 	int				bus_type;	/* Set DRVMGR_BUS_TYPE_AMBAPP_DIST if distributed AMBA Bus */
 };
 
 /* Register an ambapp bus on-top of a device */
 extern int ambapp_bus_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	struct ambapp_config *config
 	);
 
 extern void ambapp_bus_freq_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int amba_interface,
 	unsigned int freq_hz);
 

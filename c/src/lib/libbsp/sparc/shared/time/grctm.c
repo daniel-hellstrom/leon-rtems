@@ -17,7 +17,7 @@
 
 /* Private structure of GRCTM driver */
 struct grctm_priv {
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	struct grctm_regs *regs;
 	int open;
 
@@ -34,10 +34,10 @@ struct amba_drv_info grctm_drv_info;
 void *grctm_open(int minor)
 {
 	struct grctm_priv *priv;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	/* Get Device from Minor */
-	if ( rtems_drvmgr_get_dev(&grctm_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&grctm_drv_info.general, minor, &dev) ) {
 		return NULL;
 	}
 
@@ -90,7 +90,7 @@ void grctm_int_enable(void *grctm)
 	struct grctm_priv *priv = (struct grctm_priv *)grctm;
 
 	/* Register and Enable Interrupt at Interrupt controller */
-	rtems_drvmgr_interrupt_register(priv->dev, 0, "grctm", grctm_isr, priv);
+	drvmgr_interrupt_register(priv->dev, 0, "grctm", grctm_isr, priv);
 }
 
 void grctm_int_disable(void *grctm)
@@ -98,7 +98,7 @@ void grctm_int_disable(void *grctm)
 	struct grctm_priv *priv = (struct grctm_priv *)grctm;
 
 	/* Enable Interrupt at Interrupt controller */
-	rtems_drvmgr_interrupt_unregister(priv->dev, 0, grctm_isr, priv);
+	drvmgr_interrupt_unregister(priv->dev, 0, grctm_isr, priv);
 }
 
 void grctm_clr_stats(void *grctm)
@@ -344,7 +344,7 @@ void grctm_int_register(void *grctm, grctm_isr_t func, void *data)
 
 /*** INTERFACE TO DRIVER MANAGER ***/
 
-int grctm_init2(struct rtems_drvmgr_dev_info *dev)
+int grctm_init2(struct drvmgr_dev *dev)
 {
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
@@ -373,7 +373,7 @@ int grctm_init2(struct rtems_drvmgr_dev_info *dev)
 	return 0;
 }
 
-struct rtems_drvmgr_drv_ops grctm_ops =
+struct drvmgr_drv_ops grctm_ops =
 {
 	{NULL, grctm_init2, NULL, NULL},
 	NULL,
@@ -404,5 +404,5 @@ struct amba_drv_info grctm_drv_info =
 /* Register the grctm Driver */
 void grctm_register(void)
 {
-	rtems_drvmgr_drv_register(&grctm_drv_info.general);
+	drvmgr_drv_register(&grctm_drv_info.general);
 }

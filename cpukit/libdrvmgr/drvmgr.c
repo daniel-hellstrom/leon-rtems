@@ -34,34 +34,34 @@ struct rtems_driver_manager drv_mgr =
 	.root_drv =		NULL,
 	.root_dev =		NULL,
 
-	.drivers =	LIST_INITIALIZER(struct rtems_drvmgr_drv_info, next),
+	.drivers =	LIST_INITIALIZER(struct drvmgr_drv, next),
 
 	.buses = {
-		LIST_INITIALIZER(struct rtems_drvmgr_bus_info, next),
-		LIST_INITIALIZER(struct rtems_drvmgr_bus_info, next),
-		LIST_INITIALIZER(struct rtems_drvmgr_bus_info, next),
-		LIST_INITIALIZER(struct rtems_drvmgr_bus_info, next),
-		LIST_INITIALIZER(struct rtems_drvmgr_bus_info, next),
+		LIST_INITIALIZER(struct drvmgr_bus, next),
+		LIST_INITIALIZER(struct drvmgr_bus, next),
+		LIST_INITIALIZER(struct drvmgr_bus, next),
+		LIST_INITIALIZER(struct drvmgr_bus, next),
+		LIST_INITIALIZER(struct drvmgr_bus, next),
 	},
-	.buses_inactive =	LIST_INITIALIZER(struct rtems_drvmgr_bus_info, next),
+	.buses_inactive =	LIST_INITIALIZER(struct drvmgr_bus, next),
 
 	.devices = {
-		LIST_INITIALIZER(struct rtems_drvmgr_dev_info, next),
-		LIST_INITIALIZER(struct rtems_drvmgr_dev_info, next),
-		LIST_INITIALIZER(struct rtems_drvmgr_dev_info, next),
-		LIST_INITIALIZER(struct rtems_drvmgr_dev_info, next),
-		LIST_INITIALIZER(struct rtems_drvmgr_dev_info, next),
+		LIST_INITIALIZER(struct drvmgr_dev, next),
+		LIST_INITIALIZER(struct drvmgr_dev, next),
+		LIST_INITIALIZER(struct drvmgr_dev, next),
+		LIST_INITIALIZER(struct drvmgr_dev, next),
+		LIST_INITIALIZER(struct drvmgr_dev, next),
 	},
-	.devices_inactive =	LIST_INITIALIZER(struct rtems_drvmgr_dev_info, next),
+	.devices_inactive =	LIST_INITIALIZER(struct drvmgr_dev, next),
 };
 
 static int do_bus_init(
 	struct rtems_driver_manager *mgr,
-	struct rtems_drvmgr_bus_info *bus,
+	struct drvmgr_bus *bus,
 	int level);
 static int do_dev_init(
 	struct rtems_driver_manager *mgr,
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int level);
 
 /* DRIVER MANAGER */
@@ -85,12 +85,12 @@ void _DRV_Manager_init_level(int level)
  */
 void _DRV_Manager_initialization(void)
 {
-	struct rtems_drvmgr_drv_reg_func *drvreg;
+	struct drvmgr_drv_reg_func *drvreg;
 
 	/* drv_mgr is already initialized statically by compiler */
 
 	/* Call driver register functions. */
-	drvreg = &rtems_drvmgr_drivers[0];
+	drvreg = &drvmgr_drivers[0];
 	while ( drvreg->drv_reg ) {
 		/* Make driver register */
 		drvreg->drv_reg();
@@ -105,8 +105,8 @@ void _DRV_Manager_initialization(void)
 void drvmgr_init_update(void)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
-	struct rtems_drvmgr_bus_info *bus;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_bus *bus;
+	struct drvmgr_dev *dev;
 	int bus_might_been_registered;
 	int level;
 
@@ -132,7 +132,7 @@ init_registered_buses:
 			/* Remove first in the list (will be inserted in
 			 * appropriate list by do_bus_init())
 			 */
-			rtems_drvmgr_list_remove_head(&mgr->buses[level]);
+			drvmgr_list_remove_head(&mgr->buses[level]);
 
 			/* Initialize Bus, this will register devices on
 			 * the bus. Take bus into next level.
@@ -149,7 +149,7 @@ init_registered_buses:
 			/* Remove first in the list (will be inserted in
 			 * appropriate list by do_dev_init())
 			 */
-			rtems_drvmgr_list_remove_head(&mgr->devices[level]);
+			drvmgr_list_remove_head(&mgr->devices[level]);
 
 			/* Initialize Device, this may register a new bus */
 			do_dev_init(mgr, dev, level+1);
@@ -169,7 +169,7 @@ init_registered_buses:
 }
 
 /* Init driver manager. REMOVE THIS FUNCTION WHEN IMPLEMENTED IN RTEMS */
-int rtems_drvmgr_init(void)
+int drvmgr_init(void)
 {
 	int level;
 
@@ -185,10 +185,10 @@ int rtems_drvmgr_init(void)
 /* Take bus into next level */
 static int do_bus_init(
 	struct rtems_driver_manager *mgr,
-	struct rtems_drvmgr_bus_info *bus,
+	struct drvmgr_bus *bus,
 	int level)
 {
-	int (*init)(struct rtems_drvmgr_bus_info *);
+	int (*init)(struct drvmgr_bus *);
 
 	/* If bridge device has failed during initialization, the bus is not
 	 * initialized further.
@@ -220,14 +220,14 @@ static int do_bus_init(
 	 * Put at end of bus list so that init[N+1]() calls comes 
 	 * in the same order as init[N]()
 	 */
-	rtems_drvmgr_list_add_tail(&mgr->buses[level], bus);
+	drvmgr_list_add_tail(&mgr->buses[level], bus);
 
 	return 0;
 
 inactivate_out:
 	bus->state |= BUS_STATE_INIT_FAILED;
 	bus->state |= BUS_STATE_LIST_INACTIVE;
-	rtems_drvmgr_list_add_head(&mgr->buses_inactive, bus);
+	drvmgr_list_add_head(&mgr->buses_inactive, bus);
 
 	DBG("do_bus_init(%d): (DEV: %s) failed\n", level, bus->dev->name);
 
@@ -237,10 +237,10 @@ inactivate_out:
 /* Take device to initialization level 1 */
 static int do_dev_init(
 	struct rtems_driver_manager *mgr,
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int level)
 {
-	int (*init)(struct rtems_drvmgr_dev_info *);
+	int (*init)(struct drvmgr_dev *);
 
 	/* Try to allocate Private Device Structure for driver if driver
 	 * requests for this feature.
@@ -288,14 +288,14 @@ static int do_dev_init(
 	/* Put at end of device list so that init[N+1]() calls comes 
 	 * in the same order as init[N]()
 	 */
-	rtems_drvmgr_list_add_tail(&mgr->devices[level], dev);
+	drvmgr_list_add_tail(&mgr->devices[level], dev);
 
 	return 0;
 
 inactivate_out:
 	dev->state |= DEV_STATE_INIT_FAILED;
 	dev->state |= DEV_STATE_LIST_INACTIVE;
-	rtems_drvmgr_list_add_head(&mgr->devices_inactive, dev);
+	drvmgr_list_add_head(&mgr->devices_inactive, dev);
 
 	DBG("do_dev_init(%d): DRV: %s (DEV: %s) failed\n",
 		level, dev->drv->name, dev->name);
@@ -304,10 +304,10 @@ inactivate_out:
 }
 
 /* Register Root device driver */
-int rtems_drvmgr_root_drv_register(struct rtems_drvmgr_drv_info *drv)
+int drvmgr_root_drv_register(struct drvmgr_drv *drv)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
-	struct rtems_drvmgr_dev_info *root;
+	struct drvmgr_dev *root;
 
 	if ( mgr->root_drv ) {
 		/* Only possible to register root device once */
@@ -315,7 +315,7 @@ int rtems_drvmgr_root_drv_register(struct rtems_drvmgr_drv_info *drv)
 	}
 
 	/* Create root device for root bus */
-	rtems_drvmgr_alloc_dev(&root, 0);
+	drvmgr_alloc_dev(&root, 0);
 	if ( root == NULL )
 		return DRVMGR_FAIL;
 
@@ -333,20 +333,20 @@ int rtems_drvmgr_root_drv_register(struct rtems_drvmgr_drv_info *drv)
 	root->drv = mgr->root_drv;
 
 	/* This registers the root device and a bus */
-	rtems_drvmgr_dev_register(root);
+	drvmgr_dev_register(root);
 
 	return DRVMGR_OK;
 }
 
 /* Register a driver */
-int rtems_drvmgr_drv_register(struct rtems_drvmgr_drv_info *drv)
+int drvmgr_drv_register(struct drvmgr_drv *drv)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
 
 	drv->obj_type = DRVMGR_OBJ_DRV;
 
 	/* Put driver into list of registered drivers */
-	rtems_drvmgr_list_add_head(&mgr->drivers, drv);
+	drvmgr_list_add_head(&mgr->drivers, drv);
 
 	return 0;
 }
@@ -357,11 +357,11 @@ int rtems_drvmgr_drv_register(struct rtems_drvmgr_drv_info *drv)
  * The devices are ordered by their minor number (sorted linked list of devices)
  * the minor number is found by looking for a gap or at the end.
  */
-static void rtems_drvmgr_insert_dev_into_drv(
-	struct rtems_drvmgr_drv_info *drv,
-	struct rtems_drvmgr_dev_info *dev)
+static void drvmgr_insert_dev_into_drv(
+	struct drvmgr_drv *drv,
+	struct drvmgr_dev *dev)
 {
-	struct rtems_drvmgr_dev_info *curr, **pprevnext;
+	struct drvmgr_dev *curr, **pprevnext;
 	int minor;
 
 	minor = 0;
@@ -394,11 +394,11 @@ static void rtems_drvmgr_insert_dev_into_drv(
  *
  * The minor number is found by looking for a gap or at the end.
  */
-static void rtems_drvmgr_insert_dev_into_bus(
-	struct rtems_drvmgr_bus_info *bus,
-	struct rtems_drvmgr_dev_info *dev)
+static void drvmgr_insert_dev_into_bus(
+	struct drvmgr_bus *bus,
+	struct drvmgr_dev *dev)
 {
-	struct rtems_drvmgr_dev_info *curr, **pprevnext;
+	struct drvmgr_dev *curr, **pprevnext;
 	int minor;
 
 	minor = 0;
@@ -430,11 +430,11 @@ static void rtems_drvmgr_insert_dev_into_bus(
 /* Try to find a driver for a device (unite a device with driver).
  * a device with a driver
  */
-static struct rtems_drvmgr_drv_info *rtems_drvmgr_dev_find_drv(
-		struct rtems_drvmgr_dev_info *dev)
+static struct drvmgr_drv *drvmgr_dev_find_drv(
+		struct drvmgr_dev *dev)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
-	struct rtems_drvmgr_drv_info *drv;
+	struct drvmgr_drv *drv;
 
 	/* Try to find a driver that can handle this device */
 	for (drv = DRV_LIST_HEAD(&mgr->drivers); drv; drv = drv->next)
@@ -444,13 +444,13 @@ static struct rtems_drvmgr_drv_info *rtems_drvmgr_dev_find_drv(
 }
 
 /* Register a device */
-int rtems_drvmgr_dev_register(struct rtems_drvmgr_dev_info *dev)
+int drvmgr_dev_register(struct drvmgr_dev *dev)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
-	struct rtems_drvmgr_drv_info *drv;
-	struct rtems_drvmgr_bus_info *bus = dev->parent;
-	struct rtems_drvmgr_key *keys;
-	struct rtems_drvmgr_list *init_list = &mgr->devices_inactive;
+	struct drvmgr_drv *drv;
+	struct drvmgr_bus *bus = dev->parent;
+	struct drvmgr_key *keys;
+	struct drvmgr_list *init_list = &mgr->devices_inactive;
 
 	DBG("DEV_REG: %s at bus \"%s\"\n", dev->name, 
 		bus && bus->dev && bus->dev->name ? bus->dev->name : "UNKNOWN");
@@ -461,7 +461,7 @@ int rtems_drvmgr_dev_register(struct rtems_drvmgr_dev_info *dev)
 		DBG("CUSTOM ASSOCIATION (%s to %s)\n", dev->name, drv->name);
 	} else {
 		/* Try to find a driver that can handle this device */
-		drv = rtems_drvmgr_dev_find_drv(dev);
+		drv = drvmgr_dev_find_drv(dev);
 	}
 
 	dev->drv = drv;
@@ -490,7 +490,7 @@ int rtems_drvmgr_dev_register(struct rtems_drvmgr_dev_info *dev)
 		 * device the user can simply define a resource entry
 		 * for a certain device but set the keys field to NULL.
 		 */
-		if (rtems_drvmgr_keys_get(dev, &keys) == 0 && keys == NULL) {
+		if (drvmgr_keys_get(dev, &keys) == 0 && keys == NULL) {
 			/* Found Driver resource entry point 
 			 * for this device, it was NULL, this
 			 * indicates to skip the core.
@@ -503,7 +503,7 @@ int rtems_drvmgr_dev_register(struct rtems_drvmgr_dev_info *dev)
 			/* Assign Driver Minor number and put into driver's
 			 * device list
 			 */
-			rtems_drvmgr_insert_dev_into_drv(drv, dev);
+			drvmgr_insert_dev_into_drv(drv, dev);
 
 			/* Just register device, it will be initialized
 			 * later together with bus.
@@ -518,13 +518,13 @@ int rtems_drvmgr_dev_register(struct rtems_drvmgr_dev_info *dev)
 		}
 	}
 
-	rtems_drvmgr_list_add_tail(init_list, dev);
+	drvmgr_list_add_tail(init_list, dev);
 
 	if (bus) {
 		/* Assign Bus Minor number and put into bus device list
 		 * unless root device.
 		 */
-		rtems_drvmgr_insert_dev_into_bus(bus, dev);
+		drvmgr_insert_dev_into_bus(bus, dev);
 
 		/* Trigger Device initialization if not root device and
 		 * has a driver
@@ -537,12 +537,12 @@ int rtems_drvmgr_dev_register(struct rtems_drvmgr_dev_info *dev)
 }
 
 /* Register a bus */
-int rtems_drvmgr_bus_register(struct rtems_drvmgr_bus_info *bus)
+int drvmgr_bus_register(struct drvmgr_bus *bus)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
 
 	/* Put driver into list of found buses */
-	rtems_drvmgr_list_add_tail(&mgr->buses[0], bus);
+	drvmgr_list_add_tail(&mgr->buses[0], bus);
 
 	/* Take bus into level1 and so on */
 	drvmgr_init_update();
@@ -551,13 +551,13 @@ int rtems_drvmgr_bus_register(struct rtems_drvmgr_bus_info *bus)
 }
 
 /* Allocate memory for a Device structure */
-int rtems_drvmgr_alloc_dev(struct rtems_drvmgr_dev_info **pdev, int extra)
+int drvmgr_alloc_dev(struct drvmgr_dev **pdev, int extra)
 {
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	int size;
 
-	size = ((sizeof(struct rtems_drvmgr_dev_info) + 3) & ~0x3) + extra;
-	dev = (struct rtems_drvmgr_dev_info *)malloc(size);
+	size = ((sizeof(struct drvmgr_dev) + 3) & ~0x3) + extra;
+	dev = (struct drvmgr_dev *)malloc(size);
 	if ( !dev ) {
 		/* Failed to allocate device structure - critical error */
 		rtems_fatal_error_occurred(RTEMS_NO_MEMORY);
@@ -570,13 +570,13 @@ int rtems_drvmgr_alloc_dev(struct rtems_drvmgr_dev_info **pdev, int extra)
 }
 
 /* Allocate memory for a Bus structure */
-int rtems_drvmgr_alloc_bus(struct rtems_drvmgr_bus_info **pbus, int extra)
+int drvmgr_alloc_bus(struct drvmgr_bus **pbus, int extra)
 {
-	struct rtems_drvmgr_bus_info *bus;
+	struct drvmgr_bus *bus;
 	int size;
 
-	size = ((sizeof(struct rtems_drvmgr_bus_info) + 3) & ~0x3) + extra;
-	bus = (struct rtems_drvmgr_bus_info *)malloc(size);
+	size = ((sizeof(struct drvmgr_bus) + 3) & ~0x3) + extra;
+	bus = (struct drvmgr_bus *)malloc(size);
 	if ( !bus ) {
 		/* Failed to allocate device structure - critical error */
 		rtems_fatal_error_occurred(RTEMS_NO_MEMORY);
@@ -589,8 +589,8 @@ int rtems_drvmgr_alloc_bus(struct rtems_drvmgr_bus_info **pbus, int extra)
 }
 
 /* Add driver resources to a bus instance */
-void rtems_drvmgr_bus_res_add(struct rtems_drvmgr_bus_info *bus,
-				struct rtems_drvmgr_bus_res *bres)
+void drvmgr_bus_res_add(struct drvmgr_bus *bus,
+				struct drvmgr_bus_res *bres)
 {
 	/* insert first in bus resource list */
 	bres->next = bus->reslist;

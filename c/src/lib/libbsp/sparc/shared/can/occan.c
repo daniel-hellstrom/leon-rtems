@@ -205,7 +205,7 @@ typedef struct {
 } occan_speed_regs;
 
 typedef struct {
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	char devName[32];
 
 	/* hardware shortcuts */
@@ -416,10 +416,10 @@ static rtems_device_major_number occan_driver_io_major = 0;
 int occan_register_io(rtems_device_major_number *m);
 int occan_device_init(occan_priv *pDev);
 
-int occan_init2(struct rtems_drvmgr_dev_info *dev);
-int occan_init3(struct rtems_drvmgr_dev_info *dev);
+int occan_init2(struct drvmgr_dev *dev);
+int occan_init3(struct drvmgr_dev *dev);
 
-struct rtems_drvmgr_drv_ops occan_ops = 
+struct drvmgr_drv_ops occan_ops = 
 {
 	.init = {NULL, occan_init2, occan_init3, NULL},
 	.remove = NULL,
@@ -450,10 +450,10 @@ struct amba_drv_info occan_drv_info =
 void occan_register_drv (void)
 {
 	DBG("Registering OCCAN driver\n");
-	rtems_drvmgr_drv_register(&occan_drv_info.general);
+	drvmgr_drv_register(&occan_drv_info.general);
 }
 
-int occan_init2(struct rtems_drvmgr_dev_info *dev)
+int occan_init2(struct drvmgr_dev *dev)
 {
 	occan_priv *priv;
 
@@ -467,7 +467,7 @@ int occan_init2(struct rtems_drvmgr_dev_info *dev)
 	return DRVMGR_OK;
 }
 
-int occan_init3(struct rtems_drvmgr_dev_info *dev)
+int occan_init3(struct drvmgr_dev *dev)
 {
 	occan_priv *priv;
 	char prefix[16];
@@ -498,7 +498,7 @@ int occan_init3(struct rtems_drvmgr_dev_info *dev)
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Failed to get prefix, make sure of a unique FS name
 		 * by using the driver minor.
 		 */
@@ -566,7 +566,7 @@ int occan_device_init(occan_priv *pDev)
 	minor = pDev->dev->minor_drv;
 
 	/* Get frequency in Hz */
-	if ( rtems_drvmgr_freq_get(pDev->dev, DEV_AHB_SLV, &pDev->sys_freq_hz) ) {
+	if ( drvmgr_freq_get(pDev->dev, DEV_AHB_SLV, &pDev->sys_freq_hz) ) {
 		return -1;
 	}
 
@@ -874,7 +874,7 @@ static int pelican_start(occan_priv *priv){
 	WRITE_REG(priv, &priv->regs->mode, (priv->single_mode << 3));
 
 	/* Register interrupt routine and unmask IRQ at IRQ controller */
-	rtems_drvmgr_interrupt_register(priv->dev, 0, "occan", occan_interrupt, priv);
+	drvmgr_interrupt_register(priv->dev, 0, "occan", occan_interrupt, priv);
 
 	return 0;
 }
@@ -883,7 +883,7 @@ static void pelican_stop(occan_priv *priv)
 {
 	/* stop HW */
 
-	rtems_drvmgr_interrupt_unregister(priv->dev, 0, occan_interrupt, priv);
+	drvmgr_interrupt_unregister(priv->dev, 0, occan_interrupt, priv);
 
 #ifdef DEBUG
 	/* print setup before stopping */
@@ -1183,12 +1183,12 @@ static rtems_device_driver occan_initialize(rtems_device_major_number major, rte
 
 static rtems_device_driver occan_open(rtems_device_major_number major, rtems_device_minor_number minor, void *arg){
 	occan_priv *can;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	DBG("OCCAN: Opening %d\n\r",minor);
 
 	/* get can device */	
-	if ( rtems_drvmgr_get_dev(&occan_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&occan_drv_info.general, minor, &dev) ) {
 		DBG("Wrong minor %d\n", minor);
 		return RTEMS_UNSATISFIED; /* NODEV */
 	}
@@ -1241,11 +1241,11 @@ static rtems_device_driver occan_open(rtems_device_major_number major, rtems_dev
 static rtems_device_driver occan_close(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
 	occan_priv *can;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	DBG("OCCAN: Closing %d\n\r",minor);
 
-	if ( rtems_drvmgr_get_dev(&occan_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&occan_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NAME;
 	}
 	can = (occan_priv *)dev->priv;
@@ -1271,13 +1271,13 @@ static rtems_device_driver occan_close(rtems_device_major_number major, rtems_de
 
 static rtems_device_driver occan_read(rtems_device_major_number major, rtems_device_minor_number minor, void *arg){
 	occan_priv *can;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	rtems_libio_rw_args_t *rw_args=(rtems_libio_rw_args_t *) arg;
 	CANMsg *dstmsg, *srcmsg;
 	rtems_interrupt_level oldLevel;
 	int left;
 
-	if ( rtems_drvmgr_get_dev(&occan_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&occan_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NAME;
 	}
 	can = (occan_priv *)dev->priv;
@@ -1373,7 +1373,7 @@ static rtems_device_driver occan_read(rtems_device_major_number major, rtems_dev
 
 static rtems_device_driver occan_write(rtems_device_major_number major, rtems_device_minor_number minor, void *arg){
 	occan_priv *can;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	rtems_libio_rw_args_t *rw_args=(rtems_libio_rw_args_t *) arg;
 	CANMsg *msg,*fifo_msg;
 	rtems_interrupt_level oldLevel;
@@ -1381,7 +1381,7 @@ static rtems_device_driver occan_write(rtems_device_major_number major, rtems_de
 
 	DBG("OCCAN: Writing %d bytes from 0x%lx (%d)\n\r",rw_args->count,rw_args->buffer,sizeof(CANMsg));
 
-	if ( rtems_drvmgr_get_dev(&occan_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&occan_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NAME;
 	}
 	can = (occan_priv *)dev->priv;
@@ -1526,7 +1526,7 @@ static rtems_device_driver occan_ioctl(rtems_device_major_number major, rtems_de
 	int ret;
 	occan_speed_regs timing;
 	occan_priv *can;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 	unsigned int speed;
 	rtems_libio_ioctl_args_t *ioarg = (rtems_libio_ioctl_args_t *) arg;
 	struct occan_afilter *afilter;
@@ -1535,7 +1535,7 @@ static rtems_device_driver occan_ioctl(rtems_device_major_number major, rtems_de
 
 	DBG("OCCAN: IOCTL %d\n\r",ioarg->command);
 
-	if ( rtems_drvmgr_get_dev(&occan_drv_info.general, minor, &dev) ) {
+	if ( drvmgr_get_dev(&occan_drv_info.general, minor, &dev) ) {
 		return RTEMS_INVALID_NAME;
 	}
 	can = (occan_priv *)dev->priv;

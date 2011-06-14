@@ -38,12 +38,12 @@ static void *get_obj_adr(char *arg)
 /* General info, root bus, number of devices etc. */
 void show_drvmgr_info(void)
 {
-  rtems_drvmgr_summary();
+  drvmgr_summary();
 }
 
 int shell_drvmgr_topo(int argc, char *argv[])
 {
-  rtems_drvmgr_print_topo();
+  drvmgr_print_topo();
   return 0;
 }
 
@@ -64,7 +64,7 @@ int shell_drvmgr_info(int argc, char *argv[])
   if (!obj)
     return -3;
 
-  rtems_drvmgr_info(obj);
+  drvmgr_info(obj);
 
   return 0;
 }
@@ -79,8 +79,8 @@ int shell_drvmgr_parent(int argc, char *argv[])
 {
   void *obj;
   int obj_type;
-  struct rtems_drvmgr_dev_info *dev;
-  struct rtems_drvmgr_bus_info *bus;
+  struct drvmgr_dev *dev;
+  struct drvmgr_bus *bus;
 
   /* Get ID from string */
   if (argc < 3)
@@ -123,7 +123,7 @@ int shell_drvmgr_drv(int argc, char *argv[])
 
 int shell_drvmgr_mem(int argc, char *argv[])
 {
-  rtems_drvmgr_print_mem();
+  drvmgr_print_mem();
   return 0;
 }
 

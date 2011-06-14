@@ -32,33 +32,33 @@
 #define DBG(args...)
 /*#define DBG(args...) printk(args)*/
 
-struct rtems_drvmgr_drv_info leon2_bus_drv;
+struct drvmgr_drv leon2_bus_drv;
 
-int leon2_amba_bus_init1(struct rtems_drvmgr_bus_info *bus);
-int leon2_amba_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_info *dev);
+int leon2_amba_bus_init1(struct drvmgr_bus *bus);
+int leon2_amba_unite(struct drvmgr_drv *drv, struct drvmgr_dev *dev);
 int leon2_amba_int_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
 	const char *info,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg);
 int leon2_amba_int_unregister(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg);
 int leon2_amba_int_clear(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index);
 int leon2_amba_int_mask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index);
 int leon2_amba_int_unmask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index);
 
 /* LEON2 bus operations */
-struct rtems_drvmgr_bus_ops leon2_amba_bus_ops =
+struct drvmgr_bus_ops leon2_amba_bus_ops =
 {
 	.init = {
 		leon2_amba_bus_init1,
@@ -86,7 +86,7 @@ struct leon2_isr_handler leon2_isrs[16];
 
 /* Standard LEON2 configuration */
 
-struct rtems_drvmgr_key leon2_timers[] =
+struct drvmgr_key leon2_timers[] =
 {
 	{"REG0", KEY_TYPE_INT, {0x80000040}},
 	{"IRQ0", KEY_TYPE_INT, {8}},
@@ -94,27 +94,27 @@ struct rtems_drvmgr_key leon2_timers[] =
 	KEY_EMPTY
 };
 
-struct rtems_drvmgr_key leon2_uart1[] =
+struct drvmgr_key leon2_uart1[] =
 {
 	{"REG0", KEY_TYPE_INT, {0x80000070}},
 	{"IRQ0", KEY_TYPE_INT, {3}},
 	KEY_EMPTY
 };
 
-struct rtems_drvmgr_key leon2_uart2[] =
+struct drvmgr_key leon2_uart2[] =
 {
 	{"REG0", KEY_TYPE_INT, {0x80000080}},
 	{"IRQ0", KEY_TYPE_INT, {2}},
 	KEY_EMPTY
 };
 
-struct rtems_drvmgr_key leon2_irqctrl[] =
+struct drvmgr_key leon2_irqctrl[] =
 {
 	{"REG0", KEY_TYPE_INT, {0x80000090}},
 	KEY_EMPTY
 };
 
-struct rtems_drvmgr_key leon2_gpio0[] =
+struct drvmgr_key leon2_gpio0[] =
 {
 	{"REG0", KEY_TYPE_INT, {0x800000A0}},
 	{"IRQ0", KEY_TYPE_INT, {4}},
@@ -135,37 +135,37 @@ struct leon2_core drv_mgr_leon2_std_cores[] =
 };
 
 static struct leon2_bus *drv_mgr_leon2_bus_config = NULL;
-static struct rtems_drvmgr_bus_res *drv_mgr_leon2_bus_res = NULL;
+static struct drvmgr_bus_res *drv_mgr_leon2_bus_res = NULL;
 
-int drv_mgr_leon2_init(struct leon2_bus *bus_config, struct rtems_drvmgr_bus_res *resources)
+int drv_mgr_leon2_init(struct leon2_bus *bus_config, struct drvmgr_bus_res *resources)
 {
 	/* Save the configuration for later */
 	drv_mgr_leon2_bus_config = bus_config;
 	drv_mgr_leon2_bus_res = resources;
 
 	/* Register root device driver */
-	rtems_drvmgr_root_drv_register(&leon2_bus_drv);
+	drvmgr_root_drv_register(&leon2_bus_drv);
 
 	return 0;
 }
 
-int leon2_amba_dev_register(struct rtems_drvmgr_bus_info *bus, struct leon2_core *core, int index)
+int leon2_amba_dev_register(struct drvmgr_bus *bus, struct leon2_core *core, int index)
 {
-	struct rtems_drvmgr_dev_info *newdev;
+	struct drvmgr_dev *newdev;
 	struct leon2_amba_dev_info *info;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 	char irq_name[8];
 	int i;
 
 	/* Allocate new device and businfo */
-	rtems_drvmgr_alloc_dev(&newdev, sizeof(struct leon2_amba_dev_info));
+	drvmgr_alloc_dev(&newdev, sizeof(struct leon2_amba_dev_info));
 	info = (struct leon2_amba_dev_info *)(newdev + 1);
 
 	/* Set Core ID */
 	info->core_id = core->id.core_id;
 
 	/* Get information from bus configuration */
-	value = rtems_drvmgr_key_val_get(core->keys, "REG0", KEY_TYPE_INT);
+	value = drvmgr_key_val_get(core->keys, "REG0", KEY_TYPE_INT);
 	if ( !value ) {
 		printk("leon2_amba_dev_register: Failed getting resource REG0\n");
 		info->reg_base = 0x00000000;
@@ -185,7 +185,7 @@ int leon2_amba_dev_register(struct rtems_drvmgr_bus_info *bus, struct leon2_core
 			irq_name[5] = '\0';
 		}
 
-		value = rtems_drvmgr_key_val_get(core->keys, irq_name, KEY_TYPE_INT);
+		value = drvmgr_key_val_get(core->keys, irq_name, KEY_TYPE_INT);
 		if ( !value ) {
 			DBG("leon2_amba_dev_register: Failed getting resource IRQ%d for REG 0x%x\n", i, info->reg_base);
 			info->irqs[i] = 0;
@@ -208,12 +208,12 @@ int leon2_amba_dev_register(struct rtems_drvmgr_bus_info *bus, struct leon2_core
 	newdev->bus = NULL;
 
 	/* Register new device */
-	rtems_drvmgr_dev_register(newdev);
+	drvmgr_dev_register(newdev);
 
 	return 0;
 }
 
-int leon2_amba_init1(struct rtems_drvmgr_dev_info *dev)
+int leon2_amba_init1(struct drvmgr_dev *dev)
 {
 	/* Init our own device */
 	dev->priv = NULL;
@@ -222,7 +222,7 @@ int leon2_amba_init1(struct rtems_drvmgr_dev_info *dev)
 	memset(leon2_isrs, 0, sizeof(leon2_isrs));
 
 	/* Init the bus */
-	rtems_drvmgr_alloc_bus(&dev->bus, 0);
+	drvmgr_alloc_bus(&dev->bus, 0);
 	dev->bus->bus_type = DRVMGR_BUS_TYPE_LEON2_AMBA;
 	dev->bus->next = NULL;
 	dev->bus->dev = dev;
@@ -232,28 +232,28 @@ int leon2_amba_init1(struct rtems_drvmgr_dev_info *dev)
 	dev->bus->dev_cnt = 0;
 	dev->bus->reslist = NULL;
 	dev->bus->mmaps = drv_mgr_leon2_bus_config->mmaps;
-	rtems_drvmgr_bus_register(dev->bus);
+	drvmgr_bus_register(dev->bus);
 
 	return DRVMGR_OK;
 }
 
-int leon2_amba_init2(struct rtems_drvmgr_dev_info *dev)
+int leon2_amba_init2(struct drvmgr_dev *dev)
 {
 	return DRVMGR_OK;
 }
 
-int leon2_amba_remove(struct rtems_drvmgr_dev_info *dev)
+int leon2_amba_remove(struct drvmgr_dev *dev)
 {
 	return DRVMGR_OK;
 }
 
-int leon2_amba_bus_init1(struct rtems_drvmgr_bus_info *bus)
+int leon2_amba_bus_init1(struct drvmgr_bus *bus)
 {
 	struct leon2_core *core;
 	int i;
 
 	if ( drv_mgr_leon2_bus_res )
-		rtems_drvmgr_bus_res_add(bus, drv_mgr_leon2_bus_res);
+		drvmgr_bus_res_add(bus, drv_mgr_leon2_bus_res);
 
 	/**** REGISTER NEW DEVICES ****/
 	i=0;
@@ -281,7 +281,7 @@ int leon2_amba_bus_init1(struct rtems_drvmgr_bus_info *bus)
 	return 0;
 }
 
-int leon2_amba_unite(struct rtems_drvmgr_drv_info *drv, struct rtems_drvmgr_dev_info *dev)
+int leon2_amba_unite(struct drvmgr_drv *drv, struct drvmgr_dev *dev)
 {
 	struct leon2_amba_dev_info *info;
 	struct leon2_amba_drv_info *adrv;
@@ -326,7 +326,7 @@ rtems_isr leon2_amba_isr(rtems_vector_number v)
 	}
 }
 
-int leon2_amba_get_irq(struct rtems_drvmgr_dev_info *dev, int index)
+int leon2_amba_get_irq(struct drvmgr_dev *dev, int index)
 {
 	int irq;
 	struct leon2_amba_dev_info *info;
@@ -352,10 +352,10 @@ int leon2_amba_get_irq(struct rtems_drvmgr_dev_info *dev, int index)
 
 int leon2_amba_int_register
 	(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
 	const char *info,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg
 	)
 {
@@ -372,9 +372,9 @@ int leon2_amba_int_register
 
 int leon2_amba_int_unregister
 	(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg
 	)
 {
@@ -391,7 +391,7 @@ int leon2_amba_int_unregister
 
 int leon2_amba_int_clear
 	(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index
 	)
 {
@@ -408,7 +408,7 @@ int leon2_amba_int_clear
 
 int leon2_amba_int_mask
 	(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index
 	)
 {
@@ -425,7 +425,7 @@ int leon2_amba_int_mask
 
 int leon2_amba_int_unmask
 	(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int index
 	)
 {
@@ -440,14 +440,14 @@ int leon2_amba_int_unmask
 	return DRVMGR_OK;
 }
 
-struct rtems_drvmgr_drv_ops leon2_amba_ops = 
+struct drvmgr_drv_ops leon2_amba_ops = 
 {
 	.init = {leon2_amba_init1, leon2_amba_init2, NULL, NULL},
 	.remove = leon2_amba_remove,
 	.info = NULL
 };
 
-struct rtems_drvmgr_drv_info leon2_bus_drv =
+struct drvmgr_drv leon2_bus_drv =
 {
 	DRVMGR_OBJ_DRV,			/* Driver */
 	NULL,				/* Next driver */

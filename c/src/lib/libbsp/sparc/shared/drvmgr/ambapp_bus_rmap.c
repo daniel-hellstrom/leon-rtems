@@ -35,8 +35,8 @@
 #include <bsp.h>
 
 /* Remote RMAP Access macros */
-#define WRITE_REG(pDev, adr, value) rtems_drvmgr_write_io32(pDev->dev, (uint32_t *)adr, value)
-#define READ_REG_(pDev, adr, dstadr) rtems_drvmgr_read_io32(pDev->dev, (uint32_t *)adr, dstadr)
+#define WRITE_REG(pDev, adr, value) drvmgr_write_io32(pDev->dev, (uint32_t *)adr, value)
+#define READ_REG_(pDev, adr, dstadr) drvmgr_read_io32(pDev->dev, (uint32_t *)adr, dstadr)
 #define READ_REG(pDev, adr) ambapp_rmap_read_reg(pDev, (uint32_t *)adr)
 
 #define PARTITION_MAX 4
@@ -62,7 +62,7 @@ struct mem_partition {
 };
 
 struct ambapp_rmap_priv {
-	struct rtems_drvmgr_dev_info	*dev;
+	struct drvmgr_dev	*dev;
 	char				prefix[32];
 	int				minor;
 	struct ambapp_config		config;
@@ -78,26 +78,26 @@ struct ambapp_rmap_priv {
 };
 
 int ambapp_rmap_int_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
 	const char *info,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg);
 int ambapp_rmap_int_unregister(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg);
-int ambapp_rmap_int_unmask(struct rtems_drvmgr_dev_info *dev, int irq);
-int ambapp_rmap_int_mask(struct rtems_drvmgr_dev_info *dev, int irq);
-int ambapp_rmap_int_clear(struct rtems_drvmgr_dev_info *dev, int irq);
+int ambapp_rmap_int_unmask(struct drvmgr_dev *dev, int irq);
+int ambapp_rmap_int_mask(struct drvmgr_dev *dev, int irq);
+int ambapp_rmap_int_clear(struct drvmgr_dev *dev, int irq);
 int ambapp_rmap_get_params(
-	struct rtems_drvmgr_dev_info *dev,
-	struct rtems_drvmgr_bus_params *params);
+	struct drvmgr_dev *dev,
+	struct drvmgr_bus_params *params);
 void ambapp_rmap_isr(void *arg);
 
-int ambapp_rmap_init1(struct rtems_drvmgr_dev_info *dev);
-int ambapp_rmap_init2(struct rtems_drvmgr_dev_info *dev);
+int ambapp_rmap_init1(struct drvmgr_dev *dev);
+int ambapp_rmap_init2(struct drvmgr_dev *dev);
 
 struct ambapp_ops ambapp_rmap_ops = {
 	.int_register = ambapp_rmap_int_register,
@@ -114,7 +114,7 @@ struct spw_id spw_rmap_ids[] =
 	{SPW_NODE_ID_NONE}
 };
 
-struct rtems_drvmgr_drv_ops ambapp_rmap_drv_ops = 
+struct drvmgr_drv_ops ambapp_rmap_drv_ops = 
 {
 	.init = {ambapp_rmap_init1, ambapp_rmap_init2, NULL, NULL},
 	.remove = NULL,
@@ -137,15 +137,15 @@ struct spw_bus_drv_info ambapp_bus_drv_rmap =
 	
 };
 
-struct rtems_drvmgr_bus_res **ambapp_rmap_resources = NULL;
+struct drvmgr_bus_res **ambapp_rmap_resources = NULL;
 int ambapp_rmap_resources_cnt = 0;
 
 void ambapp_rmap_register(void)
 {
-	rtems_drvmgr_drv_register(&ambapp_bus_drv_rmap.general);
+	drvmgr_drv_register(&ambapp_bus_drv_rmap.general);
 }
 
-void ambapp_rmap_set_resources(struct rtems_drvmgr_bus_res **resources, int cnt)
+void ambapp_rmap_set_resources(struct drvmgr_bus_res **resources, int cnt)
 {
 	ambapp_rmap_resources = resources;
 	ambapp_rmap_resources_cnt = cnt;
@@ -161,7 +161,7 @@ void *ambapp_rmap_memcpy(
 		((unsigned int)abus -
 		offsetof(struct ambapp_rmap_priv, abus));
 
-	rtems_drvmgr_read_mem(priv->dev, dest, src, n);
+	drvmgr_read_mem(priv->dev, dest, src, n);
 
 	return dest;
 }
@@ -169,7 +169,7 @@ void *ambapp_rmap_memcpy(
 uint32_t ambapp_rmap_read_reg(struct ambapp_rmap_priv *priv, uint32_t *adr)
 {
 	uint32_t result = 0;
-	rtems_drvmgr_read_io32(priv->dev, adr, &result);
+	drvmgr_read_io32(priv->dev, adr, &result);
 	return result;
 }
 
@@ -182,10 +182,10 @@ int ambapp_rmap_dev_find(struct ambapp_dev *dev, int index, int maxdepth, void *
 }
 
 /* Function called from Driver Manager Initialization Stage 1 */
-int ambapp_rmap_init1(struct rtems_drvmgr_dev_info *dev)
+int ambapp_rmap_init1(struct drvmgr_dev *dev)
 {
 	struct ambapp_config *config;
-	union rtems_drvmgr_key_value *value;
+	union drvmgr_key_value *value;
 	int status;
 	unsigned int ioarea, freq;
 	struct ambapp_rmap_priv *priv;
@@ -201,12 +201,12 @@ int ambapp_rmap_init1(struct rtems_drvmgr_dev_info *dev)
 
 	/* Get Configuration */
 	ioarea = 0xfff00000; /* Defualt IO Area */
-	value = rtems_drvmgr_dev_key_get(dev, "IOArea", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(dev, "IOArea", KEY_TYPE_INT);
 	if ( value ) {
 		ioarea = value->i;
 	}
 	freq = 0;
-	value = rtems_drvmgr_dev_key_get(dev, "BusFreq", KEY_TYPE_INT);
+	value = drvmgr_dev_key_get(dev, "BusFreq", KEY_TYPE_INT);
 	if ( value )
 		freq = value->i;
 
@@ -240,11 +240,11 @@ int ambapp_rmap_init1(struct rtems_drvmgr_dev_info *dev)
 	WRITE_REG(priv, &priv->irq->mask[0], 0);
 
 	/* Clear any old interrupt requests (IRQ IS LEVEL) */
-	rtems_drvmgr_interrupt_clear(priv->dev, 0);
+	drvmgr_interrupt_clear(priv->dev, 0);
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
 		/* Failed to get prefix, make sure of a unique FS name
 		 * by using the driver minor.
 		 */
@@ -280,7 +280,7 @@ int ambapp_rmap_init1(struct rtems_drvmgr_dev_info *dev)
 	if ( ambapp_rmap_resources && (priv->dev->minor_drv < ambapp_rmap_resources_cnt) ) {
 		config->resources = ambapp_rmap_resources[priv->dev->minor_drv];
 	} else {
-		value = rtems_drvmgr_dev_key_get(dev, "BusRes", KEY_TYPE_POINTER);
+		value = drvmgr_dev_key_get(dev, "BusRes", KEY_TYPE_POINTER);
 		if ( value )
 			config->resources = value->ptr;
 		else
@@ -295,7 +295,7 @@ int ambapp_rmap_init1(struct rtems_drvmgr_dev_info *dev)
 	return ambapp_bus_register(dev, config);
 }
 
-int ambapp_rmap_init2(struct rtems_drvmgr_dev_info *dev)
+int ambapp_rmap_init2(struct drvmgr_dev *dev)
 {
 	struct ambapp_rmap_priv *priv = dev->priv;
 
@@ -307,7 +307,7 @@ int ambapp_rmap_init2(struct rtems_drvmgr_dev_info *dev)
 	 * might be shared and Node 2 have not initialized and might therefore
 	 * drive interrupt already when entering init1().
 	 */
-	rtems_drvmgr_interrupt_register(priv->dev, 0, "ambapp_rmap", ambapp_rmap_isr, (void *)priv);
+	drvmgr_interrupt_register(priv->dev, 0, "ambapp_rmap", ambapp_rmap_isr, (void *)priv);
 
 	return 0;
 }
@@ -342,16 +342,16 @@ void ambapp_rmap_isr (void *arg)
 	 * Controller still drives the IRQ. 
 	 */
 	if ( tmp )
-		rtems_drvmgr_interrupt_clear(priv->dev, 0);
+		drvmgr_interrupt_clear(priv->dev, 0);
 
 	DBG("AMBAPP-RMAP-ISR: 0x%x\n", tmp);
 }
 
 int ambapp_rmap_int_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
 	const char *info,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg)
 {
 	struct ambapp_rmap_priv *priv = dev->parent->dev->priv;
@@ -386,9 +386,9 @@ int ambapp_rmap_int_register(
 }
 
 int ambapp_rmap_int_unregister(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg)
 {
 	struct ambapp_rmap_priv *priv = dev->parent->dev->priv;
@@ -413,7 +413,7 @@ int ambapp_rmap_int_unregister(
 	return status;
 }
 
-int ambapp_rmap_int_unmask(struct rtems_drvmgr_dev_info *dev, int irq)
+int ambapp_rmap_int_unmask(struct drvmgr_dev *dev, int irq)
 {
 	struct ambapp_rmap_priv *priv = dev->parent->dev->priv;
 	unsigned int tmp;
@@ -430,7 +430,7 @@ int ambapp_rmap_int_unmask(struct rtems_drvmgr_dev_info *dev, int irq)
 	return DRVMGR_OK;
 }
 
-int ambapp_rmap_int_mask(struct rtems_drvmgr_dev_info *dev, int irq)
+int ambapp_rmap_int_mask(struct drvmgr_dev *dev, int irq)
 {
 	struct ambapp_rmap_priv *priv = dev->parent->dev->priv;
 	unsigned int tmp;
@@ -447,7 +447,7 @@ int ambapp_rmap_int_mask(struct rtems_drvmgr_dev_info *dev, int irq)
 	return DRVMGR_OK;
 }
 
-int ambapp_rmap_int_clear(struct rtems_drvmgr_dev_info *dev, int irq)
+int ambapp_rmap_int_clear(struct drvmgr_dev *dev, int irq)
 {
 	struct ambapp_rmap_priv *priv = dev->parent->dev->priv;
 
@@ -459,7 +459,7 @@ int ambapp_rmap_int_clear(struct rtems_drvmgr_dev_info *dev, int irq)
 	return 0;
 }
 
-int ambapp_rmap_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params)
+int ambapp_rmap_get_params(struct drvmgr_dev *dev, struct drvmgr_bus_params *params)
 {
 	struct ambapp_rmap_priv *priv = dev->parent->dev->priv;
 
@@ -605,7 +605,7 @@ void *alloc_front(struct mem_partition *part, size_t boundary, size_t size)
 }
 
 void *ambapp_rmap_partition_memalign(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int partition,
 	size_t boundary,
 	size_t size)
@@ -674,7 +674,7 @@ int ambapp_rmap_partition_create_internal(
 }
 
 int ambapp_rmap_partition_create(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int partition,
 	unsigned int start,
 	size_t size)

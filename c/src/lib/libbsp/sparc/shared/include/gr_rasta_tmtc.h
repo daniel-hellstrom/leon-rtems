@@ -81,7 +81,7 @@ extern "C" {
  *
  * The array is defined weak, and defualts to no resources.
  */
-extern struct rtems_drvmgr_bus_res *gr_rasta_tmtc_resources[];
+extern struct drvmgr_bus_res *gr_rasta_tmtc_resources[];
 
 /* Options to gr_rasta_io_print function */
 #define RASTA_TMTC_OPTIONS_AMBA   0x01 /* Print AMBA bus devices */

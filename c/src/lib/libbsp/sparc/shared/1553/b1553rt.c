@@ -77,7 +77,7 @@ static rtems_driver_address_table b1553rt_driver = RT_DRIVER_TABLE_ENTRY;
 
 typedef struct { 
 
-    struct rtems_drvmgr_dev_info *dev; /* Driver manager device */
+    struct drvmgr_dev *dev; /* Driver manager device */
     char devName[32];     /* Device Name */
 
     struct rt_reg *regs;
@@ -123,11 +123,11 @@ static rtems_device_major_number b1553rt_driver_io_major = 0;
 int b1553rt_register_io(rtems_device_major_number *m);
 int b1553rt_device_init(rt_priv *pDev);
 
-int b1553rt_init2(struct rtems_drvmgr_dev_info *dev);
-int b1553rt_init3(struct rtems_drvmgr_dev_info *dev);
-int b1553rt_remove(struct rtems_drvmgr_dev_info *dev);
+int b1553rt_init2(struct drvmgr_dev *dev);
+int b1553rt_init3(struct drvmgr_dev *dev);
+int b1553rt_remove(struct drvmgr_dev *dev);
 
-struct rtems_drvmgr_drv_ops b1553rt_ops = 
+struct drvmgr_drv_ops b1553rt_ops = 
 {
     .init = {NULL, b1553rt_init2, b1553rt_init3, NULL},
     .remove = b1553rt_remove,
@@ -158,10 +158,10 @@ struct amba_drv_info b1553rt_drv_info =
 void b1553rt_register_drv (void)
 {
     DBG("Registering B1553RT driver\n");
-    rtems_drvmgr_drv_register(&b1553rt_drv_info.general);
+    drvmgr_drv_register(&b1553rt_drv_info.general);
 }
 
-int b1553rt_init2(struct rtems_drvmgr_dev_info *dev)
+int b1553rt_init2(struct drvmgr_dev *dev)
 {
     rt_priv *priv;
 
@@ -177,7 +177,7 @@ int b1553rt_init2(struct rtems_drvmgr_dev_info *dev)
     return DRVMGR_OK;
 }
 
-int b1553rt_init3(struct rtems_drvmgr_dev_info *dev)
+int b1553rt_init3(struct drvmgr_dev *dev)
 {
     rt_priv *priv;
     char prefix[16];
@@ -208,7 +208,7 @@ int b1553rt_init3(struct rtems_drvmgr_dev_info *dev)
 
     /* Get Filesystem name prefix */
     prefix[0] = '\0';
-    if ( rtems_drvmgr_get_dev_prefix(dev, prefix) ) {
+    if ( drvmgr_get_dev_prefix(dev, prefix) ) {
         /* Failed to get prefix, make sure of a unique FS name
          * by using the driver minor.
          */
@@ -229,7 +229,7 @@ int b1553rt_init3(struct rtems_drvmgr_dev_info *dev)
     return DRVMGR_OK;
 }
 
-int b1553rt_remove(struct rtems_drvmgr_dev_info *dev)
+int b1553rt_remove(struct drvmgr_dev *dev)
 {
     /* Stop more tasks to open driver */
 
@@ -277,7 +277,7 @@ int b1553rt_device_init(rt_priv *pDev)
 {
     struct amba_dev_info *ambadev;
     struct ambapp_core *pnpinfo;
-    union rtems_drvmgr_key_value *value;
+    union drvmgr_key_value *value;
     char *mem;
     unsigned int sys_freq_hz;
 
@@ -299,7 +299,7 @@ int b1553rt_device_init(rt_priv *pDev)
 #endif	
 
     /* Get memory configuration from bus resources */
-    value = rtems_drvmgr_dev_key_get(pDev->dev, "dmaBaseAdr", KEY_TYPE_POINTER);
+    value = drvmgr_dev_key_get(pDev->dev, "dmaBaseAdr", KEY_TYPE_POINTER);
     if ( value ) {
         mem = value->ptr;
         if ( (unsigned int)mem & 1 ) {
@@ -307,7 +307,7 @@ int b1553rt_device_init(rt_priv *pDev)
 
             /* Translate the base address into an address that the the CPU can understand */
             mem = (char *)((unsigned int)mem & ~1);
-            rtems_drvmgr_mmap_translate(pDev->dev, 1, (void *)mem, (void **)&mem);
+            drvmgr_mmap_translate(pDev->dev, 1, (void *)mem, (void **)&mem);
         }
     } else {
         /* Use dynamically allocated memory */
@@ -329,7 +329,7 @@ int b1553rt_device_init(rt_priv *pDev)
     pDev->mem = (volatile unsigned short *) pDev->memarea_base;
 
     /* Translate the base address into an address that the RT core can understand */
-    rtems_drvmgr_mmap_translate(pDev->dev, 0, (void *)mem, (void **)&pDev->memarea_base_remote);
+    drvmgr_mmap_translate(pDev->dev, 0, (void *)mem, (void **)&pDev->memarea_base_remote);
 
     pDev->rt_event = NULL;
 
@@ -340,7 +340,7 @@ int b1553rt_device_init(rt_priv *pDev)
     pDev->cfg_freq = RT_FREQ_24MHZ;
 
     /* Get frequency in Hz */
-    if ( rtems_drvmgr_freq_get(pDev->dev, DEV_APB_SLV, &sys_freq_hz) == 0 ) {
+    if ( drvmgr_freq_get(pDev->dev, DEV_APB_SLV, &sys_freq_hz) == 0 ) {
         if ( sys_freq_hz == 20000000 ) {
             pDev->cfg_freq = RT_FREQ_20MHZ;
         } else if ( sys_freq_hz == 16000000 ) {
@@ -350,7 +350,7 @@ int b1553rt_device_init(rt_priv *pDev)
         }
     }
 
-    value = rtems_drvmgr_dev_key_get(pDev->dev, "coreFreq", KEY_TYPE_INT);
+    value = drvmgr_dev_key_get(pDev->dev, "coreFreq", KEY_TYPE_INT);
     if ( value ) {
         pDev->cfg_freq = value->i & RT_FREQ_MASK;
     }
@@ -474,11 +474,11 @@ static rtems_device_driver rt_initialize(rtems_device_major_number major, rtems_
 
 static rtems_device_driver rt_open(rtems_device_major_number major, rtems_device_minor_number minor, void *arg) {
     rt_priv *rt;
-    struct rtems_drvmgr_dev_info *dev;
+    struct drvmgr_dev *dev;
 
     FUNCDBG("rt_open\n");
 
-    if ( rtems_drvmgr_get_dev(&b1553rt_drv_info.general, minor, &dev) ) {
+    if ( drvmgr_get_dev(&b1553rt_drv_info.general, minor, &dev) ) {
         DBG("Wrong minor %d\n", minor);
         return RTEMS_UNSATISFIED;
     }
@@ -495,7 +495,7 @@ static rtems_device_driver rt_open(rtems_device_major_number major, rtems_device
     start_operation(rt);
 
     /* Register interrupt routine */
-    if (rtems_drvmgr_interrupt_register(rt->dev, 0, "b1553rt", b1553rt_interrupt, rt)) {
+    if (drvmgr_interrupt_register(rt->dev, 0, "b1553rt", b1553rt_interrupt, rt)) {
         rtems_semaphore_release(rt->dev_sem);
         return -1;
     }
@@ -507,16 +507,16 @@ static rtems_device_driver rt_open(rtems_device_major_number major, rtems_device
 static rtems_device_driver rt_close(rtems_device_major_number major, rtems_device_minor_number minor, void *arg)
 {
     rt_priv *rt;
-    struct rtems_drvmgr_dev_info *dev;
+    struct drvmgr_dev *dev;
 
     FUNCDBG("rt_close");
 
-    if ( rtems_drvmgr_get_dev(&b1553rt_drv_info.general, minor, &dev) ) {
+    if ( drvmgr_get_dev(&b1553rt_drv_info.general, minor, &dev) ) {
         return RTEMS_UNSATISFIED;
     }
     rt = (rt_priv *)dev->priv;
 
-    rtems_drvmgr_interrupt_unregister(rt->dev, 0, b1553rt_interrupt, rt);
+    drvmgr_interrupt_unregister(rt->dev, 0, b1553rt_interrupt, rt);
 
     stop_operation(rt);
     rtems_semaphore_release(rt->dev_sem);
@@ -549,9 +549,9 @@ static rtems_device_driver rt_read(rtems_device_major_number major, rtems_device
     rtems_libio_rw_args_t *rw_args;
     int count = 0;
     rt_priv *rt;
-    struct rtems_drvmgr_dev_info *dev;
+    struct drvmgr_dev *dev;
 
-    if ( rtems_drvmgr_get_dev(&b1553rt_drv_info.general, minor, &dev) ) {
+    if ( drvmgr_get_dev(&b1553rt_drv_info.general, minor, &dev) ) {
         return RTEMS_UNSATISFIED;
     }
     rt = (rt_priv *)dev->priv;
@@ -579,10 +579,10 @@ static rtems_device_driver rt_write(rtems_device_major_number major, rtems_devic
     rtems_libio_rw_args_t *rw_args;
     struct rt_msg *source;
     rt_priv *rt;
-    struct rtems_drvmgr_dev_info *dev;
+    struct drvmgr_dev *dev;
     unsigned int descriptor, suba, wc;
 
-    if ( rtems_drvmgr_get_dev(&b1553rt_drv_info.general, minor, &dev) ) {
+    if ( drvmgr_get_dev(&b1553rt_drv_info.general, minor, &dev) ) {
         return RTEMS_UNSATISFIED;
     }
     rt = (rt_priv *)dev->priv;
@@ -616,12 +616,12 @@ static rtems_device_driver rt_control(rtems_device_major_number major, rtems_dev
     unsigned int *data = ioarg->buffer;
 
     rt_priv *rt;
-    struct rtems_drvmgr_dev_info *dev;
+    struct drvmgr_dev *dev;
     rtems_device_driver ret;
 
     FUNCDBG("rt_control[%d]: [%i,%i]\n", minor, major, minor);
 
-    if ( rtems_drvmgr_get_dev(&b1553rt_drv_info.general, minor, &dev) ) {
+    if ( drvmgr_get_dev(&b1553rt_drv_info.general, minor, &dev) ) {
         return RTEMS_UNSATISFIED;
     }
     rt = (rt_priv *)dev->priv;
@@ -802,7 +802,7 @@ static void b1553rt_interrupt(void *arg)
 
 }
 
-void b1553rt_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
+void b1553rt_print_dev(struct drvmgr_dev *dev, int options)
 {
     rt_priv *pDev = dev->priv;
     struct amba_dev_info *devinfo;
@@ -820,7 +820,7 @@ void b1553rt_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 void b1553rt_print(int options)
 {
     struct amba_drv_info *drv = &b1553rt_drv_info;
-    struct rtems_drvmgr_dev_info *dev;
+    struct drvmgr_dev *dev;
 
     dev = drv->general.dev;
     while(dev) {

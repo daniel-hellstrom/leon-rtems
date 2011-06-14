@@ -20,9 +20,9 @@
 #include <drvmgr/drvmgr.h>
 #include "drvmgr_internal.h"
 
-void rtems_drvmgr_dev_print(struct rtems_drvmgr_dev_info *dev, char *prefix, int print_bus)
+void drvmgr_dev_print(struct drvmgr_dev *dev, char *prefix, int print_bus)
 {
-	struct rtems_drvmgr_dev_info *busdev;
+	struct drvmgr_dev *busdev;
 	char bus_prefix[16];
 
 	printf(" %s|-> DEV: 0x%x %s\n", prefix, (unsigned int)dev, dev->name);
@@ -33,16 +33,16 @@ void rtems_drvmgr_dev_print(struct rtems_drvmgr_dev_info *dev, char *prefix, int
 	strcat(bus_prefix, "  ");
 	busdev = dev->bus->children;
 	while ( busdev ) {
-		rtems_drvmgr_dev_print(busdev, bus_prefix, print_bus);
+		drvmgr_dev_print(busdev, bus_prefix, print_bus);
 		busdev = busdev->next_in_bus;
 	}
 }
 
-void rtems_drvmgr_print_drvs(int show_devs)
+void drvmgr_print_drvs(int show_devs)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
-	struct rtems_drvmgr_drv_info *drv;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_drv *drv;
+	struct drvmgr_dev *dev;
 
 	/* Print Drivers */
 	printf(" --- DRIVERS %s---\n", show_devs ? "AND THEIR DEVICES " : "");
@@ -53,7 +53,7 @@ void rtems_drvmgr_print_drvs(int show_devs)
 		if ( show_devs ) {
 			dev = drv->dev;
 			while ( dev ) {
-				rtems_drvmgr_dev_print(dev, "   ", 0);
+				drvmgr_dev_print(dev, "   ", 0);
 				dev = dev->next_in_drv;
 			}
 		}
@@ -63,7 +63,7 @@ void rtems_drvmgr_print_drvs(int show_devs)
 	printf("\n\n");
 }
 
-static int print_dev_found(struct rtems_drvmgr_dev_info *dev, void *arg)
+static int print_dev_found(struct drvmgr_dev *dev, void *arg)
 {
 	char **pparg = arg;
 
@@ -77,7 +77,7 @@ static int print_dev_found(struct rtems_drvmgr_dev_info *dev, void *arg)
 	return 0; /* Continue to next device */
 }
 
-void rtems_drvmgr_print_devs(unsigned int options)
+void drvmgr_print_devs(unsigned int options)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
 	char *parg;
@@ -85,7 +85,7 @@ void rtems_drvmgr_print_devs(unsigned int options)
 	/* Print Drivers */
 	if ( options & DRV_MGR_PRINT_DEVS_ASSIGNED ) {
 		parg = " --- DEVICES ASSIGNED TO DRIVER ---\n";
-		rtems_drvmgr_for_each_dev(&mgr->devices[DRVMGR_LEVEL_MAX],
+		drvmgr_for_each_dev(&mgr->devices[DRVMGR_LEVEL_MAX],
 				DEV_STATE_UNITED, 0, print_dev_found, &parg);
 		if ( parg != NULL )
 			printf("\nNO DEVICES WERE ASSIGNED A DRIVER\n");
@@ -93,7 +93,7 @@ void rtems_drvmgr_print_devs(unsigned int options)
 
 	if ( options & DRV_MGR_PRINT_DEVS_UNASSIGNED ) {
 		parg = "\n --- DEVICES WITHOUT DRIVER ---\n";
-		rtems_drvmgr_for_each_dev(&mgr->devices_inactive, 0,
+		drvmgr_for_each_dev(&mgr->devices_inactive, 0,
 			DEV_STATE_UNITED, print_dev_found, &parg);
 		if ( parg != NULL )
 			printf("\nNO DEVICES WERE WITHOUT DRIVER\n");
@@ -101,7 +101,7 @@ void rtems_drvmgr_print_devs(unsigned int options)
 
 	if ( options & DRV_MGR_PRINT_DEVS_FAILED ) {
 		parg = "\n --- DEVICES FAILED TO INITIALIZE ---\n";
-		rtems_drvmgr_for_each_dev(&mgr->devices_inactive,
+		drvmgr_for_each_dev(&mgr->devices_inactive,
 			DEV_STATE_INIT_FAILED, 0, print_dev_found, &parg);
 		if ( parg != NULL )
 			printf("\nNO DEVICES FAILED TO INITIALIZE\n");
@@ -109,7 +109,7 @@ void rtems_drvmgr_print_devs(unsigned int options)
 
 	if ( options & DRV_MGR_PRINT_DEVS_IGNORED ) {
 		parg = "\n --- DEVICES IGNORED ---\n";
-		rtems_drvmgr_for_each_dev(&mgr->devices_inactive,
+		drvmgr_for_each_dev(&mgr->devices_inactive,
 			DEV_STATE_IGNORED, 0, print_dev_found, &parg);
 		if ( parg != NULL )
 			printf("\nNO DEVICES WERE IGNORED\n");
@@ -118,22 +118,22 @@ void rtems_drvmgr_print_devs(unsigned int options)
 	printf("\n\n");
 }
 
-void rtems_drvmgr_print_topo()
+void drvmgr_print_topo()
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	/* Print Bus topology */
 	printf(" --- BUS TOPOLOGY ---\n");
 	dev = mgr->root_dev;
-	rtems_drvmgr_dev_print(dev, "", 1);
+	drvmgr_dev_print(dev, "", 1);
 	printf("\n\n");
 }
 
-void rtems_drvmgr_print_buses()
+void drvmgr_print_buses()
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
-	struct rtems_drvmgr_bus_info *bus;
+	struct drvmgr_bus *bus;
 
 	/* Print Drivers */
 	printf(" --- BUSES ---\n");
@@ -149,16 +149,16 @@ void rtems_drvmgr_print_buses()
 }
 
 /* Print the memory usage */
-void rtems_drvmgr_print_mem(void)
+void drvmgr_print_mem(void)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
-	struct rtems_drvmgr_bus_info *bus;
-	struct rtems_drvmgr_dev_info *dev;
-	struct rtems_drvmgr_drv_info *drv;
+	struct drvmgr_bus *bus;
+	struct drvmgr_dev *dev;
+	struct drvmgr_drv *drv;
 
-	struct rtems_drvmgr_bus_res *node;
-	struct rtems_drvmgr_drv_res *res;
-	struct rtems_drvmgr_key *key;
+	struct drvmgr_bus_res *node;
+	struct drvmgr_drv_res *res;
+	struct drvmgr_key *key;
 
 	unsigned int busmem = 0;
 	unsigned int devmem = 0;
@@ -168,24 +168,24 @@ void rtems_drvmgr_print_mem(void)
 
 	bus = BUS_LIST_HEAD(&mgr->buses[DRVMGR_LEVEL_MAX]);
 	while ( bus ) {
-		busmem += sizeof(struct rtems_drvmgr_bus_info);
+		busmem += sizeof(struct drvmgr_bus);
 
 		/* Get size of resources on this bus */
 		node = bus->reslist;
 		while ( node ) {
-			resmem += sizeof(struct rtems_drvmgr_bus_res);
+			resmem += sizeof(struct drvmgr_bus_res);
 
 			res = node->resource;
 			while ( res->keys ) {
-				resmem += sizeof(struct rtems_drvmgr_drv_res);
+				resmem += sizeof(struct drvmgr_drv_res);
 
 				key = res->keys;
 				while ( key->key_type != KEY_TYPE_NONE ) {
 					resmem += sizeof
-						(struct rtems_drvmgr_key);
+						(struct drvmgr_key);
 					key++;
 				}
-				resmem += sizeof(struct rtems_drvmgr_key);
+				resmem += sizeof(struct drvmgr_key);
 				res++;
 			}
 
@@ -197,13 +197,13 @@ void rtems_drvmgr_print_mem(void)
 
 	drv = DRV_LIST_HEAD(&mgr->drivers);
 	while ( drv ) {
-		drvmem += sizeof(struct rtems_drvmgr_drv_info);
+		drvmem += sizeof(struct drvmgr_drv);
 		drv = drv->next;
 	}
 
 	dev = DEV_LIST_HEAD(&mgr->devices[DRVMGR_LEVEL_MAX]);
 	while ( dev ) {
-		devmem += sizeof(struct rtems_drvmgr_dev_info);
+		devmem += sizeof(struct drvmgr_dev);
 		if (dev->drv && dev->drv->dev_priv_size>0)
 			devprivmem += dev->drv->dev_priv_size;
 		dev = dev->next;
@@ -221,12 +221,12 @@ void rtems_drvmgr_print_mem(void)
 }
 
 /* Print the memory usage */
-void rtems_drvmgr_summary(void)
+void drvmgr_summary(void)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
-	struct rtems_drvmgr_bus_info *bus;
-	struct rtems_drvmgr_dev_info *dev;
-	struct rtems_drvmgr_drv_info *drv;
+	struct drvmgr_bus *bus;
+	struct drvmgr_dev *dev;
+	struct drvmgr_drv *drv;
 	int i, buscnt = 0, devcnt = 0, drvcnt = 0;
 
 	printf(" --- SUMMARY ---\n");
@@ -273,7 +273,7 @@ static void print_info(void *p, char *str)
 	puts(str);
 }
 
-void rtems_drvmgr_info_dev(struct rtems_drvmgr_dev_info *dev)
+void drvmgr_info_dev(struct drvmgr_dev *dev)
 {
 	char *name;
 	if (!dev)
@@ -312,24 +312,24 @@ void rtems_drvmgr_info_dev(struct rtems_drvmgr_dev_info *dev)
 	}
 }
 
-void rtems_drvmgr_info_bus(struct rtems_drvmgr_bus_info *bus)
+void drvmgr_info_bus(struct drvmgr_bus *bus)
 {
 	/* NOT IMPLEMENTED */
 }
 
-void rtems_drvmgr_info_drv(struct rtems_drvmgr_drv_info *drv)
+void drvmgr_info_drv(struct drvmgr_drv *drv)
 {
 	/* NOT IMPLEMENTED */
 }
 
 void (*info_obj[3])(void *obj) = {
-	/* DRVMGR_OBJ_DRV */ (void (*)(void *))rtems_drvmgr_info_drv,
-	/* DRVMGR_OBJ_BUS */ (void (*)(void *))rtems_drvmgr_info_bus,
-	/* DRVMGR_OBJ_DEV */ (void (*)(void *))rtems_drvmgr_info_dev,
+	/* DRVMGR_OBJ_DRV */ (void (*)(void *))drvmgr_info_drv,
+	/* DRVMGR_OBJ_BUS */ (void (*)(void *))drvmgr_info_bus,
+	/* DRVMGR_OBJ_DEV */ (void (*)(void *))drvmgr_info_dev,
 };
 
 /* Get information about a device/bus/driver */
-void rtems_drvmgr_info(void *id)
+void drvmgr_info(void *id)
 {
 	int obj_type;
 	void (*func)(void *);
@@ -343,15 +343,15 @@ void rtems_drvmgr_info(void *id)
 	func(id);
 }
 
-void rtems_drvmgr_info_devs_on_bus(struct rtems_drvmgr_bus_info *bus)
+void drvmgr_info_devs_on_bus(struct drvmgr_bus *bus)
 {
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	/* Print All Devices on Bus */
 	printf("\n\n  -= All Devices on BUS %p =-\n\n", bus);
 	dev = bus->children;
 	while (dev) {
-		rtems_drvmgr_info_dev(dev);
+		drvmgr_info_dev(dev);
 		puts("");
 		dev = dev->next_in_bus;
 	}
@@ -360,19 +360,19 @@ void rtems_drvmgr_info_devs_on_bus(struct rtems_drvmgr_bus_info *bus)
 	dev = bus->children;
 	while (dev) {
 		if (dev->bus)
-			rtems_drvmgr_info_devs_on_bus(dev->bus);
+			drvmgr_info_devs_on_bus(dev->bus);
 		dev = dev->next_in_bus;
 	}
 }
 
-void rtems_drvmgr_info_devs(void)
+void drvmgr_info_devs(void)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	/* Print device information of all devices and their child devices */
 	printf(" --- Device information ---\n");
 	dev = mgr->root_dev;
-	rtems_drvmgr_info_devs_on_bus(dev->bus);
+	drvmgr_info_devs_on_bus(dev->bus);
 	printf("\n\n");
 }

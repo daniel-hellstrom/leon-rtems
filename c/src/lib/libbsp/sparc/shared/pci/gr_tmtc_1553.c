@@ -51,8 +51,8 @@
 /* PCI ID */
 #define PCIID_VENDOR_GAISLER		0x1AC8
 
-int gr_tmtc_1553_init1(struct rtems_drvmgr_dev_info *dev);
-int gr_tmtc_1553_init2(struct rtems_drvmgr_dev_info *dev);
+int gr_tmtc_1553_init1(struct drvmgr_dev *dev);
+int gr_tmtc_1553_init2(struct drvmgr_dev *dev);
 
 struct gr_tmtc_1553_ver {
 	const unsigned int	amba_freq_hz;	/* The frequency */
@@ -62,7 +62,7 @@ struct gr_tmtc_1553_ver {
 /* Private data structure for driver */
 struct gr_tmtc_1553_priv {
 	/* Driver management */
-	struct rtems_drvmgr_dev_info	*dev;
+	struct drvmgr_dev	*dev;
 	char				prefix[32];
 
 	/* PCI */
@@ -74,7 +74,7 @@ struct gr_tmtc_1553_priv {
 
 	struct gr_tmtc_1553_ver         *version;
 	LEON3_IrqCtrl_Regs_Map		*irq;
-	struct rtems_drvmgr_mmap_entry	bus_maps[4];
+	struct drvmgr_mmap_entry	bus_maps[4];
 
 	struct ambapp_bus		abus;
 	struct ambapp_mmap		amba_maps[4];
@@ -88,28 +88,28 @@ struct gr_tmtc_1553_ver gr_tmtc_1553_ver0 = {
 
 
 int ambapp_tmtc_1553_int_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
 	const char *info,
-	rtems_drvmgr_isr handler,
+	drvmgr_isr handler,
 	void *arg);
 int ambapp_tmtc_1553_int_unregister(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
-	rtems_drvmgr_isr handler,
+	drvmgr_isr handler,
 	void *arg);
 int ambapp_tmtc_1553_int_unmask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq);
 int ambapp_tmtc_1553_int_mask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq);
 int ambapp_tmtc_1553_int_clear(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq);
 int ambapp_tmtc_1553_get_params(
-	struct rtems_drvmgr_dev_info *dev,
-	struct rtems_drvmgr_bus_params *params);
+	struct drvmgr_dev *dev,
+	struct drvmgr_bus_params *params);
 
 struct ambapp_ops ambapp_tmtc_1553_ops = {
 	.int_register = ambapp_tmtc_1553_int_register,
@@ -120,7 +120,7 @@ struct ambapp_ops ambapp_tmtc_1553_ops = {
 	.get_params = ambapp_tmtc_1553_get_params
 };
 
-struct rtems_drvmgr_drv_ops gr_tmtc_1553_ops = 
+struct drvmgr_drv_ops gr_tmtc_1553_ops = 
 {
 	{gr_tmtc_1553_init1, gr_tmtc_1553_init2, NULL, NULL},
 	NULL,
@@ -158,7 +158,7 @@ struct pci_drv_info gr_tmtc_1553_info =
  *
  * The array must end with a NULL pointer.
  */
-struct rtems_drvmgr_bus_res *gr_tmtc_1553_resources[] __attribute__((weak)) =
+struct drvmgr_bus_res *gr_tmtc_1553_resources[] __attribute__((weak)) =
 {
 	NULL
 };
@@ -167,7 +167,7 @@ int gr_tmtc_1553_resources_cnt = 0;
 void gr_tmtc_1553_register_drv(void)
 {
 	DBG("Registering GR-TMTC-1553 PCI driver\n");
-	rtems_drvmgr_drv_register(&gr_tmtc_1553_info.general);
+	drvmgr_drv_register(&gr_tmtc_1553_info.general);
 }
 
 void gr_tmtc_1553_isr (void *arg)
@@ -191,7 +191,7 @@ void gr_tmtc_1553_isr (void *arg)
 
 	/* ACK interrupt, this is because PCI is Level, so the IRQ Controller still drives the IRQ. */
 	if ( tmp ) 
-		rtems_drvmgr_interrupt_clear(priv->dev, 0);
+		drvmgr_interrupt_clear(priv->dev, 0);
 
 	DBG("GR-TMTC-1553-IRQ: 0x%x\n", tmp);
 }
@@ -256,7 +256,7 @@ int gr_tmtc_1553_hw_init(struct gr_tmtc_1553_priv *priv)
 		NULL, &priv->amba_maps[0]);
 
 	/* Frequency is the hsame as the PCI bus frequency */
-	rtems_drvmgr_freq_get(priv->dev, NULL, &pci_freq_hz);
+	drvmgr_freq_get(priv->dev, NULL, &pci_freq_hz);
 
 	ambapp_freq_init(&priv->abus, NULL, pci_freq_hz);
 
@@ -293,7 +293,7 @@ int gr_tmtc_1553_hw_init(struct gr_tmtc_1553_priv *priv)
 /* Called when a PCI target is found with the PCI device and vendor ID 
  * given in gr_tmtc_1553_ids[].
  */
-int gr_tmtc_1553_init1(struct rtems_drvmgr_dev_info *dev)
+int gr_tmtc_1553_init1(struct drvmgr_dev *dev)
 {
 	struct gr_tmtc_1553_priv *priv;
 	struct pci_dev_info *devinfo;
@@ -375,12 +375,12 @@ int gr_tmtc_1553_init1(struct rtems_drvmgr_dev_info *dev)
 	return ambapp_bus_register(dev, &priv->config);
 }
 
-int gr_tmtc_1553_init2(struct rtems_drvmgr_dev_info *dev)
+int gr_tmtc_1553_init2(struct drvmgr_dev *dev)
 {
 	struct gr_tmtc_1553_priv *priv = dev->priv;
 
 	/* Clear any old interrupt requests */
-	rtems_drvmgr_interrupt_clear(dev, 0);
+	drvmgr_interrupt_clear(dev, 0);
 
 	/* Enable System IRQ so that GR-TMTC-1553 PCI target interrupt goes through.
 	 *
@@ -389,7 +389,7 @@ int gr_tmtc_1553_init2(struct rtems_drvmgr_dev_info *dev)
 	 * because PCI interrupts might be shared and PCI target 2 have not initialized and
 	 * might therefore drive interrupt already when entering init1().
 	 */
-	rtems_drvmgr_interrupt_register(
+	drvmgr_interrupt_register(
 		dev,
 		0,
 		"gr_tmtc_1553",
@@ -400,10 +400,10 @@ int gr_tmtc_1553_init2(struct rtems_drvmgr_dev_info *dev)
 }
 
 int ambapp_tmtc_1553_int_register(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
 	const char *info,
-	rtems_drvmgr_isr handler,
+	drvmgr_isr handler,
 	void *arg)
 {
 	struct gr_tmtc_1553_priv *priv = dev->parent->dev->priv;
@@ -438,9 +438,9 @@ int ambapp_tmtc_1553_int_register(
 }
 
 int ambapp_tmtc_1553_int_unregister(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq,
-	rtems_drvmgr_isr isr,
+	drvmgr_isr isr,
 	void *arg)
 {
 	struct gr_tmtc_1553_priv *priv = dev->parent->dev->priv;
@@ -466,7 +466,7 @@ int ambapp_tmtc_1553_int_unregister(
 }
 
 int ambapp_tmtc_1553_int_unmask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq)
 {
 	struct gr_tmtc_1553_priv *priv = dev->parent->dev->priv;
@@ -488,7 +488,7 @@ int ambapp_tmtc_1553_int_unmask(
 }
 
 int ambapp_tmtc_1553_int_mask(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq)
 {
 	struct gr_tmtc_1553_priv *priv = dev->parent->dev->priv;
@@ -510,7 +510,7 @@ int ambapp_tmtc_1553_int_mask(
 }
 
 int ambapp_tmtc_1553_int_clear(
-	struct rtems_drvmgr_dev_info *dev,
+	struct drvmgr_dev *dev,
 	int irq)
 {
 	struct gr_tmtc_1553_priv *priv = dev->parent->dev->priv;
@@ -523,7 +523,7 @@ int ambapp_tmtc_1553_int_clear(
 	return DRVMGR_OK;
 }
 
-int ambapp_tmtc_1553_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_drvmgr_bus_params *params)
+int ambapp_tmtc_1553_get_params(struct drvmgr_dev *dev, struct drvmgr_bus_params *params)
 {
 	struct gr_tmtc_1553_priv *priv = dev->parent->dev->priv;
 
@@ -533,7 +533,7 @@ int ambapp_tmtc_1553_get_params(struct rtems_drvmgr_dev_info *dev, struct rtems_
 	return 0;
 }
 
-void gr_tmtc_1553_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
+void gr_tmtc_1553_print_dev(struct drvmgr_dev *dev, int options)
 {
 	struct gr_tmtc_1553_priv *priv = dev->priv;
 	struct pci_dev_info *devinfo = priv->devinfo;
@@ -572,7 +572,7 @@ void gr_tmtc_1553_print_dev(struct rtems_drvmgr_dev_info *dev, int options)
 void gr_tmtc_1553_print(int options)
 {
 	struct pci_drv_info *drv = &gr_tmtc_1553_info;
-	struct rtems_drvmgr_dev_info *dev;
+	struct drvmgr_dev *dev;
 
 	dev = drv->general.dev;
 	while(dev) {
