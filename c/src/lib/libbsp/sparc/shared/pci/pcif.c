@@ -23,6 +23,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <libcpu/byteorder.h>
+#include <libcpu/access.h>
+#include <pci.h>
+#include <pci/cfg.h>
 
 #include <drvmgr/drvmgr.h>
 #include <drvmgr/ambapp_bus.h>
@@ -101,7 +105,7 @@ struct pcif_priv {
 	unsigned int			pci_conf;
 	unsigned int			pci_conf_end;
 
-	unsigned int			devVend; /* PCI Device and Vendor ID of Host */
+	uint32_t			devVend; /* Host PCI Vendor/Device ID */
 };
 
 int pcif_init1(struct rtems_drvmgr_dev_info *dev);
@@ -144,120 +148,126 @@ void pcif_register_drv(void)
 	rtems_drvmgr_drv_register(&pcif_info.general);
 }
 
-
-/*  The configuration access functions uses the DMA functionality of the
- *  GRLIB PCIF PCI controller to be able access all slots
- */
-
-int
-pcif_read_config_dword(
-  unsigned char bus,
-  unsigned char slot,
-  unsigned char function,
-  unsigned char offset,
-  unsigned int *val
-)
+int pcif_cfg_r32(pci_dev_t dev, int ofs, uint32_t *val)
 {
 	struct pcif_priv *priv = pcifpriv;
-	volatile unsigned int *pci_conf;
+	volatile uint32_t *pci_conf;
+	unsigned int devfn = PCI_DEV_DEVFUNC(dev);
+	int retval;
+	int bus = PCI_DEV_BUS(dev);
 
-	if (offset & 3) return PCIBIOS_BAD_REGISTER_NUMBER;
+	if (ofs & 3)
+		return PCISTS_EINVAL;
 
-	if (slot > 21) {
+	if (PCI_DEV_SLOT(dev) > 21) {
 		*val = 0xffffffff;
-		return PCIBIOS_SUCCESSFUL;
+		return PCISTS_OK;
 	}
 
+	/* Select bus */
 	priv->regs->bus = bus << 16;
 
-	pci_conf = (volatile unsigned int *) (priv->pci_conf +
-		((slot<<11) | (function<<8) | offset));
+	pci_conf = (volatile uint32_t *)(priv->pci_conf | (devfn << 8) | ofs);
 
 	*val = *pci_conf;
 
 	if (priv->regs->status & 0x30000000) {
 		*val = 0xffffffff;
-	}
+		retval = PCISTS_MSTABRT;
+	} else
+		retval = PCISTS_OK;
 
-	DBG("pci_read - bus: %d, dev: %d, fn: %d, off: %d => addr: %x, val: %x\n", bus, slot, function, offset,  (1<<(11+slot) ) | ((function & 7)<<8) |  (offset&0x3f), *val); 
+	DBG("pci_read: [%x:%x:%x] reg: 0x%x => addr: 0x%x, val: 0x%x\n",
+		PCI_DEV_EXPAND(dev), ofs, pci_conf, *val);
 
-	return PCIBIOS_SUCCESSFUL;
+	return retval;
 }
-
-int 
-pcif_read_config_word(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned short *val)
+int pcif_cfg_r16(pci_dev_t dev, int ofs, uint16_t *val)
 {
-	unsigned int v = 0;
+	uint32_t v;
+	int retval;
 
-	if (offset & 1) return PCIBIOS_BAD_REGISTER_NUMBER;
+	if (ofs & 1)
+		return PCISTS_EINVAL;
 
-	pcif_read_config_dword(bus, slot, function, offset&~3, &v);
-	*val = 0xffff & (v >> (8*(offset & 3)));
+	retval = pcif_cfg_r32(dev, ofs & ~0x3, &v);
+	*val = 0xffff & (v >> (8*(ofs & 0x3)));
 
-	return PCIBIOS_SUCCESSFUL;
+	return retval;
 }
 
-int 
-pcif_read_config_byte(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned char *val)
+int pcif_cfg_r8(pci_dev_t dev, int ofs, uint8_t *val)
 {
-	unsigned int v = 0;
+	uint32_t v;
+	int retval;
 
-	pcif_read_config_dword(bus, slot, function, offset&~3, &v);
+	retval = pcif_cfg_r32(dev, ofs & ~0x3, &v);
 
-	*val = 0xff & (v >> (8*(offset & 3)));
+	*val = 0xff & (v >> (8*(ofs & 3)));
 
-	return PCIBIOS_SUCCESSFUL;
+	return retval;
 }
 
-int
-pcif_write_config_dword(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned int val)
+int pcif_cfg_w32(pci_dev_t dev, int ofs, uint32_t val)
 {
 	struct pcif_priv *priv = pcifpriv;
-	volatile unsigned int *pci_conf;
-	unsigned int value;
+	volatile uint32_t *pci_conf;
+	uint32_t devfn = PCI_DEV_DEVFUNC(dev);
+	int bus = PCI_DEV_BUS(dev);
 
-	if (offset & 3) return PCIBIOS_BAD_REGISTER_NUMBER;
+	if (ofs & ~0xfc)
+		return PCISTS_EINVAL;
 
+	if (PCI_DEV_SLOT(dev) > 21)
+		return PCISTS_MSTABRT;
+
+	/* Select bus */
 	priv->regs->bus = bus << 16;
 
-	pci_conf = (volatile unsigned int *) (priv->pci_conf +
-	         ((slot<<11) | (function<<8) | (offset & ~3)));
+	pci_conf = (volatile uint32_t *)(priv->pci_conf | (devfn << 8) | ofs);
 
-	value = val;
+	*pci_conf = val;
 
-	*pci_conf = value;
+	DBG("pci_write - [%x:%x:%x] reg: 0x%x => addr: 0x%x, val: 0x%x\n",
+		PCI_DEV_EXPAND(dev), ofs, pci_conf, value);
 
-	DBG("pci write - bus: %d, dev: %d, fn: %d, off: %d => addr: %x, val: %x\n", bus, slot, function, offset, (1<<(11+slot) ) | ((function & 7)<<8) |  (offset&0x3f), value); 
-
-	return PCIBIOS_SUCCESSFUL;
+	return PCISTS_OK;
 }
 
-int 
-pcif_write_config_word(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned short val) {
-	unsigned int v;
+int pcif_cfg_w16(pci_dev_t dev, int ofs, uint16_t val)
+{
+	uint32_t v;
+	int retval;
 
-	if (offset & 1) return PCIBIOS_BAD_REGISTER_NUMBER;
+	if (ofs & 1)
+		return PCISTS_EINVAL;
 
-	pcif_read_config_dword(bus, slot, function, offset&~3, &v);
+	retval = pcif_cfg_r32(dev, ofs & ~0x3, &v);
+	if (retval != PCISTS_OK)
+		return retval;
 
-	v = (v & ~(0xffff << (8*(offset&3)))) | ((0xffff&val) << (8*(offset&3)));
+	v = (v & ~(0xffff << (8*(ofs&3)))) | ((0xffff&val) << (8*(ofs&3)));
 
-	return pcif_write_config_dword(bus, slot, function, offset&~3, v);
+	return pcif_cfg_w32(dev, ofs & ~0x3, v);
 }
 
-int 
-pcif_write_config_byte(unsigned char bus, unsigned char slot, unsigned char function, unsigned char offset, unsigned char val) {
-	unsigned int v;
+int pcif_cfg_w8(pci_dev_t dev, int ofs, uint8_t val)
+{
+	uint32_t v;
+	int retval;
 
-	pcif_read_config_dword(bus, slot, function, offset&~3, &v);
+	retval = pcif_cfg_r32(dev, ofs & ~0x3, &v);
+	if (retval != PCISTS_OK)
+		return retval;
 
-	v = (v & ~(0xff << (8*(offset&3)))) | ((0xff&val) << (8*(offset&3)));
+	v = (v & ~(0xff << (8*(ofs&3)))) | ((0xff&val) << (8*(ofs&3)));
 
-	return pcif_write_config_dword(bus, slot, function, offset&~3, v);
+	return pcif_cfg_w32(dev, ofs & ~0x3, v);
 }
 
-/* Return the assigned system IRQ number that corresponds to the PCI "Interrupt Pin"
- * information from configuration space.
+
+/* Return the assigned system IRQ number that corresponds to the PCI
+ * "Interrupt Pin" information from configuration space.
  *
  * The IRQ information is stored in the pcif_pci_irq_table configurable
  * by the user.
@@ -265,33 +275,47 @@ pcif_write_config_byte(unsigned char bus, unsigned char slot, unsigned char func
  * Returns the "system IRQ" for the PCI INTA#..INTD# pin in irq_pin. Returns
  * 0xff if not assigned.
  */
-unsigned char pcif_get_assigned_irq(
-	unsigned char bus,
-	unsigned char slot,
-	unsigned char func,
-	unsigned char irq_pin
-	)
+uint8_t pcif_bus0_irq_map(pci_dev_t dev, int irq_pin)
 {
-	unsigned char sysIrqNr = 0xff; /* not assigned */
+	uint8_t sysIrqNr = 0; /* not assigned */
+	int irq_group;
 
 	if ( (irq_pin >= 1) && (irq_pin <= 4) ) {
+		/* Use default IRQ decoding on PCI BUS0 according slot numbering */
+		irq_group = PCI_DEV_SLOT(dev) & 0x3;
+		irq_pin = ((irq_pin - 1) + irq_group) & 0x3;
 		/* Valid PCI "Interrupt Pin" number */
-		sysIrqNr = pcif_pci_irq_table[irq_pin-1];
+		sysIrqNr = pcif_pci_irq_table[irq_pin];
 	}
 	return sysIrqNr;
 }
 
-/* Access functions used by pci_ functions to access core specific 
- * functions.
- */
-const pci_config_access_functions pcif_access_functions = {
-	pcif_read_config_byte,
-	pcif_read_config_word,
-	pcif_read_config_dword,
-	pcif_write_config_byte,
-	pcif_write_config_word,
-	pcif_write_config_dword,
-	pcif_get_assigned_irq
+int pcif_translate(uint32_t *address, int type, int dir)
+{
+	/* No address translation implmented at this point */
+	return 0;
+}
+
+struct pci_access_drv pcif_access_drv = {
+	.cfg =
+	{
+		pcif_cfg_r8,
+		pcif_cfg_r16,
+		pcif_cfg_r32,
+		pcif_cfg_w8,
+		pcif_cfg_w16,
+		pcif_cfg_w32,
+	},
+	.io =	/* PCIF only supports Big-endian */
+	{
+		sparc_ld8,
+		sparc_ld_be16,
+		sparc_ld_be32,
+		sparc_st8,
+		sparc_st_be16,
+		sparc_st_be32,
+	},
+	.translate = pcif_translate,
 };
 
 /* Initializes the PCIF core hardware
@@ -300,8 +324,9 @@ const pci_config_access_functions pcif_access_functions = {
 int pcif_hw_init(struct pcif_priv *priv)
 {
 	struct pcif_regs *regs;
-	unsigned int data;
+	uint32_t data;
 	int mst;
+	pci_dev_t host = PCI_DEV(0, 0, 0);
 
 	regs = priv->regs;
 
@@ -309,7 +334,7 @@ int pcif_hw_init(struct pcif_priv *priv)
 	regs->intr = 0;
 
 	/* Get the PCIF Host PCI ID */
-	pcif_read_config_dword(0, 0, 0, PCI_VENDOR_ID, &priv->devVend);
+	pcif_cfg_r32(host, PCI_VENDOR_ID, &priv->devVend);
 
 	/* set 1:1 mapping between AHB -> PCI memory space, for all Master cores */
 	for ( mst=0; mst<16; mst++) {
@@ -328,17 +353,17 @@ int pcif_hw_init(struct pcif_priv *priv)
 	regs->bars[2] = 0;
 	regs->bars[3] = 0;
 
-	pcif_write_config_dword(0, 0, 0, PCI_BASE_ADDRESS_0, 0);
-	pcif_write_config_dword(0, 0, 0, PCI_BASE_ADDRESS_1, SYSTEM_MAINMEM_START);
-	pcif_write_config_dword(0, 0, 0, PCI_BASE_ADDRESS_2, 0);
-	pcif_write_config_dword(0, 0, 0, PCI_BASE_ADDRESS_3, 0);
-	pcif_write_config_dword(0, 0, 0, PCI_BASE_ADDRESS_4, 0);
-	pcif_write_config_dword(0, 0, 0, PCI_BASE_ADDRESS_5, 0);
+	pcif_cfg_w32(host, PCI_BASE_ADDRESS_0, 0);
+	pcif_cfg_w32(host, PCI_BASE_ADDRESS_1, SYSTEM_MAINMEM_START);
+	pcif_cfg_w32(host, PCI_BASE_ADDRESS_2, 0);
+	pcif_cfg_w32(host, PCI_BASE_ADDRESS_3, 0);
+	pcif_cfg_w32(host, PCI_BASE_ADDRESS_4, 0);
+	pcif_cfg_w32(host, PCI_BASE_ADDRESS_5, 0);
 
 	/* set as bus master and enable pci memory responses */  
-	pcif_read_config_dword(0, 0, 0, PCI_COMMAND, &data);
+	pcif_cfg_r32(host, PCI_COMMAND, &data);
 	data |= (PCI_COMMAND_MEMORY | PCI_COMMAND_MASTER);
-	pcif_write_config_dword(0, 0, 0, PCI_COMMAND, data);
+	pcif_cfg_w32(host, PCI_COMMAND, data);
 
 	/* Successful */
 	return 0;
@@ -358,8 +383,6 @@ int pcif_init(struct pcif_priv *priv)
 	struct ambapp_apb_info *apb;
 	struct ambapp_ahb_info *ahb;
 	int pin;
-	pci_mem_config pci_mem_cfg;
-	pci_config pci_drv_cfg;
 	union rtems_drvmgr_key_value *value;
 	char keyname[6];
 	struct amba_dev_info *ainfo = priv->dev->businfo;
@@ -422,26 +445,6 @@ int pcif_init(struct pcif_priv *priv)
 		return -3;
 	}
 
-	/* Register the PCI core at the PCI layer */
-
-	/* Prepare PCI driver description */
-	memset(&pci_drv_cfg, 0, sizeof(pci_drv_cfg));
-	pci_drv_cfg.pci_config_addr = 0;
-	pci_drv_cfg.pci_config_data = 0;
-	pci_drv_cfg.pci_functions = &pcif_access_functions;
-
-	/* Prepare memory MAP */
-	memset(&pci_mem_cfg, 0, sizeof(pci_mem_cfg));
-	pci_mem_cfg.pci_mem_start = priv->pci_area;
-	pci_mem_cfg.pci_mem_size = priv->pci_area_end - priv->pci_area;
-	pci_mem_cfg.pci_io_start = priv->pci_io;
-	pci_mem_cfg.pci_io_size = priv->pci_conf - priv->pci_io;
-
-	if ( pci_register_drv(&pci_drv_cfg, &pci_mem_cfg, priv) ) {
-		/* Registration failed */
-		return -4;
-	}
-
 	return 0;
 }
 
@@ -450,8 +453,8 @@ int pcif_init(struct pcif_priv *priv)
  */
 int pcif_init1(struct rtems_drvmgr_dev_info *dev)
 {
-	int status;
 	struct pcif_priv *priv;
+	struct pci_auto_setup pcif_auto_cfg;
 
 	DBG("PCIF[%d] on bus %s\n", dev->minor_drv, dev->parent->dev->name);
 
@@ -476,11 +479,30 @@ int pcif_init1(struct rtems_drvmgr_dev_info *dev)
 		return DRVMGR_FAIL;
 	}
 
-	status = init_pci();
-	if ( status ) {
-		printf("Failed to initialize PCI sybsystem (%d)\n", status);
+	/* Register the PCI core at the PCI layer */
+
+	if (pci_access_drv_register(&pcif_access_drv)) {
+		/* Access routines registration failed */
 		return DRVMGR_FAIL;
 	}
+
+	/* Prepare memory MAP */
+	pcif_auto_cfg.options = 0;
+	pcif_auto_cfg.mem_start = 0;
+	pcif_auto_cfg.mem_size = 0;
+	pcif_auto_cfg.memio_start = priv->pci_area;
+	pcif_auto_cfg.memio_size = priv->pci_area_end - priv->pci_area;
+	pcif_auto_cfg.io_start = priv->pci_io;
+	pcif_auto_cfg.io_size = priv->pci_conf - priv->pci_io;
+	pcif_auto_cfg.irq_map = pcif_bus0_irq_map;
+	pcif_auto_cfg.irq_route = NULL; /* use standard routing */
+	pci_config_register(&pcif_auto_cfg);
+
+	if (pci_config_init()) {
+		/* PCI configuration failed */
+		return DRVMGR_FAIL;
+	}
+
 
 	return pcibus_register(dev);
 }
