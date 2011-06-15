@@ -11,44 +11,52 @@
 #include <rtems/system.h>
 #include <rtems/score/cpu.h>
 
-static inline uint16_t ld_le16(volatile uint16_t *addr)
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+RTEMS_INLINE_ROUTINE uint16_t ld_le16(volatile uint16_t *addr)
 {
 	return CPU_swap_u16(*addr);
 }
 
-static inline void st_le16(volatile uint16_t *addr, uint16_t val)
+RTEMS_INLINE_ROUTINE void st_le16(volatile uint16_t *addr, uint16_t val)
 {
 	*addr = CPU_swap_u16(val);
 }
 
-static inline uint32_t ld_le32(volatile uint32_t *addr)
+RTEMS_INLINE_ROUTINE uint32_t ld_le32(volatile uint32_t *addr)
 {
 	return CPU_swap_u32(*addr);
 }
 
-static inline void st_le32(volatile uint32_t *addr, uint32_t val)
+RTEMS_INLINE_ROUTINE void st_le32(volatile uint32_t *addr, uint32_t val)
 {
 	*addr = CPU_swap_u32(val);
 }
 
-static inline uint16_t ld_be16(volatile uint16_t *addr)
+RTEMS_INLINE_ROUTINE uint16_t ld_be16(volatile uint16_t *addr)
 {
 	return *addr;
 }
 
-static inline void st_be16(volatile uint16_t *addr, uint16_t val)
+RTEMS_INLINE_ROUTINE void st_be16(volatile uint16_t *addr, uint16_t val)
 {
 	*addr = val;
 }
 
-static inline uint32_t ld_be32(volatile uint32_t *addr)
+RTEMS_INLINE_ROUTINE uint32_t ld_be32(volatile uint32_t *addr)
 {
 	return *addr;
 }
 
-static inline void st_be32(volatile uint32_t *addr, uint32_t val)
+RTEMS_INLINE_ROUTINE void st_be32(volatile uint32_t *addr, uint32_t val)
 {
 	*addr = val;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
