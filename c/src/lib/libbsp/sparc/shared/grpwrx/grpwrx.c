@@ -38,8 +38,6 @@
 #include <drvmgr/ambapp_bus.h>
 #include <grpwrx.h>
 
-#define REMOTE_DESCRIPTORS
-
 #ifndef IRQ_GLOBAL_PREPARE
  #define IRQ_GLOBAL_PREPARE(level) rtems_interrupt_level level
 #endif
@@ -370,6 +368,7 @@ static int grpwrx_device_init(struct grpwrx_priv *pDev)
 {
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
+	union drvmgr_key_value *value;
 
 	/* Get device information from AMBA PnP information */
 	ambadev = (struct amba_dev_info *)pDev->dev->businfo;
@@ -393,13 +392,16 @@ static int grpwrx_device_init(struct grpwrx_priv *pDev)
 		return -1;
 	}
 
-	/* Allocate Memory for Descriptors */
-#ifdef REMOTE_DESCRIPTORS
-	pDev->bds = 0xc0800000;
-	pDev->_bds = 0xc0800000;
-#else
-	pDev->bds = (struct grpwrx_bd *)grpwrx_memalign(GRPWRX_BDAR_SIZE, GRPWRX_BDAR_SIZE, &pDev->_bds);
-#endif
+	/* Allocate Memory for Buffer Descriptor Table, or let user provide a
+	 * custom address.
+	 */
+	value = drvmgr_dev_key_get(pDev->dev, "bdTabAdr", KEY_TYPE_POINTER);
+	if ( value ) {
+		pDev->bds = (struct grpwrx_bd *)value->ptr;
+		pDev->_bds = (void *)value->ptr;	
+	} else {
+		pDev->bds = (struct grpwrx_bd *)grpwrx_memalign(GRPWRX_BDAR_SIZE, GRPWRX_BDAR_SIZE, &pDev->_bds);
+	}
 	if ( !pDev->bds ) {
 		DBG("GRPWRX: Failed to allocate descriptor table\n");
 		return -1;
