@@ -115,7 +115,9 @@ struct amba_drv_info apbuart_drv_info =
 		"APBUART_DRV",				/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,			/* Bus Type */
 		&apbuart_ops,
+		NULL,					/* Funcs */
 		0,					/* No devices yet */
+		0,
 	},
 	&apbuart_ids[0]
 };

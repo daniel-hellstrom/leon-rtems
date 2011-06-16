@@ -217,7 +217,9 @@ static struct amba_drv_info graes_drv_info =
 		"GRAES_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&graes_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&graes_ids[0]
 };

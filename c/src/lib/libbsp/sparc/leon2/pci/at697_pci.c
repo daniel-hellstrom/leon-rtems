@@ -199,6 +199,7 @@ struct leon2_amba_drv_info at697pci_info =
 		"AT697PCI_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_LEON2_AMBA,	/* Bus Type */
 		&at697pci_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
 		sizeof(struct at697pci_priv),	/* let drvmgr alloc private */
 	},

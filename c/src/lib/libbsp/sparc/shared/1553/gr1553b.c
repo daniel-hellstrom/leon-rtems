@@ -291,7 +291,9 @@ struct amba_drv_info gr1553_drv_info =
 		"GR1553_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&gr1553_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&gr1553_ids[0]
 };

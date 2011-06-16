@@ -114,6 +114,7 @@ struct amba_drv_info router_drv_info =
 		"ROUTER_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&router_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
 		sizeof(struct router_priv),	/* Let DRVMGR allocate for us */
 	},

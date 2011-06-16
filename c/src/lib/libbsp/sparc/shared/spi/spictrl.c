@@ -200,7 +200,9 @@ struct amba_drv_info spictrl_drv_info =
 		"SPICTRL_DRV",				/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,			/* Bus Type */
 		&spictrl_ops,
+		NULL,					/* Funcs */
 		0,					/* No devices yet */
+		0,
 	},
 	&spictrl_ids[0]
 };

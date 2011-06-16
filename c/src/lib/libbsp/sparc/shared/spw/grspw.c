@@ -409,7 +409,9 @@ struct amba_drv_info grspw_drv_info =
 		"GRSPW_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&grspw_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&grspw_ids[0]
 };

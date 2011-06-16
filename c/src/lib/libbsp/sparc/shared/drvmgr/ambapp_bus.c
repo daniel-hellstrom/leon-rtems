@@ -416,7 +416,7 @@ void ambapp_dev_info(
 		ambapp_bus_freq_get(dev, DEV_APB_SLV, &apbslv_freq);
 	}
 
-	sprintf(buf, "IRQ:         %d", ambapp_int_get(dev, 0), ver);
+	sprintf(buf, "IRQ:         %d", ambapp_int_get(dev, 0));
 	print_line(p, buf);
 
 	sprintf(buf, "VERSION:     0x%x", ver);
@@ -721,6 +721,7 @@ int ambapp_bus_register(struct drvmgr_dev *dev, struct ambapp_config *config)
 	dev->bus->priv = priv;
 	dev->bus->children = NULL;
 	dev->bus->ops = &ambapp_bus_ops;
+	dev->bus->funcs = config->funcs;
 	dev->bus->dev_cnt = 0;
 	dev->bus->reslist = NULL;
 	dev->bus->mmaps = config->mmaps;

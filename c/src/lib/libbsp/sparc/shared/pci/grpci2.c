@@ -272,6 +272,7 @@ struct amba_drv_info grpci2_info =
 		"GRPCI2_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&grpci2_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
 		sizeof(struct grpci2_priv),	/* Make drvmgr alloc private */
 	},

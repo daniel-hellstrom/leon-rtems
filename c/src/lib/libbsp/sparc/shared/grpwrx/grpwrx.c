@@ -257,7 +257,9 @@ static struct amba_drv_info grpwrx_drv_info =
 		"GRPWRX_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&grpwrx_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&grpwrx_ids[0]
 };

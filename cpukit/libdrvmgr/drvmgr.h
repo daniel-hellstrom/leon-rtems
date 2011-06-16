@@ -32,9 +32,6 @@ extern void _DRV_Manager_initialization(void);
 /* Define the number of initialization levels of device drivers */
 #define DRVMGR_LEVEL_MAX 4
 
-/* Add support for I/O register and memory READ/WRITE functions. */
-#define DRV_MGR_BUS_RW
-
 struct drvmgr_dev;	/* Device */
 struct drvmgr_bus;	/* Bus */
 struct drvmgr_drv;	/* Driver */
@@ -151,30 +148,14 @@ struct drvmgr_bus_ops {
 	 *  driver interpret the bus-specific information about the device.
 	 */
 	void	(*info_dev)(struct drvmgr_dev *, void (*print)(void *p, char *str), void *p);
-
-#ifdef DRV_MGR_BUS_RW
-	/* Read I/O functions */
-	int	(*read_io8)(struct drvmgr_dev *dev, uint8_t *srcadr, uint8_t *data);
-	int	(*read_io16)(struct drvmgr_dev *dev, uint16_t *srcadr, uint16_t *data);
-	int	(*read_io32)(struct drvmgr_dev *dev, uint32_t *srcadr, uint32_t *data);
-	int	(*read_io64)(struct drvmgr_dev *dev, uint64_t *srcadr, uint64_t *data);
-
-	/* Write I/O functions */
-	int	(*write_io8)(struct drvmgr_dev *dev, uint8_t *dstadr, uint8_t data);
-	int	(*write_io16)(struct drvmgr_dev *dev, uint16_t *dstadr, uint16_t data);
-	int	(*write_io32)(struct drvmgr_dev *dev, uint32_t *dstadr, uint32_t data);
-	int	(*write_io64)(struct drvmgr_dev *dev, uint64_t *dstadr, uint64_t data);
-
-	/* Read/Write Memory functions */
-	int	(*read_mem)(struct drvmgr_dev *dev, void *dest, const void *src, int n);
-	int	(*write_mem)(struct drvmgr_dev *dev, void *dest, const void *src, int n);
-#endif
 };
 
-struct drvmgr_extops {
+struct drvmgr_func {
 	int funcid;
-	void (*func)(void);
+	void *func;
 };
+#define DRVMGR_FUNC(_ID_, _FUNC_) {(int)(_ID_), (void *)(_FUNC_)}
+#define DRVMGR_FUNC_END {0, NULL}
 
 /*** Resource definitions ***
  * 
@@ -249,9 +230,7 @@ struct drvmgr_bus {
 	void			*priv;		/*!< Private data structure used by BUS driver */
 	struct drvmgr_dev	*children;	/*!< Hardware devices on this bus */
 	struct drvmgr_bus_ops	*ops;		/*!< Bus operations supported by this bus driver */
-#if 0
-	struct drvmgr_extops	*extops;	/*!< Extra operations */
-#endif
+	struct drvmgr_func	*funcs;		/*!< Extra operations */
 	int			dev_cnt;	/*!< Number of devices this bus has */
 	struct drvmgr_bus_res	*reslist;	/*!< Bus resources, head of a linked list of resources. */
 	struct drvmgr_mmap_entry	*mmaps;		/*!< Memory Map Translation, array of address spaces */
@@ -298,10 +277,6 @@ struct drvmgr_dev {
 	unsigned int		state;		/*!< State of this device, see DEV_STATE_* */
 	int			level;		/*!< Init Level */
 	int			error;		/*!< Error state returned by driver */
-#ifdef DRV_MGR_BUS_RW
-	struct drvmgr_dev	*rw_dev;	/*!< Device used to make READ/WRITE bus operations,
-						 *   NULL=use calling device */
-#endif
 };
 
 /*! Driver operations, function pointers. */
@@ -321,9 +296,7 @@ struct drvmgr_drv {
 	char			*name;		/*!< Name of Driver */
 	int			bus_type;	/*!< Type of Bus this driver supports */
 	struct drvmgr_drv_ops	*ops;		/*!< Driver operations */
-#if 0
-	struct drvmgr_extops	*extops;	/*!< Extra Operations */
-#endif
+	struct drvmgr_func	*funcs;		/*!< Extra Operations */
 	unsigned int		dev_cnt;	/*!< Number of devices in dev */
 	unsigned int		dev_priv_size;	/*!< If non-zero DRVMGR will allocate memory for dev->priv */
 };
@@ -470,6 +443,24 @@ extern union drvmgr_key_value *drvmgr_dev_key_get(
 
 /*** DRIVER INTERACE USED TO REQUEST INFORMATION/SERVICES FROM BUS DRIVER ***/
 
+/*! Get parent bus */
+static __inline__ struct drvmgr_bus *drvmgr_get_parent(struct drvmgr_dev *dev)
+{
+	if (dev)
+		return dev->parent;
+	else
+		return NULL;
+}
+
+/*! Get Driver of device */
+static __inline__ struct drvmgr_drv *drvmgr_get_drv(struct drvmgr_dev *dev)
+{
+	if (dev)
+		return dev->drv;
+	else
+		return NULL;
+}
+
 /*! Get Device pointer from Driver and Driver minor number 
  *
  * \param drv         Driver the device is united with.
@@ -594,95 +585,109 @@ extern int drvmgr_mmap_translate(
 	void *src_address,
 	void **dst_address);
 
-#ifdef DRV_MGR_BUS_RW
-/*** Extended bus operations with READ/WRITE access operations ***
+
+/*! Get function pointer from Device Driver or Bus Driver.
  *
- * Note that these functions are optional, and seldom used.
+ *  Returns 0 if function is available
  */
+extern int drvmgr_func_get(void *obj, int funcid, void **func);
 
-/* READ a 8-bit I/O register */
-extern int drvmgr_read_io8(
-	struct drvmgr_dev *dev,
-	uint8_t *srcadr,
-	uint8_t *result
-	);
+/*! Lookup function and call it directly with the four optional arguments */
+extern int drvmgr_func_call(void *obj, int funcid, void *a, void *b, void *c, void *d);
 
-/* READ a 16-bit I/O register */
-extern int drvmgr_read_io16(
-	struct drvmgr_dev *dev,
-	uint16_t *srcadr,
-	uint16_t *result
-	);
-
-/* READ a 32-bit I/O register */
-extern int drvmgr_read_io32(
-	struct drvmgr_dev *dev,
-	uint32_t *srcadr,
-	uint32_t *result
-	);
-
-/* READ a 64-bit I/O register */
-extern int drvmgr_read_io64(
-	struct drvmgr_dev *dev,
-	uint64_t *srcadr,
-	uint64_t *result
-	);
-
-/* WRITE a 8-bit I/O register */
-extern int drvmgr_write_io8(
-	struct drvmgr_dev *dev,
-	uint8_t *dstadr,
-	uint8_t data
-	);
-
-/* WRITE a 16-bit I/O register */
-extern int drvmgr_write_io16(
-	struct drvmgr_dev *dev,
-	uint16_t *dstadr,
-	uint16_t data
-	);
-
-/* WRITE a 32-bit I/O register */
-extern int drvmgr_write_io32(
-	struct drvmgr_dev *dev,
-	uint32_t *dstadr,
-	uint32_t data
-	);
-
-/* WRITE a 64-bit I/O register */
-extern int drvmgr_write_io64(
-	struct drvmgr_dev *dev,
-	uint64_t *dstadr,
-	uint64_t data
-	);
-
-/* READ/COPY a memory area located in 'src' to the destination 'dest', n=number of bytes */
-extern int drvmgr_read_mem(
-	struct drvmgr_dev *dev,
-	void *dest,
-	const void *src,
-	int n
-	);
-
-/* WRITE/COPY a user buffer located in 'src' to the destination 'dest', n=number of bytes */
-extern int drvmgr_write_mem(
-	struct drvmgr_dev *dev,
-	void *dest,
-	const void *src,
-	int n
-	);
-
-/* Set a memory area to the byte value given in c, see LIBC memset(). Memset is implemented by 
- * calling busops->write_mem multiple times with a zero buffer.
+/* Builds a Function ID.
+ *
+ * Used to request optional functions by a bus or device driver
  */
-extern int drvmgr_write_memset(
-	struct drvmgr_dev *dev,
+#define DRVMGR_FUNCID(major, minor) ((((major) & 0xffff) << 16) | ((minor) & 0xffff))
+#define DRVMGR_FUNCID_NONE 0
+#define DRVMGR_FUNCID_END DRVMGR_FUNCID(DRVMGR_FUNCID_NONE, 0)
+
+/* Major Function ID */
+enum {
+	FUNCID_NONE             = 0x0,
+	FUNCID_RW               = 0x1, /* Read/Write functions */
+};
+
+/* Select Sub-Function Read/Write function by ID */
+#define RW_SIZE_1   0x0001    /* Access Size */
+#define RW_SIZE_2   0x0002
+#define RW_SIZE_4   0x0004
+#define RW_SIZE_8   0x0008
+#define RW_SIZE_ANY 0x0000
+
+#define RW_DIR_ANY  0x0000   /* Access Direction */
+#define RW_READ     0x0000
+#define RW_WRITE    0x0010
+#define RW_SET      0x0020
+
+#define RW_TYPE_ANY 0x0000  /* Access type */
+#define RW_REG      0x0100
+#define RW_MEM      0x0200
+#define RW_MEMREG   0x0300
+#define RW_CFG      0x0400
+
+#define RW_ARG      0x1000 /* Optional Argument */
+#define RW_ERR      0x2000 /* Optional Error Handler */
+
+/* Build a Read/Write function ID */
+#define DRVMGR_RWFUNC(minor) DRVMGR_FUNCID(FUNCID_RW, minor)
+
+/* Argument to Read/Write functions, the "void *arg" pointer is returned by
+ * RW_ARG. If NULL is returned no argument is needed.
+ */
+struct drvmgr_rw_arg {
+	void *arg;
+	struct drvmgr_dev *dev;
+};
+
+/* Standard Read/Write function types */
+typedef uint8_t (*drvmgr_r8)(uint8_t *srcadr);
+typedef uint16_t (*drvmgr_r16)(uint16_t *srcadr);
+typedef uint32_t (*drvmgr_r32)(uint32_t *srcadr);
+typedef uint64_t (*drvmgr_r64)(uint64_t *srcadr);
+typedef void (*drvmgr_w8)(uint8_t *dstadr, uint8_t data);
+typedef void (*drvmgr_w16)(uint16_t *dstadr, uint16_t data);
+typedef void (*drvmgr_w32)(uint32_t *dstadr, uint32_t data);
+typedef void (*drvmgr_w64)(uint64_t *dstadr, uint64_t data);
+/* READ/COPY a memory area located on bus into CPU memory.
+ * From 'src' (remote) to the destination 'dest' (local), n=number of bytes
+ */
+typedef int (*drvmgr_rmem)(void *dest, const void *src, int n);
+/* WRITE/COPY a user buffer located in CPU memory to a location on the bus.
+ * From 'src' (local) to the destination 'dest' (remote), n=number of bytes
+ */
+typedef int (*drvmgr_wmem)(void *dest, const void *src, int n);
+/* Set a memory area to the byte value given in c, see LIBC memset(). Memset is
+ * implemented by calling wmem() multiple times with a "large" buffer.
+ */
+typedef int (*drvmgr_memset)(void *dstadr, int c, size_t n);
+
+/* Read/Write function types with additional argument */
+typedef uint8_t (*drvmgr_r8_arg)(uint8_t *srcadr, void *a);
+typedef uint16_t (*drvmgr_r16_arg)(uint16_t *srcadr, void *a);
+typedef uint32_t (*drvmgr_r32_arg)(uint32_t *srcadr, void *a);
+typedef uint64_t (*drvmgr_r64_arg)(uint64_t *srcadr, void *a);
+typedef void (*drvmgr_w8_arg)(uint8_t *dstadr, uint8_t data, void *a);
+typedef void (*drvmgr_w16_arg)(uint16_t *dstadr, uint16_t data, void *a);
+typedef void (*drvmgr_w32_arg)(uint32_t *dstadr, uint32_t data, void *a);
+typedef void (*drvmgr_w64_arg)(uint64_t *dstadr, uint64_t data, void *a);
+typedef int (*drvmgr_rmem_arg)(void *dest, const void *src, int n, void *a);
+typedef int (*drvmgr_wmem_arg)(void *dest, const void *src, int n, void *a);
+typedef int (*drvmgr_memset_arg)(void *dstadr, int c, size_t n, void *a);
+
+/* Report an error to the parent bus of the device */
+typedef void (*drvmgr_rw_err)(struct drvmgr_rw_arg *a, struct drvmgr_bus *bus,
+				int funcid, void *adr);
+
+/* Helper function for buses that implement the memset() over wmem() */
+extern void drvmgr_rw_memset(
 	void *dstadr,
 	int c,
-	size_t n
+	size_t n,
+	void *a,
+	drvmgr_wmem_arg wmem
 	);
-
-#endif
 
 /*** PRINT INFORMATION ABOUT DRIVER MANAGER ***/
 

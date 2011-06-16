@@ -100,6 +100,67 @@ struct pci_drv_info {
 	struct pci_dev_id_match		*ids;		/* Supported hardware */
 };
 
+/* Access routines */
+struct pcibus_regmem_ops {
+	drvmgr_r8 r8;
+	drvmgr_r16 r16;
+	drvmgr_r32 r32;
+	drvmgr_r64 r64;
+	drvmgr_w8 w8;
+	drvmgr_w16 w16;
+	drvmgr_w32 w32;
+	drvmgr_w64 w64;
+};
+
+/* Let driver configure PCI bus driver */
+struct pcibus_config {
+	struct pcibus_regmem_ops *memreg_ops;
+};
+
+/* Select Sub-Function Read/Write function by ID */
+#define RW_SIZE_1   0x0001    /* Access Size */
+#define RW_SIZE_2   0x0002
+#define RW_SIZE_4   0x0004
+#define RW_SIZE_8   0x0008
+#define RW_SIZE_ANY 0x0000
+
+#define RW_DIR_ANY  0x0000   /* Access Direction */
+#define RW_READ     0x0000
+#define RW_WRITE    0x0010
+#define RW_SET      0x0020
+
+#define RW_TYPE_ANY 0x0000  /* Access type */
+#define RW_REG      0x0100
+#define RW_MEM      0x0200
+#define RW_MEMREG   0x0300
+#define RW_CFG      0x0400
+
+#define RW_ARG      0x1000 /* Optional Argument */
+#define RW_ERR      0x2000 /* Optional Error Handler */
+
+/* Build a Read/Write function ID */
+#define DRVMGR_RWFUNC(minor) DRVMGR_FUNCID(FUNCID_RW, minor)
+
+/* PCI I/O Register Access - Not implemented */
+#define PCI_IO_R8    DRVMGR_RWFUNC(RW_SIZE_1|RW_READ|RW_REG)
+#define PCI_IO_R16   DRVMGR_RWFUNC(RW_SIZE_2|RW_READ|RW_REG)
+#define PCI_IO_R32   DRVMGR_RWFUNC(RW_SIZE_4|RW_READ|RW_REG)
+#define PCI_IO_R64   DRVMGR_RWFUNC(RW_SIZE_8|RW_READ|RW_REG)
+#define PCI_IO_W8    DRVMGR_RWFUNC(RW_SIZE_1|RW_WRITE|RW_REG)
+#define PCI_IO_W16   DRVMGR_RWFUNC(RW_SIZE_2|RW_WRITE|RW_REG)
+#define PCI_IO_W32   DRVMGR_RWFUNC(RW_SIZE_4|RW_WRITE|RW_REG)
+#define PCI_IO_W64   DRVMGR_RWFUNC(RW_SIZE_8|RW_WRITE|RW_REG)
+
+/* PCI Register Access over Memory Space */
+#define PCI_MREG_R8   DRVMGR_RWFUNC(RW_SIZE_1|RW_READ|RW_MEMREG)
+#define PCI_MREG_R16  DRVMGR_RWFUNC(RW_SIZE_2|RW_READ|RW_MEMREG)
+#define PCI_MREG_R32  DRVMGR_RWFUNC(RW_SIZE_4|RW_READ|RW_MEMREG)
+#define PCI_MREG_R64  DRVMGR_RWFUNC(RW_SIZE_8|RW_READ|RW_MEMREG)
+#define PCI_MREG_W8   DRVMGR_RWFUNC(RW_SIZE_1|RW_WRITE|RW_MEMREG)
+#define PCI_MREG_W16  DRVMGR_RWFUNC(RW_SIZE_2|RW_WRITE|RW_MEMREG)
+#define PCI_MREG_W32  DRVMGR_RWFUNC(RW_SIZE_4|RW_WRITE|RW_MEMREG)
+#define PCI_MREG_W64  DRVMGR_RWFUNC(RW_SIZE_8|RW_WRITE|RW_MEMREG)
+
 #if 0
 extern uint8_t pcibus_cfg_r8(struct drvmgr_dev *dev, int ofs);
 extern uint16_t pcibus_cfg_r16(struct drvmgr_dev *dev, int ofs);

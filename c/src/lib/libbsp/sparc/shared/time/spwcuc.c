@@ -356,7 +356,9 @@ struct amba_drv_info spwcuc_drv_info =
 		"SPWCUC_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&spwcuc_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&spwcuc_ids[0]
 };

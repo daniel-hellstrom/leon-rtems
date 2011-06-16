@@ -204,7 +204,9 @@ struct amba_drv_info grpwm_drv_info =
 		"GRPWM_DRV",				/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,			/* Bus Type */
 		&grpwm_ops,
+		NULL,					/* Funcs */
 		0,					/* No devices yet */
+		0,
 	},
 	&grpwm_ids[0]
 };

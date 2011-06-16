@@ -255,7 +255,9 @@ struct amba_drv_info grcan_drv_info =
 		"GRCAN_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&grcan_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&grcan_ids[0]
 };

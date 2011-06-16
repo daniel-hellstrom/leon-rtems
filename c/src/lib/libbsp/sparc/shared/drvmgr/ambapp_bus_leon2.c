@@ -24,6 +24,8 @@
 #ifdef LEON2
 #include <stdlib.h>
 #include <stdio.h>
+#include <libcpu/access.h>
+#include <drvmgr/drvmgr.h>
 #include <drvmgr/ambapp_bus.h>
 #include <drvmgr/leon2_amba_bus.h>
 
@@ -57,6 +59,9 @@ int ambapp_leon2_init1(struct drvmgr_dev *dev);
 int ambapp_leon2_init2(struct drvmgr_dev *dev);
 int ambapp_leon2_remove(struct drvmgr_dev *dev);
 
+/* READ/WRITE access to SpaceWire target over RMAP */
+void *ambapp_leon2_rw_arg(struct drvmgr_dev *dev);
+
 struct ambappl2_priv {
 	struct ambapp_bus abus;
 	struct ambapp_config config;
@@ -69,6 +74,26 @@ struct ambapp_ops ambapp_leon2_ops = {
 	.int_mask = ambapp_leon2_int_mask,
 	.int_unmask = ambapp_leon2_int_unmask,
 	.get_params = ambapp_leon2_get_params
+};
+
+struct drvmgr_func ambapp_leon2_funcs[] =
+{
+	DRVMGR_FUNC(AMBAPP_RW_ARG, ambapp_leon2_rw_arg),
+
+	DRVMGR_FUNC(AMBAPP_R8,  sparc_ld8),
+	DRVMGR_FUNC(AMBAPP_R16, sparc_ld16),
+	DRVMGR_FUNC(AMBAPP_R32, sparc_ld32),
+	DRVMGR_FUNC(AMBAPP_R64, sparc_ld64),
+
+	DRVMGR_FUNC(AMBAPP_W8,  sparc_st8),
+	DRVMGR_FUNC(AMBAPP_W16, sparc_st16),
+	DRVMGR_FUNC(AMBAPP_W32, sparc_st32),
+	DRVMGR_FUNC(AMBAPP_W64, sparc_st64),
+
+	DRVMGR_FUNC(AMBAPP_RMEM, memcpy),
+	DRVMGR_FUNC(AMBAPP_WMEM, memcpy),
+
+	DRVMGR_FUNC_END
 };
 
 struct drvmgr_drv_ops ambapp_ops = 
@@ -94,6 +119,7 @@ struct leon2_amba_drv_info ambapp_bus_drv_leon2 =
 		"AMBAPP_LEON2_DRV",		/* Driver Name */
 		DRVMGR_BUS_TYPE_LEON2_AMBA,	/* Bus Type */
 		&ambapp_ops,
+		NULL,				/* Funcs */
 		0,
 		sizeof(struct ambappl2_priv),	/* Let DrvMgr allocate priv */
 	},
@@ -124,6 +150,7 @@ int ambapp_leon2_init1(struct drvmgr_dev *dev)
 	config = &priv->config;
 	config->ops = &ambapp_leon2_ops;
 	config->mmaps = NULL;
+	config->funcs = ambapp_leon2_funcs;
 
 	/* Get AMBA PnP Area from REG0 */
 	devinfo = (struct leon2_amba_dev_info *)dev->businfo;
@@ -171,6 +198,11 @@ int ambapp_leon2_init2(struct drvmgr_dev *dev)
 int ambapp_leon2_remove(struct drvmgr_dev *dev)
 {
 	return 0;
+}
+
+void *ambapp_leon2_rw_arg(struct drvmgr_dev *dev)
+{
+	return dev; /* No argument really needed, by for debug */
 }
 
 int ambapp_leon2_int_register

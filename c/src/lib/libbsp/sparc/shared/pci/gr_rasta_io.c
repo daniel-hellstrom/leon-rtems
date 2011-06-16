@@ -171,7 +171,9 @@ struct pci_drv_info gr_rasta_io_info =
 		"GR-RASTA-IO_DRV",		/* Driver Name */
 		DRVMGR_BUS_TYPE_PCI,		/* Bus Type */
 		&gr_rasta_io_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&gr_rasta_io_ids[0]
 };

@@ -106,6 +106,7 @@ static struct amba_drv_info apbuart_drv_info =
 		"APBUART_DRV",				/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,			/* Bus Type */
 		&apbuart_ops,
+		NULL,					/* Funcs */
 		0,					/* No devices yet */
 		sizeof(struct apbuart_priv),		/*DrvMgr alloc private*/
 	},
@@ -172,6 +173,8 @@ int apbuart_init1(struct drvmgr_dev *dev)
 	DBG("APBUART[%d] on bus %s\n", dev->minor_drv, dev->parent->dev->name);
 	/* Private data was allocated and zeroed by driver manager */
 	priv = dev->priv;
+	if (!priv)
+		return DRVMGR_NOMEM;
 	priv->dev = dev;
 
 	/* Get device information from AMBA PnP information */

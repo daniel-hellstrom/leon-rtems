@@ -136,6 +136,7 @@ struct amba_drv_info pcif_info =
 		"PCIF_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&pcif_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
 		sizeof(struct pcif_priv),	/* Let drvmgr alloc private */
 	},

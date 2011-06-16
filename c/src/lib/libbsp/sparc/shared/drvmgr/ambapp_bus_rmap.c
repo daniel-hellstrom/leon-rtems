@@ -35,11 +35,11 @@
 #include <bsp.h>
 
 /* Remote RMAP Access macros */
-#define WRITE_REG(pDev, adr, value) drvmgr_write_io32(pDev->dev, (uint32_t *)adr, value)
-#define READ_REG_(pDev, adr, dstadr) drvmgr_read_io32(pDev->dev, (uint32_t *)adr, dstadr)
-#define READ_REG(pDev, adr) ambapp_rmap_read_reg(pDev, (uint32_t *)adr)
+#define WRITE_REG(pDev, adr, value) priv->rw_w32((uint32_t *)adr, (uint32_t)value, &pDev->rw_arg)
+#define READ_REG(pDev, adr) priv->rw_r32((uint32_t *)adr, &pDev->rw_arg)
 
 #define PARTITION_MAX 4
+#define INHERIT_LENGTH 12
 
 #define DBG(args...)
 /*#define DBG(args...) printk(args)*/
@@ -63,18 +63,25 @@ struct mem_partition {
 
 struct ambapp_rmap_priv {
 	struct drvmgr_dev	*dev;
-	char				prefix[32];
-	int				minor;
-	struct ambapp_config		config;
-	struct ambapp_bus		abus;
+	char			prefix[32];
+	int			minor;
+	struct ambapp_config	config;
+	struct ambapp_bus	abus;
 
 	/* MEMORY ALLOCATION */
-	unsigned int			partition_valid;
-	struct mem_partition		partitions[PARTITION_MAX];
+	unsigned int		partition_valid;
+	struct mem_partition	partitions[PARTITION_MAX];
 
 	/* IRQ HANDLING */
-	genirq_t			genirq;
-	LEON3_IrqCtrl_Regs_Map		*irq;
+	genirq_t		genirq;
+	LEON3_IrqCtrl_Regs_Map	*irq;
+
+	/* Access routines */
+	struct drvmgr_func	funcs[INHERIT_LENGTH+3];
+	struct drvmgr_rw_arg	rw_arg;
+	spwbus_w32		rw_w32;
+	spwbus_r32		rw_r32;
+	spwbus_rmem		rw_rmem;
 };
 
 int ambapp_rmap_int_register(
@@ -98,6 +105,10 @@ void ambapp_rmap_isr(void *arg);
 
 int ambapp_rmap_init1(struct drvmgr_dev *dev);
 int ambapp_rmap_init2(struct drvmgr_dev *dev);
+
+void *ambapp_rmap_rw_arg(struct drvmgr_dev *dev);
+void ambapp_rmap_rw_err(struct drvmgr_rw_arg *a, struct drvmgr_bus *bus,
+			int funcid, void *adr);
 
 struct ambapp_ops ambapp_rmap_ops = {
 	.int_register = ambapp_rmap_int_register,
@@ -131,10 +142,27 @@ struct spw_bus_drv_info ambapp_bus_drv_rmap =
 		"AMBAPP_RMAP_DRV",		/* Driver Name */
 		DRVMGR_BUS_TYPE_SPW_RMAP,	/* Bus Type */
 		&ambapp_rmap_drv_ops,
-		0
+		NULL,				/* Funcs */
+		0,
+		0,
 	},
 	&spw_rmap_ids[0],
 	
+};
+
+int ambapp_rmap_inherit_list[INHERIT_LENGTH] =
+{
+	SPWBUS_R8,
+	SPWBUS_R16,
+	SPWBUS_R32,
+	SPWBUS_R64,
+	SPWBUS_W8,
+	SPWBUS_W16,
+	SPWBUS_W32,
+	SPWBUS_W64,
+	SPWBUS_RMEM,
+	SPWBUS_WMEM,
+	SPWBUS_MEMSET,
 };
 
 struct drvmgr_bus_res **ambapp_rmap_resources = NULL;
@@ -161,16 +189,9 @@ void *ambapp_rmap_memcpy(
 		((unsigned int)abus -
 		offsetof(struct ambapp_rmap_priv, abus));
 
-	drvmgr_read_mem(priv->dev, dest, src, n);
+	priv->rw_rmem(dest, src, n, &priv->rw_arg);
 
 	return dest;
-}
-
-uint32_t ambapp_rmap_read_reg(struct ambapp_rmap_priv *priv, uint32_t *adr)
-{
-	uint32_t result = 0;
-	drvmgr_read_io32(priv->dev, adr, &result);
-	return result;
 }
 
 /* AMBA PP find routines */
@@ -186,7 +207,7 @@ int ambapp_rmap_init1(struct drvmgr_dev *dev)
 {
 	struct ambapp_config *config;
 	union drvmgr_key_value *value;
-	int status;
+	int status, i, funcid;
 	unsigned int ioarea, freq;
 	struct ambapp_rmap_priv *priv;
 	struct spw_bus_dev_info *businfo;
@@ -271,11 +292,31 @@ int ambapp_rmap_init1(struct drvmgr_dev *dev)
 	/* Initialize the Frequency of the AMBA bus */
 	ambapp_freq_init(&priv->abus, NULL, freq);
 
+	/* Get Read/Write operations for bus */
+	priv->rw_arg.dev = dev;
+	drvmgr_func_call(dev, SPWBUS_RW_ARG, &priv->rw_arg.arg, NULL, NULL, NULL);
+	drvmgr_func_get(dev, SPWBUS_R32, &priv->rw_r32);
+	drvmgr_func_get(dev, SPWBUS_W32, &priv->rw_w32);
+	drvmgr_func_get(dev, SPWBUS_RMEM, &priv->rw_rmem);
+
+	/* Inherit R/W functions from parent */
+	for (i = 0; i < INHERIT_LENGTH; i++) {
+		funcid = ambapp_rmap_inherit_list[i];
+		drvmgr_func_get(dev, funcid, &priv->funcs[i].func);
+		priv->funcs[i].funcid = funcid;
+	}
+	priv->funcs[i].funcid = AMBAPP_RMAP_RW_ARG;
+	priv->funcs[i].func = ambapp_rmap_rw_arg;
+	priv->funcs[i+1].funcid = AMBAPP_RMAP_RW_ERR;
+	priv->funcs[i+1].func = ambapp_rmap_rw_err;
+	priv->funcs[i+2].funcid = DRVMGR_FUNCID_NONE;
+
 	config = &priv->config;
 	config->ops = &ambapp_rmap_ops;
 	config->mmaps = NULL;
 	config->abus = &priv->abus;
 	config->bus_type = DRVMGR_BUS_TYPE_AMBAPP_RMAP;
+	config->funcs = priv->funcs;
 	/* Set this AMBA Bus driver resources */
 	if ( ambapp_rmap_resources && (priv->dev->minor_drv < ambapp_rmap_resources_cnt) ) {
 		config->resources = ambapp_rmap_resources[priv->dev->minor_drv];
@@ -345,6 +386,30 @@ void ambapp_rmap_isr (void *arg)
 		drvmgr_interrupt_clear(priv->dev, 0);
 
 	DBG("AMBAPP-RMAP-ISR: 0x%x\n", tmp);
+}
+
+void *ambapp_rmap_rw_arg(struct drvmgr_dev *dev)
+{
+	struct ambapp_rmap_priv *priv;
+
+	if (dev == NULL || dev->parent || dev->parent->dev)
+		return (void *)DRVMGR_FAIL;
+
+	priv = dev->parent->dev->priv;
+
+	/* Use same argument as for ourselves */
+	return priv->rw_arg.arg;
+}
+
+/* Called by SpaceWire Lay if a device directly on this bus has been witness
+ * to an error.
+ */
+void ambapp_rmap_rw_err(struct drvmgr_rw_arg *a, struct drvmgr_bus *bus,
+			int funcid, void *adr)
+{
+	printk("AMBAPP_RMAP: erraccess %p with 0x%08x (amba: %p, dev: %p)\n",
+		adr, funcid, a->dev->parent, a->dev);
+	/* Take some error action here?  Remove bus or just faulting device? */
 }
 
 int ambapp_rmap_int_register(

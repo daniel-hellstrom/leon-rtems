@@ -74,17 +74,19 @@ int spw_bus_freq_get(
 	int options,
 	unsigned int *freq_hz);
 /* READ/WRITE access to SpaceWire target over RMAP */
-int spw_bus_memcpy(struct drvmgr_dev *dev, void *dest, const void *src, int n);
-int spw_bus_write_mem(struct drvmgr_dev *dev, void *dest, const void *src, int n);
-int spw_bus_read_io8(struct drvmgr_dev *dev, uint8_t *srcadr, uint8_t *result);
-int spw_bus_read_io16(struct drvmgr_dev *dev, uint16_t *srcadr, uint16_t *result);
-int spw_bus_read_io32(struct drvmgr_dev *dev, uint32_t *srcadr, uint32_t *result);
-int spw_bus_read_io64(struct drvmgr_dev *dev, uint64_t *srcadr, uint64_t *result);
-int spw_bus_write_io8(struct drvmgr_dev *dev, uint8_t *dstadr, uint8_t data);
-int spw_bus_write_io16(struct drvmgr_dev *dev, uint16_t *dstadr, uint16_t data);
-int spw_bus_write_io32(struct drvmgr_dev *dev, uint32_t *dstadr, uint32_t data);
-int spw_bus_write_io64(struct drvmgr_dev *dev, uint64_t *dstadr, uint64_t data);
+int spw_bus_memcpy(void *dest, const void *src, int n, struct drvmgr_rw_arg *a);
+int spw_bus_write_mem(void *dest, const void *src, int n, struct drvmgr_rw_arg *a);
+int spw_bus_memset(void *dest, int c, int n, struct drvmgr_rw_arg *a);
+uint8_t spw_bus_r8(uint8_t *srcadr, struct drvmgr_rw_arg *a);
+uint16_t spw_bus_r16(uint16_t *srcadr, struct drvmgr_rw_arg *a);
+uint32_t spw_bus_r32(uint32_t *srcadr, struct drvmgr_rw_arg *a);
+uint64_t spw_bus_r64(uint64_t *srcadr, struct drvmgr_rw_arg *a);
+void spw_bus_w8(uint8_t *dstadr, uint8_t data, struct drvmgr_rw_arg *a);
+void spw_bus_w16(uint16_t *dstadr, uint16_t data, struct drvmgr_rw_arg *a);
+void spw_bus_w32(uint32_t *dstadr, uint32_t data, struct drvmgr_rw_arg *a);
+void spw_bus_w64(uint64_t *dstadr, uint64_t data, struct drvmgr_rw_arg *a);
 int spw_bus_get_params(struct drvmgr_dev *dev, struct drvmgr_bus_params *params);
+void *spw_bus_rw_arg(struct drvmgr_dev *dev);
 
 /* SPW RMAP bus operations */
 struct drvmgr_bus_ops spw_bus_ops =
@@ -103,17 +105,27 @@ struct drvmgr_bus_ops spw_bus_ops =
 	.int_clear	= spw_bus_int_clear,
 	.get_params	= spw_bus_get_params,
 	.freq_get	= spw_bus_freq_get,
+};
 
-	.read_io8	= spw_bus_read_io8,
-	.read_io16	= spw_bus_read_io16,
-	.read_io32	= spw_bus_read_io32,
-	.read_io64	= spw_bus_read_io64,
-	.write_io8	= spw_bus_write_io8,
-	.write_io16	= spw_bus_write_io16,
-	.write_io32	= spw_bus_write_io32,
-	.write_io64	= spw_bus_write_io64,
-	.read_mem	= spw_bus_memcpy,
-	.write_mem	= spw_bus_write_mem,
+struct drvmgr_func spw_bus_funcs[] =
+{
+	DRVMGR_FUNC(SPWBUS_RW_ARG, spw_bus_rw_arg),
+
+	DRVMGR_FUNC(SPWBUS_R8, spw_bus_r8),
+	DRVMGR_FUNC(SPWBUS_R16, spw_bus_r16),
+	DRVMGR_FUNC(SPWBUS_R32, spw_bus_r32),
+	DRVMGR_FUNC(SPWBUS_R64, spw_bus_r64),
+
+	DRVMGR_FUNC(SPWBUS_W8, spw_bus_w8),
+	DRVMGR_FUNC(SPWBUS_W16, spw_bus_w16),
+	DRVMGR_FUNC(SPWBUS_W32, spw_bus_w32),
+	DRVMGR_FUNC(SPWBUS_W64, spw_bus_w64),
+
+	DRVMGR_FUNC(SPWBUS_RMEM, spw_bus_memcpy),
+	DRVMGR_FUNC(SPWBUS_WMEM, spw_bus_write_mem),
+	DRVMGR_FUNC(SPWBUS_MEMSET, spw_bus_memset),
+
+	DRVMGR_FUNC_END,
 };
 
 int spw_bus_dev_register(struct drvmgr_bus *bus, struct spw_node *node, int index)
@@ -635,11 +647,19 @@ int spw_bus_int_clear(struct drvmgr_dev *dev, int index)
 	return 0;
 }
 
+void *spw_bus_rw_arg(struct drvmgr_dev *dev)
+{
+	if (dev == NULL)
+		return (void *)DRVMGR_FAIL;
+	return dev;
+}
+
 /* Copy */
-int spw_bus_memcpy(struct drvmgr_dev *dev, void *dest, const void *src, int n)
+int spw_bus_memcpy(void *dest, const void *src, int n, struct drvmgr_rw_arg *a)
 {
 	struct rmap_command_read readcmd;
 	int status;
+	struct drvmgr_dev *dev = (struct drvmgr_dev *)a->arg;
 	struct spw_bus_dev_info *info = (struct spw_bus_dev_info *)dev->businfo;
 	struct spw_bus_priv *priv = (struct spw_bus_priv *)dev->parent->priv;
 	int max_pkt_size = 128; /* We assume that RMAP can do at least 128 bytes data per packet */
@@ -702,10 +722,11 @@ int spw_bus_memcpy(struct drvmgr_dev *dev, void *dest, const void *src, int n)
 }
 
 /* Note that ((unsigned char *)src)[n] will be overwitten with the RMAP DATA CRC */
-int spw_bus_write_mem(struct drvmgr_dev *dev, void *dest, const void *src, int n)
+int spw_bus_write_mem(void *dest, const void *src, int n, struct drvmgr_rw_arg *a)
 {
 	struct rmap_command_write writecmd;
 	int status;
+	struct drvmgr_dev *dev = (struct drvmgr_dev *)a->arg;
 	struct spw_bus_dev_info *info = (struct spw_bus_dev_info *)dev->businfo;
 	struct spw_bus_priv *priv = (struct spw_bus_priv *)dev->parent->priv;
 
@@ -751,6 +772,13 @@ int spw_bus_write_mem(struct drvmgr_dev *dev, void *dest, const void *src, int n
 	return 0;
 }
 
+/* Use standard Driver manager skeleton for this implementation */
+int spw_bus_memset(void *dest, int c, int n, struct drvmgr_rw_arg *a)
+{
+	drvmgr_rw_memset(dest, c, n, a, (drvmgr_wmem_arg)spw_bus_write_mem);
+	return 0;
+}
+
 int spw_bus_freq_get(
 	struct drvmgr_dev *dev,
 	int options,
@@ -765,80 +793,80 @@ int spw_bus_freq_get(
 	return -1;
 }
 
-int spw_bus_read_io8(struct drvmgr_dev *dev, uint8_t *srcadr, uint8_t *result)
+uint8_t spw_bus_r8(uint8_t *srcadr, struct drvmgr_rw_arg *a)
 {
-	if ( spw_bus_memcpy(dev, result, srcadr, 1) ) {
-		return -1;
+	uint8_t result;
+	if ( spw_bus_memcpy((void *)&result, (const void *)srcadr, 1, a) ) {
+		return 0xff;
 	}
-	return 0;
+	return result;
 }
 
-int spw_bus_read_io16(struct drvmgr_dev *dev, uint16_t *srcadr, uint16_t *result)
+uint16_t  spw_bus_r16(uint16_t *srcadr, struct drvmgr_rw_arg *a)
 {
-	if ( spw_bus_memcpy(dev, result, srcadr, 2) ) {
-		return -1;
+	uint16_t result;
+	if ( spw_bus_memcpy((void *)&result, (const void *)srcadr, 2, a) ) {
+		return 0xff;
 	}
-	return 0;
+	return result;
 }
 
-int spw_bus_read_io32(struct drvmgr_dev *dev, uint32_t *srcadr, uint32_t *result)
+uint32_t  spw_bus_r32(uint32_t *srcadr, struct drvmgr_rw_arg *a)
 {
-	if ( spw_bus_memcpy(dev, result, srcadr, 4) ) {
-		return -1;
+	uint32_t result;
+	if ( spw_bus_memcpy((void *)&result, (const void *)srcadr, 4, a) ) {
+		return 0xff;
 	}
-	return 0;
+	return result;
 }
 
-int spw_bus_read_io64(struct drvmgr_dev *dev, uint64_t *srcadr, uint64_t *result)
+uint64_t  spw_bus_r64(uint64_t *srcadr, struct drvmgr_rw_arg *a)
 {
-	if ( spw_bus_memcpy(dev, result, srcadr, 8) ) {
-		return -1;
+	uint64_t result;
+	if ( spw_bus_memcpy((void *)&result, (const void *)srcadr, 8, a) ) {
+		return 0xff;
 	}
-	return 0;
+	return result;
 }
 
-int spw_bus_write_io8(struct drvmgr_dev *dev, uint8_t *dstadr, uint8_t data)
+void spw_bus_w8(uint8_t *dstadr, uint8_t data, struct drvmgr_rw_arg *a)
 {
 	uint8_t buf[2]; /* One byte extra room for RMAP DATA CRC */
 
 	buf[0] = data;
-	if ( spw_bus_write_mem(dev, dstadr, &buf[0], 1) ) {
-		return -1;
+	if ( spw_bus_write_mem((void *)dstadr, (const void *)&buf[0], 1, a) ) {
+		/* Handle Error */
 	}
-	return 0;
 }
 
-int spw_bus_write_io16(struct drvmgr_dev *dev, uint16_t *dstadr, uint16_t data)
+void spw_bus_w16(uint16_t *dstadr, uint16_t data, struct drvmgr_rw_arg *a)
 {
 	uint16_t buf[2]; /* One byte extra room for RMAP DATA CRC */
 
 	buf[0] = data;
-	if ( spw_bus_write_mem(dev, dstadr, &buf[0], 2) ) {
-		return -1;
+	if ( spw_bus_write_mem((void *)dstadr, (const void *)&buf[0], 2, a) ) {
+		/* Handle Error */
 	}
-	return 0;
 }
 
-int spw_bus_write_io32(struct drvmgr_dev *dev, uint32_t *dstadr, uint32_t data)
+void spw_bus_w32(uint32_t *dstadr, uint32_t data, struct drvmgr_rw_arg *a)
 {
 	uint32_t buf[2]; /* One byte extra room for RMAP DATA CRC */
 
 	buf[0] = data;
-	if ( spw_bus_write_mem(dev, dstadr, &buf[0], 4) ) {
-		return -1;
+	if ( spw_bus_write_mem((void *)dstadr, (const void *)&buf[0], 4, a) ) {
+		/* Handle Error */
 	}
-	return 0;
 }
 
-int spw_bus_write_io64(struct drvmgr_dev *dev, uint64_t *dstadr, uint64_t data)
+void spw_bus_w64(uint64_t *dstadr, uint64_t data, struct drvmgr_rw_arg *a)
 {
 	uint64_t buf[2]; /* One byte extra room for RMAP DATA CRC */
 
 	buf[0] = data;
-	if ( spw_bus_write_mem(dev, dstadr, &buf[0], 8) ) {
-		return -1;
+	if ( spw_bus_write_mem((void *)dstadr, (const void *)&buf[0], 8, a) ) {
+		/* Handle Error */
 	}
-	return 0;
 }
 
 int spw_bus_get_params(struct drvmgr_dev *dev, struct drvmgr_bus_params *params)
@@ -915,6 +943,7 @@ int spw_bus_register(struct spw_bus_config *config)
 	bus->priv = priv;
 	bus->children = NULL;
 	bus->ops = (struct drvmgr_bus_ops *)&spw_bus_ops;
+	bus->funcs = spw_bus_funcs;
 	bus->dev_cnt = 0;
 	bus->reslist = NULL;
 	bus->mmaps = NULL;

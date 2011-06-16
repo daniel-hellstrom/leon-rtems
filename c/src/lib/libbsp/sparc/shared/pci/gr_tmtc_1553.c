@@ -143,7 +143,9 @@ struct pci_drv_info gr_tmtc_1553_info =
 		"GR-TMTC-1553_DRV",		/* Driver Name */
 		DRVMGR_BUS_TYPE_PCI,		/* Bus Type */
 		&gr_tmtc_1553_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&gr_tmtc_1553_ids[0]
 };

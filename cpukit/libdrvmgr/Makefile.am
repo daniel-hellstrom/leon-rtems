@@ -13,6 +13,7 @@ libdrvmgr_a_SOURCES += drvmgr.h
 libdrvmgr_a_SOURCES += drvmgr_drvinf.c
 libdrvmgr_a_SOURCES += drvmgr_confdefs.h
 libdrvmgr_a_SOURCES += drvmgr_for_each_dev.c
+libdrvmgr_a_SOURCES += drvmgr_func.c
 libdrvmgr_a_SOURCES += drvmgr_list.c
 libdrvmgr_a_SOURCES += drvmgr_list.h
 libdrvmgr_a_SOURCES += drvmgr_print.c

@@ -26,7 +26,7 @@
 #include <drvmgr/ambapp_bus_rmap.h>
 
 /* This call will take 128 bytes of buffer at stack */
-#define MEMSET(pDev, adr, c, length) drvmgr_write_memset(pDev->dev->parent->dev, adr, c, length)
+#define MEMSET(pDev, adr, c, length) pDev->rw_memset(adr, c, length, &pDev->rw_arg)
 
 #define DBG(args...)
 /*#define DBG(args...) printk(args)*/
@@ -47,6 +47,11 @@ struct mctrl_priv {
 	unsigned int		mcfg[8];	/* The wanted memory configuration */
 	unsigned int		configured;	/* Determines what mcfgs was configured by user */
 	struct mctrl_ops	*ops;		/* Operation may depend on hardware */
+
+	/* Read/Write access operations */
+	struct drvmgr_rw_arg	rw_arg;
+	ambapp_rmap_w32		rw_w32;
+	ambapp_rmap_memset	rw_memset;
 };
 
 static int mctrl_init1(struct drvmgr_dev *dev);
@@ -85,7 +90,9 @@ static struct amba_drv_info mctrl_drv_info =
 		"MCTRL_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP_RMAP,	/* Bus Type */
 		&mctrl_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&mctrl_ids[0]
 };
@@ -112,6 +119,12 @@ static int mctrl_init1(struct drvmgr_dev *dev)
 		return DRVMGR_NOMEM;
 	memset(priv, 0, sizeof(*priv));
 	priv->dev = dev;
+
+	/* Get Read/Write operations for bus */
+	priv->rw_arg.dev = dev;
+	drvmgr_func_call(dev, AMBAPP_RMAP_RW_ARG, &priv->rw_arg.arg, NULL, NULL, NULL);
+	drvmgr_func_get(dev, AMBAPP_RMAP_W32, &priv->rw_w32);
+	drvmgr_func_get(dev, AMBAPP_RMAP_MEMSET, &priv->rw_memset);
 
 	/* Get device information from AMBA PnP information */
 	ambadev = (struct amba_dev_info *)priv->dev->businfo;
@@ -231,5 +244,5 @@ static void mctrl_set_std(struct mctrl_priv *priv, int index, void *regs, unsign
 	struct mctrl_regs *pregs = regs;
 
 	/* Store new value */
-	drvmgr_write_io32(priv->dev->parent->dev, (uint32_t *)&pregs->mcfg[index], (uint32_t)regval);
+	priv->rw_w32((uint32_t *)&pregs->mcfg[index], (uint32_t)regval, &priv->rw_arg);
 }

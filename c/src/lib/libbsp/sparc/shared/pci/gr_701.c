@@ -168,7 +168,9 @@ struct pci_drv_info gr701_info =
 		"GR-701_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_PCI,		/* Bus Type */
 		&gr701_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&gr701_ids[0]
 };

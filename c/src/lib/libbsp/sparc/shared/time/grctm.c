@@ -396,7 +396,9 @@ struct amba_drv_info grctm_drv_info =
 		"GRCTM_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&grctm_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&grctm_ids[0]
 };

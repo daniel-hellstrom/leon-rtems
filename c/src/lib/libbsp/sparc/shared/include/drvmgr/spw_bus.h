@@ -85,18 +85,44 @@ struct spw_bus_dev_info {
 struct spw_bus_drv_info {
 	struct drvmgr_drv	general;	/* General bus info */
 	/* SpW RMAP specific bus information */
-	struct spw_id			*ids;		/* Supported target hardware */
+	struct spw_id		*ids;		/* Supported target hardware */
 };
 
-extern int drvmgr_memcpy(struct drvmgr_dev *dev, void *dest, const void *src, int n);
-extern unsigned char drvmgr_read_byte(struct drvmgr_dev *dev, unsigned char *address);
-extern unsigned short drvmgr_read_word(struct drvmgr_dev *dev, unsigned short *address);
-extern unsigned int drvmgr_read_dword(struct drvmgr_dev *dev, unsigned int *address);
-extern unsigned long long drvmgr_read_qword(struct drvmgr_dev *dev, unsigned long long *address);
-extern int drvmgr_write_byte(struct drvmgr_dev *dev, unsigned char *address, unsigned char data);
-extern int drvmgr_write_word(struct drvmgr_dev *dev, unsigned short *address, unsigned short data);
-extern int drvmgr_write_dword(struct drvmgr_dev *dev, unsigned int *address, unsigned int data);
-extern int drvmgr_write_qword(struct drvmgr_dev *dev, unsigned long long *address, unsigned long long data);
+/*** Bus operations with READ/WRITE access operations ***/
+#define SPWBUS_RW_ARG    DRVMGR_RWFUNC(RW_ARG)
+#define SPWBUS_RW_ERR    DRVMGR_RWFUNC(RW_ERR)
+#define SPWBUS_R8        DRVMGR_RWFUNC(RW_SIZE_1|RW_READ|RW_REG)
+#define SPWBUS_R16       DRVMGR_RWFUNC(RW_SIZE_2|RW_READ|RW_REG)
+#define SPWBUS_R32       DRVMGR_RWFUNC(RW_SIZE_4|RW_READ|RW_REG)
+#define SPWBUS_R64       DRVMGR_RWFUNC(RW_SIZE_8|RW_READ|RW_REG)
+#define SPWBUS_W8        DRVMGR_RWFUNC(RW_SIZE_1|RW_WRITE|RW_REG)
+#define SPWBUS_W16       DRVMGR_RWFUNC(RW_SIZE_2|RW_WRITE|RW_REG)
+#define SPWBUS_W32       DRVMGR_RWFUNC(RW_SIZE_4|RW_WRITE|RW_REG)
+#define SPWBUS_W64       DRVMGR_RWFUNC(RW_SIZE_8|RW_WRITE|RW_REG)
+#define SPWBUS_RMEM      DRVMGR_RWFUNC(RW_SIZE_ANY|RW_READ|RW_MEM)
+#define SPWBUS_WMEM      DRVMGR_RWFUNC(RW_SIZE_ANY|RW_WRITE|RW_MEM)
+#define SPWBUS_MEMSET    DRVMGR_RWFUNC(RW_SIZE_ANY|RW_SET|RW_MEM)
+
+/* Read/Write function types with additional argument */
+typedef uint8_t (*spwbus_r8)(uint8_t *srcadr, struct drvmgr_rw_arg *a);
+typedef uint16_t (*spwbus_r16)(uint16_t *srcadr, struct drvmgr_rw_arg *a);
+typedef uint32_t (*spwbus_r32)(uint32_t *srcadr, struct drvmgr_rw_arg *a);
+typedef uint64_t (*spwbus_r64)(uint64_t *srcadr, struct drvmgr_rw_arg *a);
+typedef void (*spwbus_w8)(uint8_t *dstadr, uint8_t data, struct drvmgr_rw_arg *a);
+typedef void (*spwbus_w16)(uint16_t *dstadr, uint16_t data, struct drvmgr_rw_arg *a);
+typedef void (*spwbus_w32)(uint32_t *dstadr, uint32_t data, struct drvmgr_rw_arg *a);
+typedef void (*spwbus_w64)(uint64_t *dstadr, uint64_t data, struct drvmgr_rw_arg *a);
+
+/* READ/COPY a memory area located in 'src' to the destination 'dest', n=number of bytes */
+typedef int (*spwbus_rmem)(void *dest, const void *src, int n, struct drvmgr_rw_arg *a);
+
+/* WRITE/COPY a user buffer located in 'src' to the destination 'dest', n=number of bytes */
+typedef int (*spwbus_wmem)(void *dest, const void *src, int n, struct drvmgr_rw_arg *a);
+
+/* Set a memory area to the byte value given in c, see LIBC memset(). Memset is implemented by 
+ * calling busops->write_mem multiple times with a zero buffer.
+ */
+typedef int (*spwbus_memset)(void *dstadr, int c, size_t n, struct drvmgr_rw_arg *a);
 
 #ifdef __cplusplus
 }

@@ -451,7 +451,9 @@ static struct amba_drv_info grtm_drv_info =
 		"GRTM_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&grtm_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&grtm_ids[0]
 };

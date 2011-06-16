@@ -83,7 +83,9 @@ struct amba_drv_info mctrl_drv_info =
 		"MCTRL_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&mctrl_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&mctrl_ids[0]
 };

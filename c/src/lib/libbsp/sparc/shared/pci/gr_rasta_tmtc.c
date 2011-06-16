@@ -173,6 +173,7 @@ struct pci_drv_info gr_rasta_tmtc_info =
 		"GR-RASTA-TMTC_DRV",		/* Driver Name */
 		DRVMGR_BUS_TYPE_PCI,		/* Bus Type */
 		&gr_rasta_tmtc_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
 		sizeof(struct gr_rasta_tmtc_priv) /* Let drvmgr alloc private */
 	},

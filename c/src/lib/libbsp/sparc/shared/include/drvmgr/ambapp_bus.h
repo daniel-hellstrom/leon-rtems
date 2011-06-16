@@ -92,9 +92,27 @@ struct ambapp_config {
 	struct ambapp_bus		*abus;		/* Prescanned AMBA PnP bus */
 	struct ambapp_ops		*ops;		/* AMBA bus operations */
 	struct drvmgr_mmap_entry	*mmaps;		/* Bus memory map */
-	struct drvmgr_bus_res	*resources;	/* Driver Resources */
+	struct drvmgr_bus_res		*resources;	/* Driver Resources */
 	int				bus_type;	/* Set DRVMGR_BUS_TYPE_AMBAPP_DIST if distributed AMBA Bus */
+	struct drvmgr_func		*funcs;		/* Custom functions */
 };
+
+/*** Bus operations with READ/WRITE access operations ***
+ *
+ * The functions are implemented using the standard drvmgr RW interface
+ */
+#define AMBAPP_R8        DRVMGR_RWFUNC(RW_SIZE_1|RW_READ|RW_REG)
+#define AMBAPP_R16       DRVMGR_RWFUNC(RW_SIZE_2|RW_READ|RW_REG)
+#define AMBAPP_R32       DRVMGR_RWFUNC(RW_SIZE_4|RW_READ|RW_REG)
+#define AMBAPP_R64       DRVMGR_RWFUNC(RW_SIZE_8|RW_READ|RW_REG)
+#define AMBAPP_W8        DRVMGR_RWFUNC(RW_SIZE_1|RW_WRITE|RW_REG)
+#define AMBAPP_W16       DRVMGR_RWFUNC(RW_SIZE_2|RW_WRITE|RW_REG)
+#define AMBAPP_W32       DRVMGR_RWFUNC(RW_SIZE_4|RW_WRITE|RW_REG)
+#define AMBAPP_W64       DRVMGR_RWFUNC(RW_SIZE_8|RW_WRITE|RW_REG)
+#define AMBAPP_RMEM      DRVMGR_RWFUNC(RW_SIZE_ANY|RW_READ|RW_MEM)
+#define AMBAPP_WMEM      DRVMGR_RWFUNC(RW_SIZE_ANY|RW_WRITE|RW_MEM)
+#define AMBAPP_MEMSET    DRVMGR_RWFUNC(RW_SIZE_ANY|RW_SET|RW_MEM)
+#define AMBAPP_RW_ARG    DRVMGR_RWFUNC(RW_ARG)
 
 /* Register an ambapp bus on-top of a device */
 extern int ambapp_bus_register(

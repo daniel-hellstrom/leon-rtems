@@ -442,7 +442,9 @@ struct amba_drv_info occan_drv_info =
 		"OCCAN_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&occan_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&occan_ids[0]
 };

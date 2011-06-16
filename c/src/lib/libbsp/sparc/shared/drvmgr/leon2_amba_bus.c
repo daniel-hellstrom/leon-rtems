@@ -456,6 +456,7 @@ struct drvmgr_drv leon2_bus_drv =
 	"LEON2_AMBA_DRV",		/* Must be placed at top bus */
 	DRVMGR_BUS_TYPE_ROOT,		/* Bus Type */
 	&leon2_amba_ops,		/* Bus Operations */
+	NULL,				/* Funcs */
 	0,				/* Device Count */
-	0,				/* Private structure sizee */
+	0,				/* Private structure size */
 };

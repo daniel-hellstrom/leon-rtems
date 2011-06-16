@@ -294,7 +294,9 @@ struct amba_drv_info b1553brm_drv_info =
 		"B1553BRM_DRV",				/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,			/* Bus Type */
 		&b1553brm_ops,
+		NULL,					/* Funcs */
 		0,					/* No devices yet */
+		0,
 	},
 	&b1553brm_ids[0]
 };

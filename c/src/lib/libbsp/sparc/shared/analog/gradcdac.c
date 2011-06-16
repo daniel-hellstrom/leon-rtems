@@ -83,7 +83,9 @@ struct amba_drv_info gradcdac_drv_info =
 		"GRADCDAC_DRV",				/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,			/* Bus Type */
 		&gradcdac_ops,
+		NULL,					/* Funcs */
 		0,					/* No devices yet */
+		0,
 	},
 	&gradcdac_ids[0]
 };

@@ -98,7 +98,9 @@ struct amba_drv_info grgpio_drv_info =
 		"GRGPIO_DRV",				/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,			/* Bus Type */
 		&grgpio_ops,
+		NULL,					/* Funcs */
 		0,					/* No devices yet */
+		0,
 	},
 	&grgpio_ids[0]
 };

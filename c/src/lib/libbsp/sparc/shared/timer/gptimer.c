@@ -171,7 +171,9 @@ struct amba_drv_info gptimer_drv_info =
 		"GPTIMER_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&gptimer_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&gptimer_ids[0]
 };

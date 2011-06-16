@@ -1269,7 +1269,9 @@ struct amba_drv_info greth_drv_info =
 		"GRETH_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,		/* Bus Type */
 		&greth_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&greth_ids[0]
 };

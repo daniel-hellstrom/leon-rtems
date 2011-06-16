@@ -14,10 +14,11 @@
  *    Created
  *
  */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
+#include <libcpu/access.h>
 
 #include <drvmgr/ambapp_bus.h>
 #include <drvmgr/ambapp_bus_grlib.h>
@@ -56,6 +57,9 @@ int ambapp_grlib_init1(struct drvmgr_dev *dev);
 int ambapp_grlib_init2(struct drvmgr_dev *dev);
 int ambapp_grlib_remove(struct drvmgr_dev *dev);
 
+/* READ/WRITE access to SpaceWire target over RMAP */
+void *ambapp_grlib_rw_arg(struct drvmgr_dev *dev);
+
 struct ambapp_ops ambapp_grlib_ops = {
 	.int_register = ambapp_grlib_int_register,
 	.int_unregister = ambapp_grlib_int_unregister,
@@ -63,6 +67,31 @@ struct ambapp_ops ambapp_grlib_ops = {
 	.int_mask = ambapp_grlib_int_mask,
 	.int_unmask = ambapp_grlib_int_unmask,
 	.get_params = ambapp_grlib_get_params
+};
+
+void *ambapp_grlib_rw_arg(struct drvmgr_dev *dev)
+{
+	return dev; /* No argument really needed, but for debug? */
+}
+
+struct drvmgr_func ambapp_grlib_funcs[] =
+{
+	DRVMGR_FUNC(AMBAPP_RW_ARG, ambapp_grlib_rw_arg),
+
+	DRVMGR_FUNC(AMBAPP_R8,  sparc_ld8),
+	DRVMGR_FUNC(AMBAPP_R16, sparc_ld16),
+	DRVMGR_FUNC(AMBAPP_R32, sparc_ld32),
+	DRVMGR_FUNC(AMBAPP_R64, sparc_ld64),
+
+	DRVMGR_FUNC(AMBAPP_W8,  sparc_st8),
+	DRVMGR_FUNC(AMBAPP_W16, sparc_st16),
+	DRVMGR_FUNC(AMBAPP_W32, sparc_st32),
+	DRVMGR_FUNC(AMBAPP_W64, sparc_st64),
+
+	DRVMGR_FUNC(AMBAPP_RMEM, memcpy),
+	DRVMGR_FUNC(AMBAPP_WMEM, memcpy),
+
+	DRVMGR_FUNC_END,
 };
 
 struct drvmgr_drv_ops ambapp_grlib_drv_ops = 
@@ -81,6 +110,7 @@ struct drvmgr_drv ambapp_bus_drv_grlib =
 	"AMBAPP_GRLIB_DRV",		/* Driver Name */
 	DRVMGR_BUS_TYPE_ROOT,		/* Bus Type */
 	&ambapp_grlib_drv_ops,
+	NULL,				/* Funcs */
 	0,
 	0,
 };
@@ -122,6 +152,7 @@ int ambapp_grlib_init1(struct drvmgr_dev *dev)
 	config->mmaps = NULL;
 	config->abus = drv_mgr_grlib_config->abus;
 	config->resources = drv_mgr_grlib_config->resources;
+	config->funcs = ambapp_grlib_funcs;
 
 	/* Initialize the generic part of the AMBA Bus */
 	return ambapp_bus_register(dev, config);

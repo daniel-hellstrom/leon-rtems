@@ -323,7 +323,9 @@ struct amba_drv_info i2cmst_drv_info =
 		"I2CMST_DRV",				/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP,			/* Bus Type */
 		&i2cmst_ops,
+		NULL,					/* Funcs */
 		0,					/* No devices yet */
+		0,
 	},
 	&i2cmst_ids[0]
 };

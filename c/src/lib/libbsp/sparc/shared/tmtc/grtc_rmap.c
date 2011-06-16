@@ -28,6 +28,7 @@
 
 #include <drvmgr/drvmgr.h>
 #include <drvmgr/ambapp_bus.h>
+#include <drvmgr/ambapp_bus_rmap.h>
 #include <ambapp.h>
 #include <grtc.h>
 
@@ -45,14 +46,9 @@
 
 /**** START: RMAP STUFF ****/
 #define DESCRIPTOR_MAX 128
-#define WRITE_REG(pDev, adr, value) drvmgr_write_io32(pDev->dev->parent->dev, (uint32_t *)adr, value)
-#define READ_REG_(pDev, adr, dstadr) drvmgr_read_io32(pDev->dev->parent->dev, (uint32_t *)adr, dstadr)
-#define READ_REG(pDev, adr) grtc_rmap_read_reg(pDev, (uint32_t *)adr)
-#define MEMPUT(pDev, dstadr, srcadr, length) drvmgr_write_mem(pDev->dev->parent->dev, dstadr, srcadr, length)
-#define MEMGET(pDev, dst, src, len) drvmgr_read_mem(pDev->dev->parent->dev, dst, (const void *)src, len)
-
-/* This call will take 128 bytes of buffer at stack */
-#define MEMSET(pDev, adr, c, length) drvmgr_write_memset(pDev->dev->parent->dev, adr, c, length)
+#define WRITE_REG(pDev, adr, value) pDev->rw_w32((uint32_t *)adr, (uint32_t)value, &pDev->rw_arg)
+#define READ_REG(pDev, adr) pDev->rw_r32((uint32_t *)adr, &pDev->rw_arg)
+#define MEMGET(pDev, dst, src, len) pDev->rw_rmem(dst, (const void *)src, len, &pDev->rw_arg)
 
 /**** END: RMAP STUFF ****/
 
@@ -319,8 +315,12 @@ struct grtc_priv {
 	rtems_id sem_rx;
 
 	struct cached_regs	cache;
+	struct drvmgr_rw_arg	rw_arg;
+	ambapp_rmap_w32		rw_w32;
+	ambapp_rmap_r32		rw_r32;
+	ambapp_rmap_rmem	rw_rmem;
 
-#ifdef DEBUG_ERROR	
+#ifdef DEBUG_ERROR
 	/* Buffer read/write state */
 	unsigned int rp;
 	unsigned int 	wp;
@@ -372,7 +372,9 @@ static struct amba_drv_info grtc_drv_info =
 		"GRTC_DRV",			/* Driver Name */
 		DRVMGR_BUS_TYPE_AMBAPP_RMAP,	/* Bus Type */
 		&grtc_ops,
+		NULL,				/* Funcs */
 		0,				/* No devices yet */
+		0,
 	},
 	&grtc_ids[0]
 };
@@ -381,13 +383,6 @@ void grtc_rmap_register_drv (void)
 {
 	DBG("Registering GRTC driver\n");
 	drvmgr_drv_register(&grtc_drv_info.general);
-}
-
-static uint32_t grtc_rmap_read_reg(struct grtc_priv *priv, uint32_t *adr)
-{
-	uint32_t result = 0;
-	drvmgr_read_io32(priv->dev->parent->dev, adr, &result);
-	return result;
 }
 
 static int grtc_init2(struct drvmgr_dev *dev)
@@ -400,6 +395,13 @@ static int grtc_init2(struct drvmgr_dev *dev)
 		return DRVMGR_NOMEM;
 	memset(priv, 0, sizeof(*priv));
 	priv->dev = dev;
+
+	/* Get Read/Write operations for bus */
+	priv->rw_arg.dev = dev;
+	drvmgr_func_call(dev, AMBAPP_RMAP_RW_ARG, &priv->rw_arg.arg, NULL, NULL, NULL);
+	drvmgr_func_get(dev, AMBAPP_RMAP_R32, &priv->rw_r32);
+	drvmgr_func_get(dev, AMBAPP_RMAP_W32, &priv->rw_w32);
+	drvmgr_func_get(dev, AMBAPP_RMAP_RMEM, &priv->rw_rmem);
 
 	/* This core will not find other cores, so we wait for init2() */
 
