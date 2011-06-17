@@ -298,7 +298,9 @@ void drvmgr_info_dev(struct drvmgr_dev *dev)
 	}
 
 	printf("  --- DEVICE INFO FROM BUS DRIVER ---\n");
-	if (dev->parent->ops->info_dev)
+	if (!dev->parent)
+		printf("  !! device has no parent bus !!\n");
+	else if (dev->parent->ops->info_dev)
 		dev->parent->ops->info_dev(dev, print_info, NULL);
 	else
 		printf("  !! Bus doesn't implement info_dev func !!\n");
