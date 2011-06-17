@@ -52,6 +52,8 @@
 
 /**** END: RMAP STUFF ****/
 
+#define GRTC_RMAP_INFO
+
 /*
 #define DEBUG
 #define DEBUGFUNCS
@@ -271,7 +273,7 @@ struct cached_regs {
 
 struct grtc_priv {
 	struct drvmgr_dev		*dev;		/* Driver manager device */
-	char			devName[32];	/* Device Name */
+	char			devName[64];	/* Device Name */
 	struct grtc_regs	*regs;		/* TC Hardware Register MAP */
 	int			irq;		/* IRQ number of TC core */
 
@@ -295,6 +297,7 @@ struct grtc_priv {
 	void			*_buf;
 	int			buf_custom;	/* 0=no custom buffer, 1=custom buffer (don't free it...) */
 	unsigned int		len;
+	int			alloc_part_dma;
 
 /* FRAME MODE ONLY */
 	/* Frame management when user provides buffers. */
@@ -319,6 +322,7 @@ struct grtc_priv {
 	ambapp_rmap_w32		rw_w32;
 	ambapp_rmap_r32		rw_r32;
 	ambapp_rmap_rmem	rw_rmem;
+	int			irq_support;
 
 #ifdef DEBUG_ERROR
 	/* Buffer read/write state */
@@ -349,11 +353,21 @@ static int grtc_device_init(struct grtc_priv *pDev);
 static int grtc_init2(struct drvmgr_dev *dev);
 static int grtc_init3(struct drvmgr_dev *dev);
 
+#ifdef GRTC_RMAP_INFO
+static int grtc_info(
+	struct drvmgr_dev *dev,
+	void (*print_line)(void *p, char *str),
+	void *p, int, char *argv[]);
+#define GRTC_INFO_FUNC grtc_info
+#else
+#define GRTC_INFO_FUNC NULL
+#endif
+
 static struct drvmgr_drv_ops grtc_ops = 
 {
-	{NULL, grtc_init2, grtc_init3, NULL},
-	NULL,
-	NULL
+	.init = {NULL, grtc_init2, grtc_init3, NULL},
+	.remove = NULL,
+	.info = GRTC_INFO_FUNC,
 };
 
 static struct amba_dev_id grtc_ids[] = 
@@ -374,7 +388,7 @@ static struct amba_drv_info grtc_drv_info =
 		&grtc_ops,
 		NULL,				/* Funcs */
 		0,				/* No devices yet */
-		0,
+		sizeof(struct grtc_priv),
 	},
 	&grtc_ids[0]
 };
@@ -390,18 +404,17 @@ static int grtc_init2(struct drvmgr_dev *dev)
 	struct grtc_priv *priv;
 
 	DBG("GRTC[%d] on bus %s\n", dev->minor_drv, dev->parent->dev->name);
-	priv = dev->priv = malloc(sizeof(struct grtc_priv));
+	priv = dev->priv;
 	if ( !priv )
 		return DRVMGR_NOMEM;
-	memset(priv, 0, sizeof(*priv));
 	priv->dev = dev;
 
 	/* Get Read/Write operations for bus */
 	priv->rw_arg.dev = dev;
-	drvmgr_func_call(dev, AMBAPP_RMAP_RW_ARG, &priv->rw_arg.arg, NULL, NULL, NULL);
-	drvmgr_func_get(dev, AMBAPP_RMAP_R32, &priv->rw_r32);
-	drvmgr_func_get(dev, AMBAPP_RMAP_W32, &priv->rw_w32);
-	drvmgr_func_get(dev, AMBAPP_RMAP_RMEM, &priv->rw_rmem);
+	priv->rw_arg.arg = (void *)drvmgr_func_call(dev->parent, AMBAPP_RMAP_RW_ARG, dev, NULL, NULL, NULL);
+	drvmgr_func_get(dev->parent, AMBAPP_RMAP_R32, (void *)&priv->rw_r32);
+	drvmgr_func_get(dev->parent, AMBAPP_RMAP_W32, (void *)&priv->rw_w32);
+	drvmgr_func_get(dev->parent, AMBAPP_RMAP_RMEM, (void *)&priv->rw_rmem);
 
 	/* This core will not find other cores, so we wait for init2() */
 
@@ -411,7 +424,7 @@ static int grtc_init2(struct drvmgr_dev *dev)
 static int grtc_init3(struct drvmgr_dev *dev)
 {
 	struct grtc_priv *priv;
-	char prefix[16];
+	char prefix[32];
 	rtems_status_code status;
 
 	priv = dev->priv;
@@ -428,7 +441,7 @@ static int grtc_init3(struct drvmgr_dev *dev)
 
 		grtc_driver_io_registered = 1;
 	}
-	
+
 	/* I/O system registered and initialized 
 	 * Now we take care of device initialization.
 	 */
@@ -490,6 +503,7 @@ static int grtc_device_init(struct grtc_priv *pDev)
 {
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
+	union drvmgr_key_value *value;
 
 	/* Get device information from AMBA PnP information */
 	ambadev = (struct amba_dev_info *)pDev->dev->businfo;
@@ -502,6 +516,11 @@ static int grtc_device_init(struct grtc_priv *pDev)
 	pDev->minor = pDev->dev->minor_drv;
 	pDev->open = 0;
 	pDev->running = 0;
+
+	pDev->alloc_part_dma = 0;
+	value = drvmgr_dev_key_get(pDev->dev, "dmaAllocPartition", KEY_TYPE_INT);
+	if ( value )
+		pDev->alloc_part_dma = value->i;
 
 	/* Create Binary RX Semaphore with count = 0 */
 	if ( rtems_semaphore_create(rtems_build_name('G', 'R', 'C', '0' + pDev->minor),
@@ -1723,7 +1742,10 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 			return status;
 		}
 		/* Register ISR & Unmask interrupt */
-		drvmgr_interrupt_register(pDev->dev, 0, "grtc_rmap", grtc_interrupt, pDev);
+		if (drvmgr_interrupt_register(pDev->dev, 0, "grtc_rmap", grtc_interrupt, pDev) != DRVMGR_OK)
+			pDev->irq_support = 0;
+		else
+			pDev->irq_support = 1;
 
 		/* Read and write are now open... */
 		break;
@@ -1732,7 +1754,8 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 		if ( !pDev->running ) {
 			return RTEMS_RESOURCE_IN_USE;
 		}
-		drvmgr_interrupt_unregister(pDev->dev, 0, grtc_interrupt, pDev);
+		if ( pDev->irq_support )
+			drvmgr_interrupt_unregister(pDev->dev, 0, grtc_interrupt, pDev);
 		grtc_stop(pDev);
 		pDev->running = 0;
 		break;
@@ -1779,53 +1802,35 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 		}
 
 		/* If current buffer allocated by driver we must free it */
-		if ( !pDev->buf_custom && pDev->buf ) {
-#warning FREE BUFFER?
-			free(pDev->_buf);
+		if ( pDev->buf ) {
+			free(pDev->buf);
+			if ( !pDev->buf_custom )
+				; /* Return buf_remote to AMBAPP RMAP bus */
 			pDev->_buf = NULL;
 		}
 		pDev->buf = NULL;
+		pDev->buf_custom = 0;
 		pDev->len = buf_arg->length*1024;
 
-#if NOT_IMPLEMENTED
-		if ( pDev->len > 0 ){
-			if ( buf_arg->custom_buffer ){
-				if ( (unsigned int)buf_arg->custom_buffer & 1 ) {
-					/* Remote address given, the address is as the GRTC core looks at it */
-					
-					/* Translate the base address into an address that the the CPU can understand */
-					mem = ((unsigned int)buf_arg->custom_buffer & ~1);
-					drvmgr_mmap_translate(pDev->dev, 1, (void *)mem, (void **)&pDev->buf);
-				} else {
-					pDev->buf = buf_arg->custom_buffer;
-				}
-			}else{
-				pDev->buf = grtc_memalign((~GRTC_ASR_BUFST)+1,pDev->len,&pDev->_buf);
-				DBG("grtc_ioctl: SETBUF: new buf: 0x%x(0x%x), Len: %d\n",pDev->buf,pDev->_buf,pDev->len);
-				if ( !pDev->buf ){
-					pDev->len = 0;
-					pDev->buf_custom = 0;
-					pDev->_buf = NULL;
-					pDev->buf_remote = 0;
-					DBG("GRTC: Failed to allocate memory\n");
-					return RTEMS_NO_MEMORY;
-				}
-			}
-		}
-		/* Translate into a remote address so that GRTC core on a remote AMBA bus (for example over the PCI bus) gets a valid address */
-		drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->buf, (void **)&pDev->buf_remote);
-#endif
 		if ( pDev->len > 0 ) {
 			pDev->buf = malloc(pDev->len);
 
-#warning MAKE PARTITION CONFIGURABLE
-			if ( pDev->buf )
-				pDev->buf_remote = (void *)ambapp_rmap_partition_memalign(pDev->dev, 0, (~GRTC_ASR_BUFST + 1), pDev->len);
+			if ( buf_arg->custom_buffer ) {
+				/* No translation from CPU to RMAP target
+				 * possible since not mapped in memory space.
+				 */
+				if (((unsigned int)buf_arg->custom_buffer & 0x1) == 0)
+					return RTEMS_INVALID_NAME;
+				pDev->buf_remote = (unsigned int)buf_arg->custom_buffer & ~0x1;
+				pDev->buf_custom = 1;
+			} else if ( pDev->buf ) {
+				pDev->buf_remote = (void *)ambapp_rmap_partition_memalign(pDev->dev, pDev->alloc_part_dma, (~GRTC_ASR_BUFST + 1), pDev->len);
+			}
+
 			if ( !pDev->buf || !pDev->buf_remote ) {
 				if ( pDev->buf )
 					free(pDev->buf);
 				pDev->len = 0;
-				pDev->buf_custom = 0;
 				pDev->_buf = NULL;
 				pDev->buf_remote = 0;
 				DBG("GRTC: Failed to allocate memory\n");
@@ -2051,8 +2056,12 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 		if ( !data ) {
 			return RTEMS_INVALID_NAME;
 		}
+		*data = 0;
+		return RTEMS_NOT_IMPLEMENTED;
+/*		This not implemented because Register is no directly mapped
 		*data = (unsigned int)&pDev->regs->clcw1;
 		break;
+*/
 
 		default:
 		return RTEMS_NOT_DEFINED;
@@ -2149,3 +2158,77 @@ static rtems_device_driver grtc_initialize(
 
 	return RTEMS_SUCCESSFUL;
 }
+
+#ifdef GRTC_RMAP_INFO
+static int grtc_info(
+	struct drvmgr_dev *dev,
+	void (*print_line)(void *p, char *str),
+	void *p, int argc, char *argv[])
+{
+	struct grtc_priv *priv = dev->priv;
+	char buf[64];
+	struct grtc_ioc_hw_status hwsts, *hwregs;
+	unsigned int tmpdata[8];
+
+	if (priv == NULL || argc != 0)
+		return -DRVMGR_EINVAL;
+
+	sprintf(buf, "REGS:        0x%08x", (unsigned int)priv->regs);
+	print_line(p, buf);
+	sprintf(buf, "Device Name: %s", priv->devName);
+	print_line(p, buf);
+	sprintf(buf, "IRQ:         %ssupported", priv->irq_support ? "" : "not ");
+	print_line(p, buf);
+	sprintf(buf, "STARTED:     %s", priv->running ? "YES" : "NO");
+	print_line(p, buf);
+	sprintf(buf, "MODE:        %s", priv->mode ? "FRAME" : "RAW");
+	print_line(p, buf);
+	sprintf(buf, "BLOCKING:    %s", priv->blocking ? "BLOCKING" : "POLL");
+	print_line(p, buf);
+	sprintf(buf, "DMA SIZE:    %dBytes", priv->len);
+	print_line(p, buf);
+	sprintf(buf, "DMA AREA:    %p - %p",
+		priv->buf_remote, priv->buf_remote+(priv->len-1));
+	print_line(p, buf);
+	sprintf(buf, "NO. Pools:   %d", priv->pool_cnt);
+	print_line(p, buf);
+
+	/* Statistics */
+	sprintf(buf, "Received OK: %llu frames", priv->stats.frames_recv);
+	print_line(p, buf);
+	sprintf(buf, "Errors:      %u frames", priv->stats.err);
+	print_line(p, buf);
+	sprintf(buf, "Header err:  %u frames", priv->stats.err_hdr);
+	print_line(p, buf);
+	sprintf(buf, "Dropped:     %u frames", priv->stats.dropped);
+	print_line(p, buf);
+	sprintf(buf, "Ready:       %u frames", priv->ready.cnt);
+	print_line(p, buf);
+
+	/* Read over SpaceWire */
+	MEMGET(priv, &tmpdata[0], &priv->regs->sir, 7*sizeof(unsigned int));
+	hwregs = &hwsts;
+	hwregs->sir	= tmpdata[0];
+	hwregs->far	= tmpdata[1];
+	hwregs->clcw1	= tmpdata[2];
+	hwregs->clcw2	= tmpdata[3];
+	hwregs->phir	= tmpdata[4];
+	hwregs->str	= tmpdata[6]; /* 5=cor */
+
+	print_line(p, "HW REGS:");
+	sprintf(buf, " SIR:        0x%08x", hwregs->sir);
+	print_line(p, buf);
+	sprintf(buf, " FAR:        0x%08x", hwregs->far);
+	print_line(p, buf);
+	sprintf(buf, " CLCW1:      0x%08x", hwregs->clcw1);
+	print_line(p, buf);
+	sprintf(buf, " CLCW2:      0x%08x", hwregs->clcw2);
+	print_line(p, buf);
+	sprintf(buf, " PHIR:       0x%08x", hwregs->phir);
+	print_line(p, buf);
+	sprintf(buf, " STR:        0x%08x", hwregs->str);
+	print_line(p, buf);
+
+	return DRVMGR_OK;
+}
+#endif

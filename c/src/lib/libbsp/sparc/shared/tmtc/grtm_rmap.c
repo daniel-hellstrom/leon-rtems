@@ -508,11 +508,11 @@ static int grtm_init2(struct drvmgr_dev *dev)
 
 	/* Get Read/Write operations for bus */
 	priv->rw_arg.dev = dev;
-	drvmgr_func_call(dev, AMBAPP_RMAP_RW_ARG, &priv->rw_arg.arg, NULL, NULL, NULL);
-	drvmgr_func_get(dev, AMBAPP_RMAP_R32, &priv->rw_r32);
-	drvmgr_func_get(dev, AMBAPP_RMAP_W32, &priv->rw_w32);
-	drvmgr_func_get(dev, AMBAPP_RMAP_WMEM, &priv->rw_wmem);
-	drvmgr_func_get(dev, AMBAPP_RMAP_MEMSET, &priv->rw_memset);
+	priv->rw_arg.arg = drvmgr_func_call(dev->parent, AMBAPP_RMAP_RW_ARG, dev, NULL, NULL, NULL);
+	drvmgr_func_get(dev->parent, AMBAPP_RMAP_R32, &priv->rw_r32);
+	drvmgr_func_get(dev->parent, AMBAPP_RMAP_W32, &priv->rw_w32);
+	drvmgr_func_get(dev->parent, AMBAPP_RMAP_WMEM, &priv->rw_wmem);
+	drvmgr_func_get(dev->parent, AMBAPP_RMAP_MEMSET, &priv->rw_memset);
 
 	/* This core will not find other cores, so we wait for init2() */
 
@@ -522,7 +522,7 @@ static int grtm_init2(struct drvmgr_dev *dev)
 static int grtm_init3(struct drvmgr_dev *dev)
 {
 	struct grtm_priv *priv;
-	char prefix[16];
+	char prefix[32];
 	rtems_status_code status;
 
 	priv = dev->priv;

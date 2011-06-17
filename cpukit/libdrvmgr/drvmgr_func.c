@@ -26,6 +26,7 @@ int drvmgr_func_get(void *obj, int funcid, void **func)
 			*func = f->func;
 			return DRVMGR_OK;
 		}
+		f++;
 	}
 
 	return DRVMGR_FAIL;

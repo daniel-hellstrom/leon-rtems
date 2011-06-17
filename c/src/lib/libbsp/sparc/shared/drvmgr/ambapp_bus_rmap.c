@@ -39,7 +39,7 @@
 #define READ_REG(pDev, adr) priv->rw_r32((uint32_t *)adr, &pDev->rw_arg)
 
 #define PARTITION_MAX 4
-#define INHERIT_LENGTH 12
+#define INHERIT_LENGTH 11
 
 #define DBG(args...)
 /*#define DBG(args...) printk(args)*/
@@ -73,6 +73,7 @@ struct ambapp_rmap_priv {
 	struct mem_partition	partitions[PARTITION_MAX];
 
 	/* IRQ HANDLING */
+	int			irq_support;
 	genirq_t		genirq;
 	LEON3_IrqCtrl_Regs_Map	*irq;
 
@@ -144,7 +145,7 @@ struct spw_bus_drv_info ambapp_bus_drv_rmap =
 		&ambapp_rmap_drv_ops,
 		NULL,				/* Funcs */
 		0,
-		0,
+		sizeof(struct ambapp_rmap_priv),
 	},
 	&spw_rmap_ids[0],
 	
@@ -214,11 +215,14 @@ int ambapp_rmap_init1(struct drvmgr_dev *dev)
 	struct ambapp_dev *tmp;
 	char prefix[32];
 
-	dev->priv = NULL;
 	dev->name = "RMAP AMBA PnP";
 	businfo = (struct spw_bus_dev_info *)dev->businfo;
 
 	DBG("AMBAPP RMAP: intializing\n");
+
+	priv = dev->priv;
+	if ( !priv )
+		return DRVMGR_NOMEM;
 
 	/* Get Configuration */
 	ioarea = 0xfff00000; /* Defualt IO Area */
@@ -230,19 +234,27 @@ int ambapp_rmap_init1(struct drvmgr_dev *dev)
 	value = drvmgr_dev_key_get(dev, "BusFreq", KEY_TYPE_INT);
 	if ( value )
 		freq = value->i;
-
-	dev->priv = priv = malloc(sizeof(struct ambapp_rmap_priv));
-	if ( !priv )
-		return RTEMS_NO_MEMORY;
-	memset(priv, 0, sizeof(struct ambapp_rmap_priv));
+	value = drvmgr_dev_key_get(dev, "noIRQ", KEY_TYPE_INT);
+	if ( value )
+		priv->irq_support = 0;
+	else
+		priv->irq_support = 1;
 
 	priv->dev = dev;
-	priv->genirq = genirq_init(16);
+	if ( priv->irq_support )
+		priv->genirq = genirq_init(16);
+
+	/* Get Read/Write operations for bus */
+	priv->rw_arg.dev = dev;
+	priv->rw_arg.arg = (void *)drvmgr_func_call(dev->parent, SPWBUS_RW_ARG, dev, NULL, NULL, NULL);
+	drvmgr_func_get(dev->parent, SPWBUS_R32, &priv->rw_r32);
+	drvmgr_func_get(dev->parent, SPWBUS_W32, &priv->rw_w32);
+	drvmgr_func_get(dev->parent, SPWBUS_RMEM, &priv->rw_rmem);
 
 	/* Scan Amba Bus */
 	status = ambapp_scan(&priv->abus, ioarea, ambapp_rmap_memcpy, NULL);
 	if ( status ) {
-		return -1;
+		return DRVMGR_FAIL;
 	}
 
 	if ( ambapp_bus_rmap_debug )
@@ -250,18 +262,24 @@ int ambapp_rmap_init1(struct drvmgr_dev *dev)
 
 	/* Find IRQ controller */
 	tmp = NULL;
-	status = ambapp_for_each(&priv->abus, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER, GAISLER_IRQMP, 10, ambapp_rmap_dev_find, &tmp);
+	status = ambapp_for_each(priv->abus.root, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER, GAISLER_IRQMP, 10, ambapp_rmap_dev_find, &tmp);
 	if ( (status != 1) || !tmp ) {
-		return -4;
-	}
-	priv->irq = (LEON3_IrqCtrl_Regs_Map *)(((struct ambapp_apb_info *)tmp->devinfo)->start);
-	/* Set up IRQ controller */
-	WRITE_REG(priv, &priv->irq->iclear, 0xffff);
-	WRITE_REG(priv, &priv->irq->ilevel, 0);
-	WRITE_REG(priv, &priv->irq->mask[0], 0);
+		/* Silent error if not IRQ controller is found and IRQ support
+		 * is disabled
+		 */
+		if ( priv->irq_support )
+			return -4;
+	} else {
+		priv->irq = (LEON3_IrqCtrl_Regs_Map *)
+			(((struct ambapp_apb_info *)tmp->devinfo)->start);
+		/* Set up IRQ controller */
+		WRITE_REG(priv, &priv->irq->iclear, 0xffff);
+		WRITE_REG(priv, &priv->irq->ilevel, 0);
+		WRITE_REG(priv, &priv->irq->mask[0], 0);
 
-	/* Clear any old interrupt requests (IRQ IS LEVEL) */
-	drvmgr_interrupt_clear(priv->dev, 0);
+		/* Clear any old interrupt requests (IRQ IS LEVEL) */
+		drvmgr_interrupt_clear(priv->dev, 0);
+	}
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
@@ -292,17 +310,11 @@ int ambapp_rmap_init1(struct drvmgr_dev *dev)
 	/* Initialize the Frequency of the AMBA bus */
 	ambapp_freq_init(&priv->abus, NULL, freq);
 
-	/* Get Read/Write operations for bus */
-	priv->rw_arg.dev = dev;
-	drvmgr_func_call(dev, SPWBUS_RW_ARG, &priv->rw_arg.arg, NULL, NULL, NULL);
-	drvmgr_func_get(dev, SPWBUS_R32, &priv->rw_r32);
-	drvmgr_func_get(dev, SPWBUS_W32, &priv->rw_w32);
-	drvmgr_func_get(dev, SPWBUS_RMEM, &priv->rw_rmem);
-
 	/* Inherit R/W functions from parent */
 	for (i = 0; i < INHERIT_LENGTH; i++) {
 		funcid = ambapp_rmap_inherit_list[i];
-		drvmgr_func_get(dev, funcid, &priv->funcs[i].func);
+		if (drvmgr_func_get(dev->parent, funcid, &priv->funcs[i].func) != DRVMGR_OK)
+			return -5;
 		priv->funcs[i].funcid = funcid;
 	}
 	priv->funcs[i].funcid = AMBAPP_RMAP_RW_ARG;
@@ -348,7 +360,9 @@ int ambapp_rmap_init2(struct drvmgr_dev *dev)
 	 * might be shared and Node 2 have not initialized and might therefore
 	 * drive interrupt already when entering init1().
 	 */
-	drvmgr_interrupt_register(priv->dev, 0, "ambapp_rmap", ambapp_rmap_isr, (void *)priv);
+	if ( priv->irq_support )
+		drvmgr_interrupt_register(priv->dev, 0, "ambapp_rmap",
+						ambapp_rmap_isr, (void *)priv);
 
 	return 0;
 }
@@ -392,7 +406,7 @@ void *ambapp_rmap_rw_arg(struct drvmgr_dev *dev)
 {
 	struct ambapp_rmap_priv *priv;
 
-	if (dev == NULL || dev->parent || dev->parent->dev)
+	if (!dev || !dev->parent || !dev->parent->dev)
 		return (void *)DRVMGR_FAIL;
 
 	priv = dev->parent->dev->priv;
@@ -424,6 +438,9 @@ int ambapp_rmap_int_register(
 	unsigned int tmp;
 
 	DBG("AMBAPP-RMAP-INT_REG: %d\n", irq);
+
+	if (priv->irq_support == 0)
+		return -1;
 
 	status = genirq_register(priv->genirq, irq, isr, arg);
 	if ( status == 0 ) {
@@ -462,6 +479,9 @@ int ambapp_rmap_int_unregister(
 
 	DBG("AMBAPP-RMAP-INT_UNREG: %d\n", irq);
 
+	if (priv->irq_support == 0)
+		return -1;
+
 	status = genirq_disable(priv->genirq, irq, isr, arg);
 	if ( status == 0 ) {
 		/* Disable IRQ only when no enabled handler exists */
@@ -485,6 +505,9 @@ int ambapp_rmap_int_unmask(struct drvmgr_dev *dev, int irq)
 
 	DBG("AMBAPP-RMAP-INT_UNMASK: %d\n", irq);
 
+	if (priv->irq_support == 0)
+		return -1;
+
 	if ( genirq_check(priv->genirq, irq) )
 		return DRVMGR_FAIL;
 
@@ -502,6 +525,9 @@ int ambapp_rmap_int_mask(struct drvmgr_dev *dev, int irq)
 
 	DBG("AMBAPP-RMAP-INT_MASK: %d\n", irq);
 
+	if (priv->irq_support == 0)
+		return -1;
+
 	if ( genirq_check(priv->genirq, irq) )
 		return DRVMGR_FAIL;
 
@@ -515,6 +541,9 @@ int ambapp_rmap_int_mask(struct drvmgr_dev *dev, int irq)
 int ambapp_rmap_int_clear(struct drvmgr_dev *dev, int irq)
 {
 	struct ambapp_rmap_priv *priv = dev->parent->dev->priv;
+
+	if (priv->irq_support == 0)
+		return -1;
 
 	if ( genirq_check(priv->genirq, irq) )
 		return DRVMGR_FAIL;
@@ -544,7 +573,7 @@ void *alloc_block(struct mem_partition *part, struct mem_block *block, unsigned 
 {
 	struct mem_block *newblock;
 	unsigned int block_end;
-	
+
 	DBG("ALLOC_BLOCK: 0x%x - 0x%x\n", start, start + size);
 
 	/* At start of block? */

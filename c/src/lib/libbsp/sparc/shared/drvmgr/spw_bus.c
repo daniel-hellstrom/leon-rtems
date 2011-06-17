@@ -938,15 +938,10 @@ int spw_bus_register(struct spw_bus_config *config)
 	/* Init the bus */
 	grspw_dev->bus = bus;
 	bus->bus_type = DRVMGR_BUS_TYPE_SPW_RMAP;
-	bus->next = NULL;
 	bus->dev = grspw_dev;
 	bus->priv = priv;
-	bus->children = NULL;
 	bus->ops = (struct drvmgr_bus_ops *)&spw_bus_ops;
 	bus->funcs = spw_bus_funcs;
-	bus->dev_cnt = 0;
-	bus->reslist = NULL;
-	bus->mmaps = NULL;
 	priv->bus = bus;
 
 	DBG("SpW-BUS: registering bus\n");

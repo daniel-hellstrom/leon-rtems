@@ -122,9 +122,9 @@ static int mctrl_init1(struct drvmgr_dev *dev)
 
 	/* Get Read/Write operations for bus */
 	priv->rw_arg.dev = dev;
-	drvmgr_func_call(dev, AMBAPP_RMAP_RW_ARG, &priv->rw_arg.arg, NULL, NULL, NULL);
-	drvmgr_func_get(dev, AMBAPP_RMAP_W32, &priv->rw_w32);
-	drvmgr_func_get(dev, AMBAPP_RMAP_MEMSET, &priv->rw_memset);
+	priv->rw_arg.arg = drvmgr_func_call(dev->parent, AMBAPP_RMAP_RW_ARG, dev, NULL, NULL, NULL);
+	drvmgr_func_get(dev->parent, AMBAPP_RMAP_W32, &priv->rw_w32);
+	drvmgr_func_get(dev->parent, AMBAPP_RMAP_MEMSET, &priv->rw_memset);
 
 	/* Get device information from AMBA PnP information */
 	ambadev = (struct amba_dev_info *)priv->dev->businfo;
