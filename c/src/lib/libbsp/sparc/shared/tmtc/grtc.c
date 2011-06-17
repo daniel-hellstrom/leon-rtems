@@ -341,7 +341,7 @@ static struct amba_drv_info grtc_drv_info =
 		&grtc_ops,
 		NULL,				/* Funcs */
 		0,				/* No devices yet */
-		0,
+		sizeof(struct grtc_priv),
 	},
 	&grtc_ids[0]
 };
@@ -357,10 +357,9 @@ static int grtc_init2(struct drvmgr_dev *dev)
 	struct grtc_priv *priv;
 
 	DBG("GRTC[%d] on bus %s\n", dev->minor_drv, dev->parent->dev->name);
-	priv = dev->priv = malloc(sizeof(struct grtc_priv));
+	priv = dev->priv;
 	if ( !priv )
 		return DRVMGR_NOMEM;
-	memset(priv, 0, sizeof(*priv));
 	priv->dev = dev;
 
 	/* This core will not find other cores, so we wait for init2() */
@@ -1641,6 +1640,7 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 				} else {
 					pDev->buf = buf_arg->custom_buffer;
 				}
+				pDev->buf_custom = 1;
 			}else{
 				pDev->buf = grtc_memalign((~GRTC_ASR_BUFST)+1,pDev->len,&pDev->_buf);
 				DBG("grtc_ioctl: SETBUF: new buf: 0x%x(0x%x), Len: %d\n",pDev->buf,pDev->_buf,pDev->len);
