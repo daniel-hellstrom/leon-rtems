@@ -39,9 +39,12 @@ struct leon2_bus leon2_bus_config __attribute__((weak)) =
  * LEON2 cores, it is up to the driver to look at the configuration paramters
  * once started.
  */
-struct drvmgr_drv_res leon2_amba_res[] __attribute__((weak)) =
+struct drvmgr_bus_res leon2_amba_res __attribute__((weak)) =
 {
-        RES_EMPTY
+	.next = NULL,
+	.resource = {
+	        RES_EMPTY
+	},
 };
 #endif
 
@@ -57,6 +60,6 @@ void bsp_predriver_hook(void)
   BSP_shared_interrupt_init();
 
 #ifdef RTEMS_DRVMGR_STARTUP
-	drv_mgr_leon2_init(&leon2_bus_config, &leon2_amba_res[0]);
+  drv_mgr_leon2_init(&leon2_bus_config, &leon2_amba_res);
 #endif
 }
