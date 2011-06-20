@@ -317,11 +317,13 @@ void drvmgr_info_dev(struct drvmgr_dev *dev)
 void drvmgr_info_bus(struct drvmgr_bus *bus)
 {
 	/* NOT IMPLEMENTED */
+	printf(" BUS info not implemented\n");
 }
 
 void drvmgr_info_drv(struct drvmgr_drv *drv)
 {
 	/* NOT IMPLEMENTED */
+	printf(" DRIVER info not implemented\n");
 }
 
 void (*info_obj[3])(void *obj) = {
