@@ -587,7 +587,7 @@ int ambapp_rasta_tmtc_int_unmask(
 	return DRVMGR_OK;
 }
 
-int ambapp_rasta_tmtc_int_disable(
+int ambapp_rasta_tmtc_int_mask(
 	struct drvmgr_dev *dev,
 	int irq)
 {
