@@ -119,7 +119,7 @@ uint32_t bsp_clock_nanoseconds_since_last_tick(void)
   clicks = LEON3_Timer_Regs->timer[LEON3_CLOCK_INDEX].value;
 
   if ( LEON_Is_interrupt_pending( clkirq ) ) {
-    clicks = LEON3_Timer_Regs->timer[0].value;
+    clicks = LEON3_Timer_Regs->timer[LEON3_CLOCK_INDEX].value;
     usecs = (2*rtems_configuration_get_microseconds_per_tick() - clicks);
   } else {
     usecs = (rtems_configuration_get_microseconds_per_tick() - clicks);
