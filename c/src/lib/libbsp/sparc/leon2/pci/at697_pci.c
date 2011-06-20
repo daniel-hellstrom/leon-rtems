@@ -547,12 +547,17 @@ int at697pci_init1(struct drvmgr_dev *dev)
 		return DRVMGR_FAIL;
 	}
 
-	priv = dev->priv;
+	at697pcipriv = priv = dev->priv;
 	if ( !priv )
 		return DRVMGR_NOMEM;
 
 	priv->dev = dev;
 	priv->minor = at697pci_minor++;
+
+	if (at697pci_init(priv)) {
+		DBG("Failed to initialize at697pci driver\n");
+		return DRVMGR_FAIL;
+	}
 
 	if (pci_access_drv_register(&at697pci_access_drv)) {
 		/* Access routines registration failed */
