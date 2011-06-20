@@ -605,6 +605,7 @@ int pci_add_res_dev(struct pci_dev *dev, void *arg)
 	struct pci_bus *bridge;
 	struct pci_res *res, *first_busres;
 	int i;
+	uint32_t bbound;
 
 	/* Type index in Bus resource */
 	tindex = type - 1;
@@ -630,15 +631,22 @@ int pci_add_res_dev(struct pci_dev *dev, void *arg)
 			res->size = pci_res_size(first_busres);
 			res->boundary = first_busres->boundary;
 			if (type == PCI_RES_IO) {
-				res->boundary = 0x1000; /* Bridge I/O 4KB */
-			} else if (res->boundary < 0x100000) {
-				res->boundary = 0x100000; /* MEM min 1MB */
+				bbound = 0x1000; /* Bridge I/O min 4KB */
+			} else {
+				bbound = 0x100000; /* Bridge MEM min 1MB */
+
 				/* Convert MEM to MEMIO if not supported by
 				 * this bridge
 				 */
 				if ((bridge->flags & PCI_BUS_MEM) == 0)
 					res->flags = PCI_RES_MEMIO;
 			}
+			/* Fulfil minimum bridge boundary */
+			if (res->boundary < bbound)
+				res->boundary = bbound;
+			/* Make sure that size is atleast bridge boundary */
+			if (res->size > bbound && (res->size & (bbound-1)))
+				res->size = (res->size | (bbound-1)) + 1;
 		}
 	}
 
