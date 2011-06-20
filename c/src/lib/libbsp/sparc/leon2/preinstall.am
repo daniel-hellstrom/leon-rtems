@@ -89,6 +89,10 @@ $(PROJECT_INCLUDE)/grlib.h: ../../sparc/shared/include/grlib.h $(PROJECT_INCLUDE
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grlib.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/grlib.h
 
+$(PROJECT_INCLUDE)/grpci2.h: ../../sparc/shared/include/grpci2.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grpci2.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/grpci2.h
+
 $(PROJECT_INCLUDE)/gr_rasta_adcdac.h: ../../sparc/shared/include/gr_rasta_adcdac.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr_rasta_adcdac.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr_rasta_adcdac.h
