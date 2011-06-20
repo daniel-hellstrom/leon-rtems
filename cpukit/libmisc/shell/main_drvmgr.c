@@ -57,9 +57,15 @@ int shell_drvmgr_info(int argc, char *argv[])
 {
   void *obj;
 
+  if (argc < 2)
+    return -1;
+  if (argc < 3) {
+    /* All Devices */
+    drvmgr_info_devs();
+    return 0;
+  }
+
   /* Get ID from string */
-  if (argc < 3)
-    return -2;
   obj = get_obj_adr(argv[2]);
   if (!obj)
     return -3;
@@ -132,8 +138,8 @@ const char drvmgr_usage_str[] =
  "  drvmgr topo          Show bus topology with all devices\n"
  "  drvmgr short [ID]    Short info about all devices/buses or one\n"
  "                       device/bus\n"
- "  drvmgr info ID       List general and driver specfic information\n"
- "                       about a device, bus or driver\n"
+ "  drvmgr info [ID]     List general and driver specfic information\n"
+ "                       about all devices or one device, bus or driver\n"
  "  drvmgr remove ID     Remove a device or a bus\n"
  "  drvmgr parent ID     Short info about parent bus of a device\n"
  "  drvmgr mem           Dynamically memory usage\n"
