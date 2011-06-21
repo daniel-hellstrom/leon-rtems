@@ -168,20 +168,6 @@ init_registered_buses:
 	mgr->initializing_objs = 0;
 }
 
-/* Init driver manager. REMOVE THIS FUNCTION WHEN IMPLEMENTED IN RTEMS */
-int drvmgr_init(void)
-{
-	int level;
-
-	_DRV_Manager_initialization();
-
-	for (level=1; level<=DRVMGR_LEVEL_MAX; level++) {
-		_DRV_Manager_init_level(level);
-	}
-
-	return 0;
-}
-
 /* Take bus into next level */
 static int do_bus_init(
 	struct rtems_driver_manager *mgr,

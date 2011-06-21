@@ -24,9 +24,6 @@
 extern "C" {
 #endif
 
-/* Initialize the Driver Manager */
-extern void _DRV_Manager_initialization(void);
-
 /*** Configure Driver manager ***/
 
 /* Define the number of initialization levels of device drivers */
@@ -149,6 +146,7 @@ struct drvmgr_bus_ops {
 	 */
 	void	(*info_dev)(struct drvmgr_dev *, void (*print)(void *p, char *str), void *p);
 };
+#define BUS_OPS_NUM (sizeof(struct drvmgr_bus_ops)/sizeof(void (*)(void)))
 
 struct drvmgr_func {
 	int funcid;
@@ -285,6 +283,7 @@ struct drvmgr_drv_ops {
 	int	(*remove)(struct drvmgr_dev *);	/*! Function called when device instance is to be removed */
 	int	(*info)(struct drvmgr_dev *, void (*print)(void *p, char *str), void *p, int, char *argv[]);/*! Function called to request information about a device or driver */
 };
+#define DRV_OPS_NUM (sizeof(struct drvmgr_drv_ops)/sizeof(void (*)(void)))
 
 /*! Information about a driver used during registration */
 struct drvmgr_drv {
@@ -327,7 +326,7 @@ enum {
  *  Calls predefined register driver functions so that drivers can
  *  register themselves.
  */
-extern void _DRV_Manager_init(void);
+extern void _DRV_Manager_initialization(void);
 
 /*! Take all devices into init level 'level', all devices registered later
  *  will directly be taken into this level as well, ensuring that all
@@ -335,6 +334,13 @@ extern void _DRV_Manager_init(void);
  *
  */
 extern void _DRV_Manager_init_level(int level);
+
+/*! Init driver manager all in one go, will call _DRV_Manager_initialization(),
+ *  then _DRV_Manager_init_level([1..DRVMGR_LEVEL_MAX]).
+ *  Typically called from Init task when user wants to initilize driver
+ *  manager after startup, otherwise not used.
+ */
+extern int drvmgr_init(void);
 
 /* Take registered buses and devices into the correct init level,
  * this function is called from _init_level() so normally
@@ -726,17 +732,14 @@ extern int drvmgr_for_each_dev(
 extern void drvmgr_print_drvs(int show_devs);
 
 /* Print all devices */
-#define DRV_MGR_PRINT_DEVS_FAILED	0x01	/* Failed during initialization */
-#define DRV_MGR_PRINT_DEVS_ASSIGNED	0x02	/* Driver assigned */
-#define DRV_MGR_PRINT_DEVS_UNASSIGNED	0x04	/* Driver not assigned */
-#define DRV_MGR_PRINT_DEVS_REMOVED	0x08	/* Device removed */
-#define DRV_MGR_PRINT_DEVS_IGNORED	0x10	/* Device ignored on user's request */
-
-#define DRV_MGR_PRINT_DEVS_ALL		(DRV_MGR_PRINT_DEVS_FAILED | \
-					DRV_MGR_PRINT_DEVS_ASSIGNED | \
-					DRV_MGR_PRINT_DEVS_UNASSIGNED |\
-					DRV_MGR_PRINT_DEVS_REMOVED |\
-					DRV_MGR_PRINT_DEVS_IGNORED)
+#define PRINT_DEVS_FAILED	0x01	/* Failed during initialization */
+#define PRINT_DEVS_ASSIGNED	0x02	/* Driver assigned */
+#define PRINT_DEVS_UNASSIGNED	0x04	/* Driver not assigned */
+#define PRINT_DEVS_IGNORED	0x08	/* Device ignored on user's request */
+#define PRINT_DEVS_ALL		(PRINT_DEVS_FAILED | \
+				PRINT_DEVS_ASSIGNED | \
+				PRINT_DEVS_UNASSIGNED |\
+				PRINT_DEVS_IGNORED)
 
 /*! Print number of devices, buses and drivers */
 extern void drvmgr_summary(void);
@@ -747,34 +750,48 @@ extern void drvmgr_print_devs(unsigned int options);
 /*! Print device/bus topology */
 extern void drvmgr_print_topo(void);
 
-/*! Print all buses */
-extern void drvmgr_print_buses(void);
-
 /*! Print the memory usage
  * Only accounts for data structures. Not for the text size.
  */
 extern void drvmgr_print_mem(void);
 
+#define OPTION_DEV_GENINFO   0x00000001
+#define OPTION_DEV_BUSINFO   0x00000002
+#define OPTION_DEV_DRVINFO   0x00000004
+#define OPTION_DRV_DEVS      0x00000100
+#define OPTION_BUS_DEVS      0x00010000
+#define OPTION_RECURSIVE     0x01000000
+#define OPTION_INFO_ALL      0xffffffff
+
 /*! Print information about a driver manager object (device, driver, bus) */
-extern void drvmgr_info(void *id);
+extern void drvmgr_info(void *id, unsigned int options);
 
 /*! Get information about a device */
-extern void drvmgr_info_dev(struct drvmgr_dev *dev);
+extern void drvmgr_info_dev(struct drvmgr_dev *dev, unsigned int options);
 
 /*! Get information about a bus */
-extern void drvmgr_info_bus(struct drvmgr_bus *bus);
+extern void drvmgr_info_bus(struct drvmgr_bus *bus, unsigned int options);
 
 /*! Get information about a driver */
-extern void drvmgr_info_drv(struct drvmgr_drv *drv);
-
-/*! Get information about a device/bus/driver */
-extern void drvmgr_info(void *id);
+extern void drvmgr_info_drv(struct drvmgr_drv *drv, unsigned int options);
 
 /*! Get information about all devices on a bus */
-extern void drvmgr_info_devs_on_bus(struct drvmgr_bus *bus);
+extern void drvmgr_info_devs_on_bus(struct drvmgr_bus *bus, unsigned int options);
 
 /*! Get information about all devices in the system (on all buses) */
-extern void drvmgr_info_devs(void);
+extern void drvmgr_info_devs(unsigned int options);
+
+/*! Get information about all drivers in the system */
+extern void drvmgr_info_drvs(unsigned int options);
+
+/*! Get information about all buses in the system */
+extern void drvmgr_info_buses(unsigned int options);
+
+/*! Get Driver by Driver ID */
+extern struct drvmgr_drv *drvmgr_drv_by_id(uint64_t id);
+
+/*! Get Driver by Driver Name */
+extern struct drvmgr_drv *drvmgr_drv_by_name(const char *name);
 
 #ifdef __cplusplus
 }
