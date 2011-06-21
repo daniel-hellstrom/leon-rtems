@@ -15,7 +15,7 @@ struct pci_auto_setup {
 	int options;
 
 	/* PCI prefetchable Memory space (OPTIONAL) */
-	uint32_t mem_start; 
+	uint32_t mem_start;
 	uint32_t mem_size; /* 0 = Use MEMIO space for prefetchable mem BARs */
 
 	/* PCI non-prefetchable Memory */

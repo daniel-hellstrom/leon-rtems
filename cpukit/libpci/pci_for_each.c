@@ -31,14 +31,14 @@ int pci_for_each(int (*func)(pci_dev_t, void*), void *arg)
 	int maxbus = pci_bus_count();
 	pci_dev_t pcidev;
 
-	for (bus=0; bus < maxbus ; bus++) {
+	for (bus = 0; bus < maxbus ; bus++) {
 		dev = 0;
 		if (bus == 0)
 			dev = 1; /* Skip PCI host bridge */
-		for (; dev<PCI_MAX_DEVICES; dev++) {
+		for (; dev < PCI_MAX_DEVICES; dev++) {
 			pcidev = PCI_DEV(bus, dev, 0);
 
-			for (fun=0; fun<PCI_MAX_FUNCTIONS; fun++, pcidev++) {
+			for (fun = 0; fun < PCI_MAX_FUNCTIONS; fun++, pcidev++) {
 				fail = pci_cfg_r32(pcidev, PCI_VENDOR_ID, &id);
 				if (fail || (0xffffffff == id) || (0 == id)) {
 					if (fun == 0)

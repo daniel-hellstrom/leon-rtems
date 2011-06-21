@@ -20,7 +20,7 @@ extern int pci_bus_count(void);
  */
 extern uint32_t pci_invalid_address;
 
-/* PCI System type can be used to determine system for drivers. Normally 
+/* PCI System type can be used to determine system for drivers. Normally
  * the system is Host, but the peripheral configuration library also supports
  * being PCI peripheral not allowed to access configuration space.
  *
@@ -32,6 +32,14 @@ enum {
 	PCI_SYSTEM_PERIPHERAL = 2,
 };
 extern int pci_system_type;
+
+/* Configuration library function pointers, these are set in <rtems/confdefs.h>
+ * by project configuration or by the BSP. The configuration will pull in the
+ * PCI Library needed and the PCI initialization functions will call these
+ * functions on initialization from the host driver.
+ */
+extern int (*pci_config_lib_init)(void);
+extern void (*pci_config_lib_register)(void *config);
 
 /* Configure PCI devices and bridges, and setup the RAM data structures
  * describing the PCI devices currently present in the system.
@@ -127,7 +135,7 @@ enum {
 	DEV_RES_BAR6 = 5,
 	DEV_RES_ROM  = 6,
 
-	/* Bridges have 2 BARs (BAR1 and BAR2) and 3 Windows to secondary bus 
+	/* Bridges have 2 BARs (BAR1 and BAR2) and 3 Windows to secondary bus
 	 * and an optional ROM BAR
 	 */
 	BRIDGE_RES_BAR1 = 0,

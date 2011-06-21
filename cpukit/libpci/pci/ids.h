@@ -196,8 +196,8 @@
 #define PCI_DEVICE_ID_PCTECH_SAMURAI_1	0x3010
 #define PCI_DEVICE_ID_PCTECH_SAMURAI_IDE 0x3020
 
-#define PCI_VENDOR_ID_DPT               0x1044   
-#define PCI_DEVICE_ID_DPT               0xa400  
+#define PCI_VENDOR_ID_DPT               0x1044
+#define PCI_DEVICE_ID_DPT               0xa400
 
 #define PCI_VENDOR_ID_OPTI		0x1045
 #define PCI_DEVICE_ID_OPTI_92C178	0xc178

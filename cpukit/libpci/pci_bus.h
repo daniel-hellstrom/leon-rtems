@@ -3,14 +3,14 @@
  *  COPYRIGHT (c) 2008.
  *  Aeroflex Gaisler.
  *
- *  General part of PCI Bus driver. The driver is typically 
+ *  General part of PCI Bus driver. The driver is typically
  *  initialized from the PCI host driver separating the host
  *  driver from the common parts in PCI drivers.
  *  The PCI library must be initialized before starting the
- *  PCI bus driver. The PCI library have set up BARs and 
+ *  PCI bus driver. The PCI library have set up BARs and
  *  assigned system IRQs for targets.
  *  This PCI bus driver rely on the PCI library (pci.c) for
- *  interrupt registeration (pci_interrupt_register) and PCI 
+ *  interrupt registeration (pci_interrupt_register) and PCI
  *  target set up.
  *
  *  The license and distribution terms for this file may be
@@ -62,8 +62,9 @@ struct pci_dev_id_match {
 	uint32_t		class;  /* 24 lower bits */
 	uint32_t		class_mask; /* 24 lower bits */
 };
-#define PCIID_DEVVEND(vendor, device) {vendor,device,PCI_ID_ANY,PCI_ID_ANY,0,0}
-#define PCIID_END_TABLE {0,0,0,0,0,0}
+#define PCIID_DEVVEND(vendor, device) \
+	{vendor, device, PCI_ID_ANY, PCI_ID_ANY, 0, 0}
+#define PCIID_END_TABLE {0, 0, 0, 0, 0, 0}
 
 enum {
 	/* A Device has up to 6 BARs and an optional ROM BAR */

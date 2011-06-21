@@ -15,7 +15,9 @@
 #include <pci/access.h>
 
 /* Access Routines valid after a PCI-Access-Driver has registered */
-struct pci_access_drv pci_access_ops = {.cfg = {.read8 = 0}};
+struct pci_access_drv pci_access_ops = {
+	.cfg = {.read8 = 0},
+};
 
 /* Read a 8-bit register over configuration space */
 int pci_cfg_r8(pci_dev_t dev, int ofs, uint8_t *data)

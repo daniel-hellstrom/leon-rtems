@@ -29,7 +29,7 @@ typedef uint16_t pci_dev_t;
 /* Get Device and Function of a PCI Configuration Space ID */
 #define PCI_DEV_DEVFUNC(dev) ((dev) & 0xff)
 /* Expand Device into argument lists */
-#define PCI_DEV_EXPAND(dev) PCI_DEV_BUS(dev),PCI_DEV_SLOT(dev),PCI_DEV_FUNC(dev)
+#define PCI_DEV_EXPAND(dev) PCI_DEV_BUS((dev)), PCI_DEV_SLOT((dev)), PCI_DEV_FUNC((dev))
 
 /* Configuration Space Read/Write Operations */
 struct pci_cfg_ops {

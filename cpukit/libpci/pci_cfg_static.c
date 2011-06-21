@@ -9,6 +9,9 @@
  *
  *  2011-02-11, Daniel Hellstrom <daniel@gaisler.com>
  *    created
+ *
+ * The Host Bridge bus must be declared by user. It contains the static
+ * configuration used to setup the devices/functions.
  */
 
 /* Configure headers */
@@ -28,11 +31,6 @@
 
 /* Number of buses */
 extern int pci_bus_cnt;
-
-/* The Host Bridge bus must be declared by user. It contain the static
- * configuration used to setup the devices/functions.
- */
-extern struct pci_bus pci_hb;
 
 int pci_cfg_static_init_bus(struct pci_bus *bus);
 
@@ -78,7 +76,7 @@ static int pci_init_dev(struct pci_dev *dev, void *unused)
 		PCI_CFG_W32(pcidev, PCI_PREF_LIMIT_UPPER32, 0);
 
 		bridge = (struct pci_bus *)dev;
-		tmp = (64 << 24)|  (bridge->sord << 16) |
+		tmp = (64 << 24) | (bridge->sord << 16) |
 			(bridge->num << 8) | bridge->pri;
 		PCI_CFG_W32(pcidev, PCI_PRIMARY_BUS, tmp);
 
@@ -132,7 +130,7 @@ static int pci_init_dev(struct pci_dev *dev, void *unused)
 	}
 
 	/* Init BARs */
-	for (i=0; i<maxbars; i++) {
+	for (i = 0; i < maxbars; i++) {
 		res = &dev->resources[i];
 		if (res->flags & PCI_RES_TYPE_MASK) {
 			PCI_CFG_W32(pcidev, PCI_BASE_ADDRESS_0 + 4*i,

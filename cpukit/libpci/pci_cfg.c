@@ -13,12 +13,6 @@
 
 #include <pci/cfg.h>
 
-/* Default to no configuration library, this is overrided in the project
- * configuration or by the BSP if it is not configurable.
- */
-extern int (*pci_config_lib_init)(void);
-extern void (*pci_config_lib_register)(void *config);
-
 /* Number of buses. This is set from respective library */
 int pci_bus_cnt = 0;
 

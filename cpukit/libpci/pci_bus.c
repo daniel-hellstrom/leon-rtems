@@ -3,14 +3,14 @@
  *  COPYRIGHT (c) 2008.
  *  Aeroflex Gaisler.
  *
- *  General part of PCI Bus driver. The driver is typically 
+ *  General part of PCI Bus driver. The driver is typically
  *  initialized from the PCI host driver separating the host
  *  driver from the common parts in PCI drivers.
  *  The PCI library must be initialized before starting the
- *  PCI bus driver. The PCI library have set up BARs and 
+ *  PCI bus driver. The PCI library have set up BARs and
  *  assigned system IRQs for targets.
  *  This PCI bus driver rely on the PCI library (pci.c) for
- *  interrupt registeration (pci_interrupt_register) and PCI 
+ *  interrupt registeration (pci_interrupt_register) and PCI
  *  target set up.
  *
  *  The license and distribution terms for this file may be
@@ -74,15 +74,13 @@ void pcibus_dev_info(
 	void (*print_line)(void *p, char *str),
 	void *p);
 
-struct drvmgr_bus_ops pcibus_ops =
-{
-	.init		= 
-			{
-				pcibus_bus_init1,
-				NULL,
-				NULL,
-				NULL
-			},
+struct drvmgr_bus_ops pcibus_ops = {
+	.init = {
+		pcibus_bus_init1,
+		NULL,
+		NULL,
+		NULL
+	},
 	.remove		= NULL,
 	.unite		= pcibus_unite,
 	.int_register	= pcibus_int_register,
@@ -105,11 +103,9 @@ struct drvmgr_bus_ops pcibus_ops =
  * the user may override it from the project file, if the default settings are
  * not enough.
  */
-struct drvmgr_bus_res pcibus_drv_resources __attribute__((weak)) =
-{
+struct drvmgr_bus_res pcibus_drv_resources __attribute__((weak)) = {
 	.next = NULL,
-	.resource =
-	{
+	.resource = {
 		RES_EMPTY,
 	},
 };
@@ -203,7 +199,7 @@ int pcibus_int_register(
 
 	/* Get IRQ number from index and device information */
 	irq = pcibus_int_get(dev, index);
-	if ( irq < 0 ) 
+	if (irq < 0)
 		return -1;
 
 	DBG("Register PCI interrupt on 0x%x for dev 0x%x (IRQ: %d)\n",
@@ -228,7 +224,7 @@ int pcibus_int_unregister(
 
 	/* Get IRQ number from index and device information */
 	irq = pcibus_int_get(dev, index);
-	if ( irq < 0 ) 
+	if (irq < 0)
 		return -1;
 
 	DBG("Unregister PCI interrupt on 0x%x for dev 0x%x (IRQ: %d)\n",
@@ -236,42 +232,6 @@ int pcibus_int_unregister(
 
 	return pci_interrupt_unregister(irq, isr, arg);
 }
-
-#if 0
-/* Use standard PCI facility to enable interrupt */
-int pcibus_int_enable(
-	struct drvmgr_dev *dev,
-	int index,
-	drvmgr_isr isr,
-	void *arg)
-{
-	int irq;
-
-	/* Get IRQ number from index and device information */
-	irq = pcibus_int_get(dev, index);
-	if ( irq < 0 ) 
-		return -1;
-
-	return pci_interrupt_enable(irq, isr, arg);
-}
-
-/* Use standard PCI facility to disable interrupt */
-int pcibus_int_disable(
-	struct drvmgr_dev *dev,
-	int index,
-	drvmgr_isr isr,
-	void *arg)
-{
-	int irq;
-
-	/* Get IRQ number from index and device information */
-	irq = pcibus_int_get(dev, index);
-	if ( irq < 0 ) 
-		return -1;
-
-	return pci_interrupt_disable(irq, isr, arg);
-}
-#endif
 
 /* Use standard PCI facility to clear interrupt */
 int pcibus_int_clear(
@@ -282,7 +242,7 @@ int pcibus_int_clear(
 
 	/* Get IRQ number from index and device information */
 	irq = pcibus_int_get(dev, index);
-	if ( irq < 0 ) 
+	if (irq < 0)
 		return -1;
 
 	pci_interrupt_clear(irq);
@@ -357,7 +317,7 @@ void pcibus_dev_info(
 
 	/* List Resources */
 	print_line(p, "RESOURCES");
-	for (i=0; i<PCIDEV_RES_CNT; i++) {
+	for (i = 0; i < PCIDEV_RES_CNT; i++) {
 		pcibusres = &devinfo->resources[i];
 
 		str1 = "  RES";
@@ -437,7 +397,7 @@ int pcibus_dev_register(struct pci_dev *dev, void *arg)
 	 * configuration space themselves, also the address is translated
 	 * into CPU accessible addresses.
 	 */
-	for(i=0; i<PCIDEV_RES_CNT; i++) {
+	for (i = 0; i < PCIDEV_RES_CNT; i++) {
 		pcibusres = &pciinfo->resources[i];
 		pcires = &dev->resources[i];
 		type = pcires->flags & PCI_RES_TYPE_MASK;
@@ -574,7 +534,7 @@ int pcibus_register(struct drvmgr_dev *dev)
 
 	/* Init BUS private structures */
 	priv = (struct pcibus_priv *)(dev->bus + 1);
-	dev->bus->priv = priv;	
+	dev->bus->priv = priv;
 
 	/* Register BUS */
 	drvmgr_bus_register(dev->bus);

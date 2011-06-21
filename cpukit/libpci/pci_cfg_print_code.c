@@ -8,11 +8,10 @@ int pci_cfg_print_bus(struct pci_bus *bus);
 
 static void get_bus_name(struct pci_bus *bus, char *buf)
 {
-	if (bus->num == 0) {
+	if (bus->num == 0)
 		strcpy(buf, "pci_hb");
-	} else {
+	else
 		sprintf(buf, "bus%d", bus->num);
-	}
 }
 
 static void get_device_name(struct pci_dev *dev, char *buf)
@@ -32,7 +31,7 @@ void pci_cfg_print_resources(struct pci_res *resources, char *prefix)
 	struct pci_res *res;
 	int i;
 
-	for (i=0; i<DEV_RES_CNT; i++) {
+	for (i = 0; i < DEV_RES_CNT; i++) {
 		res = &resources[i];
 		if (((res->flags & PCI_RES_TYPE_MASK) == 0) ||
 		    ((res->flags & PCI_RES_FAIL) == PCI_RES_FAIL)) {
@@ -157,7 +156,7 @@ void pci_cfg_print(void)
 
 	/* Forward declaration for all devices / buses */
 	printf("/* FORWARD BUS DECLARATIONS */\n");
-	for(i=0; i<pci_bus_count(); i++) {
+	for (i = 0; i < pci_bus_count(); i++) {
 		if (i == 0)
 			printf("struct pci_bus pci_hb;\n");
 		else

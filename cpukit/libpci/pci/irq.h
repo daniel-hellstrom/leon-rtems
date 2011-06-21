@@ -1,4 +1,4 @@
-/* PCI IRQ Library 
+/* PCI IRQ Library
  *
  * IRQ handling does not have so much with PCI to do, this library depends
  * on the BSP to implement shared interrupts.
@@ -19,8 +19,8 @@ extern int pci_dev_irq(pci_dev_t dev);
 
 /* Register shared PCI IRQ handler, but does not enable it. The system interrupt
  * number is read from the PCI board's PCI configuration space header iline
- * field. The iline field is initialized by the PCI subsystem during start up, 
- * the ipin field is translated into a system IRQ and written to iline. The 
+ * field. The iline field is initialized by the PCI subsystem during start up,
+ * the ipin field is translated into a system IRQ and written to iline. The
  * board's driver should use the iline field as the irq argument to this
  * function.
  *
@@ -29,7 +29,8 @@ extern int pci_dev_irq(pci_dev_t dev);
  *  isr       Function pointer to the ISR
  *  arg       Second argument to function isr
  */
-static inline int pci_interrupt_register(int irq, const char *info, pci_isr isr, void *arg)
+static inline int pci_interrupt_register(int irq, const char *info,
+						pci_isr isr, void *arg)
 {
 	return BSP_shared_interrupt_register(irq, info, isr, arg);
 }
@@ -78,10 +79,9 @@ static inline void pci_interrupt_mask(int irq)
 	BSP_shared_interrupt_mask(irq);
 }
 
-/* Acknowledge the interrupt controller by writing to the interrupt controller, 
- * but not the interrupt source. Note that since it is a shared interrupt handler
- * service, clearing the interrupt source may affect other ISRs registered to 
- * this IRQ.
+/* Acknowledge the interrupt controller by writing to the interrupt controller.
+ * Note that since it is a shared interrupt handler service, clearing the
+ * interrupt source may affect other ISRs registered to this IRQ.
  *
  * Arguments
  *  irq       System IRQ number, normally taken from the PCI configuration area

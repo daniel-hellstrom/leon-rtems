@@ -67,7 +67,7 @@
 #ifdef DEBUG
 #define DBG(x...) printk(x)
 #else
-#define DBG(x...) 
+#define DBG(x...)
 #endif
 
 /* PCI Library
@@ -83,9 +83,6 @@
 
 /* Number of PCI buses */
 extern int pci_bus_cnt;
-
-/* The Host Bridge bus */
-extern struct pci_bus pci_hb;
 
 int pci_config_auto_initialized = 0;
 
@@ -106,7 +103,7 @@ void pci_res_insert(struct pci_res **root, struct pci_res *res)
 	boundary = res->boundary;
 	size = res->size;
 
-	/* Insert the resources depending on the boundary needs 
+	/* Insert the resources depending on the boundary needs
 	 * Normally the boundary=size of the BAR, however when
 	 * PCI bridges are involved the bridge's boundary may be
 	 * smaller that the size due to the fact that a bridge
@@ -243,7 +240,7 @@ void pci_res_reorder(struct pci_res *root)
 			last2 = curr;
 			curr2 = curr->next;
 			while (curr2) {
-				if ((curr2->boundary <= hole_boundary) && 
+				if ((curr2->boundary <= hole_boundary) &&
 					 (curr2->size <= hole_size)) {
 					/* Found matching resource. Move it
 					 * first in the hole. Then rescan, now
@@ -255,7 +252,7 @@ void pci_res_reorder(struct pci_res *root)
 					last->next = curr2;
 
 					/* New Start address */
-					start_next = (start + 
+					start_next = (start +
 						     (curr2->boundary - 1)) &
 						     ~(curr2->boundary - 1);
 					/* Since we inserted the resource before
@@ -684,7 +681,7 @@ uint32_t pci_alloc_res(struct pci_bus *bus, int type,
 		dev = RES2DEV(res);
 		removed = 0;
 
-		/* Align start to this reource's need, only needed after 
+		/* Align start to this reource's need, only needed after
 		 * a bridge resource has been allocated.
 		 */
 		starttmp = (start + (res->boundary-1)) & ~(res->boundary-1);
@@ -730,19 +727,19 @@ uint32_t pci_alloc_res(struct pci_bus *bus, int type,
 			res->start = start;
 			res->end = start + res->size;
 
-		    	/* "Virtual BAR" on a bridge? A bridge resource need all
+			/* "Virtual BAR" on a bridge? A bridge resource need all
 			 * its child devices resources allocated
 			 */
 			if ((res->bar != DEV_RES_ROM) &&
 			    (dev->flags & PCI_DEV_BRIDGE) &&
 			    (res->bar >= BUS_RES_START)) {
-			    	bridge = (struct pci_bus *)dev;
+				bridge = (struct pci_bus *)dev;
 				/* If MEM bar was changed into a MEMIO the
 				 * secondary MEM resources are still set to MEM,
 				 */
 				if (type == PCI_BUS_MEMIO &&
 				    res->bar == BRIDGE_RES_MEM)
-	    				sec_type = PCI_RES_MEM;
+					sec_type = PCI_RES_MEM;
 				else
 					sec_type = type;
 
@@ -817,11 +814,10 @@ void pci_set_bar(struct pci_dev *dev, int residx)
 	}
 
 	/* Enable Memory or I/O responses */
-	if ((res->flags & PCI_RES_TYPE_MASK) == PCI_RES_IO) {
+	if ((res->flags & PCI_RES_TYPE_MASK) == PCI_RES_IO)
 		pci_io_enable(pcidev);
-	} else {
+	else
 		pci_mem_enable(pcidev);
-	}
 
 	/* Enable Master if bridge */
 	if (is_bridge)

@@ -29,11 +29,10 @@ static int compare_dev_id(pci_dev_t pcidev, void *arg)
 	pci_cfg_r16(pcidev, PCI_DEVICE_ID, &did);
 	if ((vid != info->vendor) || (did != info->device))
 		return 0;
-	if (info->index-- == 0) {
+	if (info->index-- == 0)
 		return pcidev;
-	} else {
+	else
 		return 0;
-	}
 }
 
 /* Find a Device in PCI configuration space */

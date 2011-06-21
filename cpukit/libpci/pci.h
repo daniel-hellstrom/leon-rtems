@@ -35,7 +35,7 @@
 #define  PCI_COMMAND_INVALIDATE	0x10	/* Use memory write and invalidate */
 #define  PCI_COMMAND_VGA_PALETTE 0x20	/* Enable palette snooping */
 #define  PCI_COMMAND_PARITY	0x40	/* Enable parity checking */
-#define  PCI_COMMAND_WAIT 	0x80	/* Enable address/data stepping */
+#define  PCI_COMMAND_WAIT	0x80	/* Enable address/data stepping */
 #define  PCI_COMMAND_SERR	0x100	/* Enable SERR */
 #define  PCI_COMMAND_FAST_BACK	0x200	/* Enable back-to-back writes */
 
@@ -46,7 +46,7 @@
 #define  PCI_STATUS_FAST_BACK	0x80	/* Accept fast-back to back */
 #define  PCI_STATUS_PARITY	0x100	/* Detected parity error */
 #define  PCI_STATUS_DEVSEL_MASK	0x600	/* DEVSEL timing */
-#define  PCI_STATUS_DEVSEL_FAST	0x000	
+#define  PCI_STATUS_DEVSEL_FAST	0x000
 #define  PCI_STATUS_DEVSEL_MEDIUM 0x200
 #define  PCI_STATUS_DEVSEL_SLOW 0x400
 #define  PCI_STATUS_SIG_TARGET_ABORT 0x800 /* Set on target abort */
@@ -75,8 +75,8 @@
 
 /*
  * Base addresses specify locations in memory or I/O space.
- * Decoded size can be determined by writing a value of 
- * 0xffffffff to the register, and reading it back.  Only 
+ * Decoded size can be determined by writing a value of
+ * 0xffffffff to the register, and reading it back. Only
  * 1 bits are decoded.
  */
 #define PCI_BASE_ADDRESS_0	0x10	/* 32 bits */
@@ -100,10 +100,10 @@
 /* Header type 0 (normal devices) */
 #define PCI_CARDBUS_CIS		0x28
 #define PCI_SUBSYSTEM_VENDOR_ID	0x2c
-#define PCI_SUBSYSTEM_ID	0x2e  
+#define PCI_SUBSYSTEM_ID	0x2e
 #define PCI_ROM_ADDRESS		0x30	/* Bits 31..11 are address, 10..1 reserved */
 #define  PCI_ROM_ADDRESS_ENABLE	0x01
-#define PCI_ROM_ADDRESS_MASK	(~0x7ffUL)
+#define  PCI_ROM_ADDRESS_MASK	(~0x7ffUL)
 
 /* 0x34 Capabilities Pointer (PCI 2.3) */
 #define PCI_CAP_PTR		0x34	/* 8 bits */
@@ -124,18 +124,18 @@
 #define  PCI_IO_RANGE_TYPE_MASK	0x0f	/* I/O bridging type */
 #define  PCI_IO_RANGE_TYPE_16	0x00
 #define  PCI_IO_RANGE_TYPE_32	0x01
-#define  PCI_IO_RANGE_MASK	~0x0f
+#define  PCI_IO_RANGE_MASK	(~0x0f)
 #define PCI_SEC_STATUS		0x1e	/* Secondary status register, only bit 14 used */
 #define PCI_MEMORY_BASE		0x20	/* Memory range behind */
 #define PCI_MEMORY_LIMIT	0x22
 #define  PCI_MEMORY_RANGE_TYPE_MASK 0x0f
-#define  PCI_MEMORY_RANGE_MASK	~0x0f
+#define  PCI_MEMORY_RANGE_MASK	(~0x0f)
 #define PCI_PREF_MEMORY_BASE	0x24	/* Prefetchable memory range behind */
 #define PCI_PREF_MEMORY_LIMIT	0x26
 #define  PCI_PREF_RANGE_TYPE_MASK 0x0f
 #define  PCI_PREF_RANGE_TYPE_32	0x00
 #define  PCI_PREF_RANGE_TYPE_64	0x01
-#define  PCI_PREF_RANGE_MASK	~0x0f
+#define  PCI_PREF_RANGE_MASK	(~0x0f)
 #define PCI_PREF_BASE_UPPER32	0x28	/* Upper half of prefetchable memory range */
 #define PCI_PREF_LIMIT_UPPER32	0x2c
 #define PCI_IO_BASE_UPPER16	0x30	/* Upper half of I/O addresses */
@@ -171,7 +171,7 @@
 #define PCI_CB_IO_BASE_1_HI	0x36
 #define PCI_CB_IO_LIMIT_1	0x38
 #define PCI_CB_IO_LIMIT_1_HI	0x3a
-#define  PCI_CB_IO_RANGE_MASK	~0x03
+#define  PCI_CB_IO_RANGE_MASK	(~0x03)
 /* 0x3c-0x3d are same as for htype 0 */
 #define PCI_CB_BRIDGE_CONTROL	0x3e
 #define  PCI_CB_BRIDGE_CTL_PARITY	0x01	/* Similar to standard bridge control register */

@@ -38,7 +38,7 @@
 /* Number of buses */
 extern int pci_bus_cnt;
 
-/* The Host Bridge bus */
+/* The Host Bridge bus is initialized here */
 extern struct pci_bus pci_hb;
 
 struct pci_dev *pci_dev_create(int isbus)
@@ -65,9 +65,8 @@ int pci_read_addressable(struct pci_dev *dev, struct pci_res *res)
 	int type = res->flags & PCI_RES_TYPE_MASK;
 	struct pci_res *range0, *range1;
 
-	if (type == PCI_BUS_IO && (bus->flags & PCI_BUS_IO) == 0) {
+	if (type == PCI_BUS_IO && (bus->flags & PCI_BUS_IO) == 0)
 		return 0;
-	}
 
 	/* Assume that host bridge can access all */
 	if (bus->pri == 0)
@@ -214,7 +213,7 @@ void pci_read_devs(struct pci_bus *bus)
 				else
 					continue;
 			}
-	
+
 			DBG("Found PCIDEV 0x%x at (bus %x, slot %x, func %x)\n",
 							id, bus, slot, func);
 
@@ -327,7 +326,7 @@ void pci_read_devs(struct pci_bus *bus)
 				pci_read_bar(dev, i);
 			pci_read_bar(dev, DEV_RES_ROM);
 
-			/* Get System Interrupt/Vector for device. 
+			/* Get System Interrupt/Vector for device.
 			 * 0 means no-IRQ
 			 */
 			PCI_CFG_R8(pcidev, PCI_INTERRUPT_LINE, &dev->sysirq);

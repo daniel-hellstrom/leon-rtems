@@ -9,6 +9,9 @@
  *
  *  2011-05-23, Daniel Hellstrom <daniel@gaisler.com>
  *    created
+ *
+ *  The Host Bridge bus must be declared by user. It contain the static
+ *  configuration used to setup the devices/functions.
  */
 
 /* Configure headers */
@@ -18,11 +21,6 @@
 
 /* Number of buses */
 extern int pci_bus_cnt;
-
-/* The Host Bridge bus must be declared by user. It contain the static
- * configuration used to setup the devices/functions.
- */
-extern struct pci_bus pci_hb;
 
 /* Assume that user has defined static setup array in pci_hb */
 int pci_config_peripheral(void)
