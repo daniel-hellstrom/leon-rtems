@@ -368,6 +368,10 @@ int grpci_translate(uint32_t *address, int type, int dir)
 	return 0;
 }
 
+extern struct pci_memreg_ops pci_memreg_sparc_le_ops;
+extern struct pci_memreg_ops pci_memreg_sparc_be_ops;
+
+/* GRPCI PCI access routines, default to Little-endian PCI Bus */
 struct pci_access_drv grpci_access_drv = {
 	.cfg =
 	{
@@ -387,6 +391,7 @@ struct pci_access_drv grpci_access_drv = {
 		sparc_st_le16,
 		sparc_st_le32,
 	},
+	.memreg = &pci_memreg_sparc_le_ops,
 	.translate = grpci_translate,
 };
 
@@ -586,9 +591,13 @@ int grpci_init1(struct drvmgr_dev *dev)
 
 	/* Register the PCI core at the PCI layers */
 
-	if (priv->bt_enabled) {
+	if (priv->bt_enabled == 0) {
+		/* Host is Big-Endian */
+		pci_endian = PCI_BIG_ENDIAN;
+
 		memcpy(&grpci_access_drv.io, &grpci_io_ops_be,
 						sizeof(grpci_io_ops_be));
+		grpci_access_drv.memreg = &pci_memreg_sparc_be_ops;
 	}
 
 	if (pci_access_drv_register(&grpci_access_drv)) {

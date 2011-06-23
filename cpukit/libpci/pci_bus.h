@@ -118,59 +118,29 @@ struct pcibus_config {
 	struct pcibus_regmem_ops *memreg_ops;
 };
 
-/* Select Sub-Function Read/Write function by ID */
-#define RW_SIZE_1   0x0001    /* Access Size */
-#define RW_SIZE_2   0x0002
-#define RW_SIZE_4   0x0004
-#define RW_SIZE_8   0x0008
-#define RW_SIZE_ANY 0x0000
+/* PCI Configuration Space Access - Not implemented (use PCI Lib directly) */
+#define PCI_FUNC_CFG_R8    DRVMGR_RWFUNC(RW_SIZE_1|RW_READ|RW_CFG)
+#define PCI_FUNC_CFG_R16   DRVMGR_RWFUNC(RW_SIZE_2|RW_READ|RW_CFG)
+#define PCI_FUNC_CFG_R32   DRVMGR_RWFUNC(RW_SIZE_4|RW_READ|RW_CFG)
+#define PCI_FUNC_CFG_W8    DRVMGR_RWFUNC(RW_SIZE_1|RW_WRITE|RW_CFG)
+#define PCI_FUNC_CFG_W16   DRVMGR_RWFUNC(RW_SIZE_2|RW_WRITE|RW_CFG)
+#define PCI_FUNC_CFG_W32   DRVMGR_RWFUNC(RW_SIZE_4|RW_WRITE|RW_CFG)
 
-#define RW_DIR_ANY  0x0000   /* Access Direction */
-#define RW_READ     0x0000
-#define RW_WRITE    0x0010
-#define RW_SET      0x0020
+/* PCI I/O Register Access - Not implemented (use PCI Lib directly) */
+#define PCI_FUNC_IO_R8    DRVMGR_RWFUNC(RW_SIZE_1|RW_READ|RW_IO)
+#define PCI_FUNC_IO_R16   DRVMGR_RWFUNC(RW_SIZE_2|RW_READ|RW_IO)
+#define PCI_FUNC_IO_R32   DRVMGR_RWFUNC(RW_SIZE_4|RW_READ|RW_IO)
+#define PCI_FUNC_IO_W8    DRVMGR_RWFUNC(RW_SIZE_1|RW_WRITE|RW_IO)
+#define PCI_FUNC_IO_W16   DRVMGR_RWFUNC(RW_SIZE_2|RW_WRITE|RW_IO)
+#define PCI_FUNC_IO_W32   DRVMGR_RWFUNC(RW_SIZE_4|RW_WRITE|RW_IO)
 
-#define RW_TYPE_ANY 0x0000  /* Access type */
-#define RW_REG      0x0100
-#define RW_MEM      0x0200
-#define RW_MEMREG   0x0300
-#define RW_CFG      0x0400
-
-#define RW_ARG      0x1000 /* Optional Argument */
-#define RW_ERR      0x2000 /* Optional Error Handler */
-
-/* Build a Read/Write function ID */
-#define DRVMGR_RWFUNC(minor) DRVMGR_FUNCID(FUNCID_RW, minor)
-
-/* PCI I/O Register Access - Not implemented */
-#define PCI_IO_R8    DRVMGR_RWFUNC(RW_SIZE_1|RW_READ|RW_REG)
-#define PCI_IO_R16   DRVMGR_RWFUNC(RW_SIZE_2|RW_READ|RW_REG)
-#define PCI_IO_R32   DRVMGR_RWFUNC(RW_SIZE_4|RW_READ|RW_REG)
-#define PCI_IO_R64   DRVMGR_RWFUNC(RW_SIZE_8|RW_READ|RW_REG)
-#define PCI_IO_W8    DRVMGR_RWFUNC(RW_SIZE_1|RW_WRITE|RW_REG)
-#define PCI_IO_W16   DRVMGR_RWFUNC(RW_SIZE_2|RW_WRITE|RW_REG)
-#define PCI_IO_W32   DRVMGR_RWFUNC(RW_SIZE_4|RW_WRITE|RW_REG)
-#define PCI_IO_W64   DRVMGR_RWFUNC(RW_SIZE_8|RW_WRITE|RW_REG)
-
-/* PCI Register Access over Memory Space */
-#define PCI_MREG_R8   DRVMGR_RWFUNC(RW_SIZE_1|RW_READ|RW_MEMREG)
-#define PCI_MREG_R16  DRVMGR_RWFUNC(RW_SIZE_2|RW_READ|RW_MEMREG)
-#define PCI_MREG_R32  DRVMGR_RWFUNC(RW_SIZE_4|RW_READ|RW_MEMREG)
-#define PCI_MREG_R64  DRVMGR_RWFUNC(RW_SIZE_8|RW_READ|RW_MEMREG)
-#define PCI_MREG_W8   DRVMGR_RWFUNC(RW_SIZE_1|RW_WRITE|RW_MEMREG)
-#define PCI_MREG_W16  DRVMGR_RWFUNC(RW_SIZE_2|RW_WRITE|RW_MEMREG)
-#define PCI_MREG_W32  DRVMGR_RWFUNC(RW_SIZE_4|RW_WRITE|RW_MEMREG)
-#define PCI_MREG_W64  DRVMGR_RWFUNC(RW_SIZE_8|RW_WRITE|RW_MEMREG)
-
-#if 0
-extern uint8_t pcibus_cfg_r8(struct drvmgr_dev *dev, int ofs);
-extern uint16_t pcibus_cfg_r16(struct drvmgr_dev *dev, int ofs);
-extern uint32_t pcibus_cfg_r32(struct drvmgr_dev *dev, int ofs);
-
-extern void pcibus_cfg_w8(struct drvmgr_dev *dev, int ofs, uint8_t value);
-extern void pcibus_cfg_w16(struct drvmgr_dev *dev, int ofs, uint16_t value);
-extern void pcibus_cfg_w32(struct drvmgr_dev *dev, int ofs, uint32_t value);
-#endif
+/* PCI Register Access over Memory Space (Little Endian) */
+#define PCI_FUNC_MREG_R8   DRVMGR_RWFUNC(RW_SIZE_1|RW_READ|RW_MEMREG)
+#define PCI_FUNC_MREG_R16  DRVMGR_RWFUNC(RW_SIZE_2|RW_READ|RW_MEMREG|RW_LITTLE)
+#define PCI_FUNC_MREG_R32  DRVMGR_RWFUNC(RW_SIZE_4|RW_READ|RW_MEMREG|RW_LITTLE)
+#define PCI_FUNC_MREG_W8   DRVMGR_RWFUNC(RW_SIZE_1|RW_WRITE|RW_MEMREG)
+#define PCI_FUNC_MREG_W16  DRVMGR_RWFUNC(RW_SIZE_2|RW_WRITE|RW_MEMREG|RW_LITTLE)
+#define PCI_FUNC_MREG_W32  DRVMGR_RWFUNC(RW_SIZE_4|RW_WRITE|RW_MEMREG|RW_LITTLE)
 
 /* Weak default PCI driver resources, override this from project configuration
  * to set PCI Bus resources used to configure PCI device drivers.

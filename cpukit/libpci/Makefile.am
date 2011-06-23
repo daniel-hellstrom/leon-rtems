@@ -18,7 +18,11 @@ include_pci_HEADERS =	pci/access.h pci/cfg.h \
 noinst_LIBRARIES = libpci.a
 
 libpci_a_SOURCES  = pci_access.c
+libpci_a_SOURCES += pci_access_func.c
 libpci_a_SOURCES += pci_access_io.c
+libpci_a_SOURCES += pci_access_mem.c
+libpci_a_SOURCES += pci_access_mem_be.c
+libpci_a_SOURCES += pci_access_mem_le.c
 libpci_a_SOURCES += pci_cfg.c
 libpci_a_SOURCES += pci_cfg_auto.c
 libpci_a_SOURCES += pci_cfg_print_code.c

@@ -42,7 +42,9 @@ struct pci_cfg_ops {
 	int (*write32)(pci_dev_t dev, int ofs, uint32_t data);
 };
 
-/* Read a register over PCI I/O Space, and swap it if necessary */
+/* Read a register over PCI I/O Space, and swap it if necessary (due to 
+ * PCI endianness)
+ */
 struct pci_io_ops {
 	uint8_t (*read8)(uint8_t *adr);
 	uint16_t(*read16)(uint16_t *adr);
@@ -52,12 +54,46 @@ struct pci_io_ops {
 	void (*write32)(uint32_t *adr, uint32_t data);
 };
 
+/* Read a register over PCI Memory Space (non-prefetchable memory), and 
+ * swap it if necessary (due to PCI endianness)
+ */
+struct pci_memreg_ops {
+	uint8_t (*ld8)(uint8_t *adr);
+	void (*st8)(uint8_t *adr, uint8_t data);
+
+	uint16_t(*ld_le16)(uint16_t *adr);
+	void (*st_le16)(uint16_t *adr, uint16_t data);
+	uint16_t(*ld_be16)(uint16_t *adr);
+	void (*st_be16)(uint16_t *adr, uint16_t data);
+
+	uint32_t (*ld_le32)(uint32_t *adr);
+	void (*st_le32)(uint32_t *adr, uint32_t data);
+	uint32_t (*ld_be32)(uint32_t *adr);
+	void (*st_be32)(uint32_t *adr, uint32_t data);
+};
+
+typedef uint8_t (*pci_ld8_t)(uint8_t *adr);
+typedef void (*pci_st8_t)(uint8_t *adr, uint8_t data);
+typedef uint16_t(pci_ld16_t)(uint16_t *adr);
+typedef void (*pci_st16_t)(uint16_t *adr, uint16_t data);
+typedef uint32_t (*pci_ld32_t)(uint32_t *adr);
+typedef void (*pci_st32_t)(uint32_t *adr, uint32_t data);
+
 struct pci_access_drv {
 	/* Configuration */
 	struct pci_cfg_ops cfg;
 
 	/* I/O Access operations */
 	struct pci_io_ops io;
+
+	/* Registers over Memory Access operations. Note that these funcs
+	 * are only for code that need to be compatible with both Big-Endian
+	 * and Little-Endian PCI bus or for some other reason need function
+	 * pointers to access functions. Normally drivers use the inline
+	 * functions for Registers-over-Memory access to avoid extra function
+	 * call.
+	 */
+	struct pci_memreg_ops *memreg;
 
 	/* Translate from PCI address to CPU address (dir=0). Translate
 	 * CPU address to PCI address (dir!=0). The address will can be
@@ -142,13 +178,13 @@ static inline int pci_pci2cpu(uint32_t *address, int type)
 	return pci_access_ops.translate(address, type, 0);
 }
 
-/* Get Translate CPU accessible address into PCI DMA address */
+/* Get Translate CPU accessible address into PCI address (for DMA) */
 static inline int pci_cpu2pci(uint32_t *address, int type)
 {
 	return pci_access_ops.translate(address, type, 1);
 }
 
-/*** Read a register over PCI Memory Space ***/
+/*** Read/Write a register over PCI Memory Space ***/
 
 static inline uint8_t pci_ld8(volatile uint8_t *addr)
 {
@@ -249,6 +285,28 @@ static inline void pci_st_be32(volatile uint32_t *addr, uint32_t val)
 }
 
 #endif
+
+/* Get Read/Write function for accessing a register over PCI Memory Space 
+ * (non-inline functions).
+ *
+ * Arguments
+ *  wr             0(Read), 1(Write)
+ *  size           1(Byte), 2(Word), 4(Double Word)
+ *  func           Where function pointer will be stored
+ *  endian         PCI_LITTLE_ENDIAN or PCI_BIG_ENDIAN
+ *  type           1(I/O), 3(REG over MEM), 4(CFG)
+ *
+ * Return
+ *  0              Found function
+ *  others         No such function defined by host driver or BSP
+ */
+extern int pci_access_func(int wr, int size, void **func, int endian, int type);
+
+/* Predefined functions for Host drivers or BSPs that define the 
+ * register-over-memory space functions operations.
+ */
+extern struct pci_memreg_ops pci_mem_le_ops; /* For Little-Endian PCI bus */
+extern struct pci_memreg_ops pci_mem_be_ops; /* For Big-Endian PCI bus */
 
 #ifdef __cplusplus
 }

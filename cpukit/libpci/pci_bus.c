@@ -99,6 +99,16 @@ struct drvmgr_bus_ops pcibus_ops = {
 #endif
 };
 
+struct drvmgr_func pcibus_funcs[] = {
+	DRVMGR_FUNC(PCI_FUNC_MREG_R8, NULL),
+	DRVMGR_FUNC(PCI_FUNC_MREG_R16, NULL),
+	DRVMGR_FUNC(PCI_FUNC_MREG_R32, NULL),
+	DRVMGR_FUNC(PCI_FUNC_MREG_W8, NULL),
+	DRVMGR_FUNC(PCI_FUNC_MREG_W16, NULL),
+	DRVMGR_FUNC(PCI_FUNC_MREG_W32, NULL),
+	DRVMGR_FUNC_END
+};
+
 /* Driver resources configuration for the PCI bus. It is declared weak so that
  * the user may override it from the project file, if the default settings are
  * not enough.
@@ -514,6 +524,7 @@ static int pcibus_devs_register(struct drvmgr_bus *bus)
 int pcibus_register(struct drvmgr_dev *dev)
 {
 	struct pcibus_priv *priv;
+	int i, fid, rc;
 
 	DBG("PCI BUS: initializing\n");
 
@@ -527,6 +538,16 @@ int pcibus_register(struct drvmgr_dev *dev)
 	dev->bus->dev_cnt = 0;
 	dev->bus->reslist = NULL;
 	dev->bus->mmaps = NULL;
+	dev->bus->funcs = &pcibus_funcs;
+
+	/* Copy function definitions from PCI Layer */
+	for (i=0; i<6; i++) {
+		fid = pcibus_funcs[i].funcid;
+		rc = pci_access_func(RW_DIR(fid), RW_SIZE(fid),
+				&pcibus_funcs[i].func, PCI_LITTLE_ENDIAN, 3);
+		if (rc != 0)
+			DBG("PCI BUS: MEMREG 0x%x function not defined\n", fid);
+	}
 
 	/* Add resource configuration if user overrided the default empty cfg */
 	if (pcibus_drv_resources.resource[0].drv_id != 0)

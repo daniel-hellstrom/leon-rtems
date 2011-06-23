@@ -297,6 +297,9 @@ int pcif_translate(uint32_t *address, int type, int dir)
 	return 0;
 }
 
+extern struct pci_memreg_ops pci_memreg_sparc_be_ops;
+
+/* PCIF Big-Endian PCI access routines */
 struct pci_access_drv pcif_access_drv = {
 	.cfg =
 	{
@@ -316,6 +319,7 @@ struct pci_access_drv pcif_access_drv = {
 		sparc_st_be16,
 		sparc_st_be32,
 	},
+	.memreg = &pci_memreg_sparc_be_ops,
 	.translate = pcif_translate,
 };
 
@@ -479,6 +483,9 @@ int pcif_init1(struct drvmgr_dev *dev)
 		dev->priv = NULL;
 		return DRVMGR_FAIL;
 	}
+
+	/* Host is always Big-Endian */
+	pci_endian = PCI_BIG_ENDIAN;
 
 	/* Register the PCI core at the PCI layer */
 

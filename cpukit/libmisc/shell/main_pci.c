@@ -18,6 +18,8 @@
 #include <pci.h>
 #include <pci/cfg.h>
 #include <pci/access.h>
+#include <rtems/endian.h>
+#include <bsp.h> /* For PCI endianness config */
 
 #include <rtems.h>
 #include <rtems/shell.h>
@@ -257,8 +259,37 @@ int shell_pci_pciid(int argc, char *argv[], struct shell_pci_modifier *mod)
   if ((pciid & 0xffff0000) != 0)
     return -1;
 
-  printf(" PCIID: 0x%lx [%x:%x:%x]\n", pciid, PCI_DEV_EXPAND(pciid));
+  printf(" PCIID: 0x%lx [%lx:%lx:%lx]\n", pciid, PCI_DEV_EXPAND(pciid));
   return 0;
+}
+
+int pci_summary(void)
+{
+	char *str;
+	char *cfglib_strs[5] = {"NONE", "AUTO", "STATIC", "READ", "PERIPHERAL"};
+
+	if (pci_system_type == PCI_SYSTEM_HOST)
+		str = "HOST";
+	else if (pci_system_type == PCI_SYSTEM_PERIPHERAL)
+		str = "PERIPHERAL";
+	else
+		str = "UNKNOWN / UNINITIALIZED";
+	printf(" SYSTEM:            %s\n", str);
+
+	if (pci_config_lib_type > PCI_CONFIG_LIB_PERIPHERAL) {
+		puts(" Bad configuration library");
+		return 1;
+	}
+	printf(" CFG LIBRARY:       %s\n", cfglib_strs[pci_config_lib_type]);
+	printf(" NO. PCI BUSES:     %d buses\n", pci_bus_count());
+	printf(" PCI ENDIAN:        %s\n", pci_endian ? "Big" : "Little");
+#if (CPU_LITTLE_ENDIAN == TRUE)
+	puts(" MACHINE ENDIAN:    Little");
+#else
+	puts(" MACHINE ENDIAN:    Big");
+#endif
+
+	return 0;
 }
 
 const char pci_usage_str[] =
@@ -329,7 +360,8 @@ int rtems_shell_main_pci(
   int rc;
 
   if (argc < 2) {
-    usage();
+    /* without arguments */
+    pci_summary();
     rc = 0;
   } else if ((mod=shell_pci_find_modifier(argv[1])) != NULL) {
     rc = mod->func(argc, argv, mod);

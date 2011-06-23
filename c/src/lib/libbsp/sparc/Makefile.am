@@ -32,6 +32,8 @@ EXTRA_DIST += shared/include/grpci2.h
 EXTRA_DIST += shared/pci/grpci.c
 EXTRA_DIST += shared/pci/grpci2.c
 EXTRA_DIST += shared/pci/pcif.c
+EXTRA_DIST += shared/pci/pci_memreg_sparc_le.c
+EXTRA_DIST += shared/pci/pci_memreg_sparc_be.c
 
 # PCI target boards
 EXTRA_DIST += shared/include/gr_rasta_adcdac.h

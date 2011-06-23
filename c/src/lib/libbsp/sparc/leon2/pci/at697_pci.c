@@ -397,6 +397,9 @@ int at697pci_translate(uint32_t *address, int type, int dir)
 	return 0;
 }
 
+extern struct pci_memreg_ops pci_memreg_sparc_be_ops;
+
+/* AT697 Big-Endian PCI access routines */
 struct pci_access_drv at697pci_access_drv = {
 	.cfg =
 	{
@@ -417,6 +420,7 @@ struct pci_access_drv at697pci_access_drv = {
 		sparc_st_be32,
 
 	},
+	.memreg = &pci_memreg_sparc_be_ops,
 	.translate = at697pci_translate,
 };
 
@@ -558,6 +562,9 @@ int at697pci_init1(struct drvmgr_dev *dev)
 		DBG("Failed to initialize at697pci driver\n");
 		return DRVMGR_FAIL;
 	}
+
+	/* Host is always Big-Endian */
+	pci_endian = PCI_BIG_ENDIAN;
 
 	if (pci_access_drv_register(&at697pci_access_drv)) {
 		/* Access routines registration failed */
