@@ -79,7 +79,7 @@ void pci_cfg_print_device(struct pci_dev *dev, char *prefix)
 	printf("%s.device = 0x%04x,\n", prefix, dev->device);
 	printf("%s.subvendor = 0x%04x,\n", prefix, dev->subvendor);
 	printf("%s.subdevice = 0x%04x,\n", prefix, dev->subdevice);
-	printf("%s.classrev = 0x%08x,\n", prefix, dev->classrev);
+	printf("%s.classrev = 0x%08lx,\n", prefix, dev->classrev);
 	printf("%s.command = 0,\n", prefix);
 }
 
@@ -146,7 +146,6 @@ int pci_cfg_print_forw_dev(struct pci_dev *dev, void *unused)
 void pci_cfg_print(void)
 {
 	int i;
-	char name[64];
 
 	printf("\n\n/*** PCI Configuration ***/\n\n");
 	printf("#include <stdlib.h>\n");
