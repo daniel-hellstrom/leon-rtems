@@ -2239,6 +2239,7 @@ rtems_fs_init_functions_t    rtems_fs_init_helper =
  */
 #ifdef RTEMS_PCI_CONFIG_LIB
   #ifdef CONFIGURE_INIT
+    #define PCI_LIB_NONE 0
     #define PCI_LIB_AUTO 1
     #define PCI_LIB_STATIC 2
     #define PCI_LIB_READ 3
@@ -2265,10 +2266,15 @@ rtems_fs_init_functions_t    rtems_fs_init_helper =
       #define PCI_LIB_INIT pci_config_peripheral
       #define PCI_LIB_CONFIG NULL
       /* Let user define PCI configuration (struct pci_bus pci_hb) */
+    #elif CONFIGURE_PCI_LIB == PCI_LIB_NONE
+      #define PCI_LIB_INIT NULL
+      #define PCI_LIB_CONFIG NULL
+      /* No PCI Configuration at all, user can use/debug access routines */
     #else
       #error NO PCI LIBRARY DEFINED
     #endif
 
+    const int pci_config_lib_type = CONFIGURE_PCI_LIB;
     int (*pci_config_lib_init)(void) = PCI_LIB_INIT;
     void (*pci_config_lib_register)(void *config) = PCI_LIB_CONFIG;
   #endif

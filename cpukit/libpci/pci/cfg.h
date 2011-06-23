@@ -20,18 +20,15 @@ extern int pci_bus_count(void);
  */
 extern uint32_t pci_invalid_address;
 
-/* PCI System type can be used to determine system for drivers. Normally
- * the system is Host, but the peripheral configuration library also supports
- * being PCI peripheral not allowed to access configuration space.
- *
- * The active configuration Library set this variable.
- */
+/* PCI Configuration Library of the system */
 enum {
-	PCI_SYSTEM_NONE = 0,
-	PCI_SYSTEM_HOST = 1,
-	PCI_SYSTEM_PERIPHERAL = 2,
+	PCI_CONFIG_LIB_NONE = 0,
+	PCI_CONFIG_LIB_AUTO = 1,
+	PCI_CONFIG_LIB_STATIC = 2,
+	PCI_CONFIG_LIB_READ = 3,
+	PCI_CONFIG_LIB_PERIPHERAL = 4,
 };
-extern int pci_system_type;
+extern const int pci_config_lib_type;
 
 /* Configuration library function pointers, these are set in <rtems/confdefs.h>
  * by project configuration or by the BSP. The configuration will pull in the

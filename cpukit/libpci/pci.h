@@ -294,11 +294,31 @@ enum {
 	PCISTS_MSTABRT     = 2, /* CFG space access error (can be ignored) */
 };
 
+/* PCI System type can be used to determine system for drivers. Normally
+ * the system is Host, but the peripheral configuration library also supports
+ * being PCI peripheral not allowed to access configuration space.
+ *
+ * The active configuration Library set this variable.
+ */
+enum {
+	PCI_SYSTEM_NONE = 0,
+	PCI_SYSTEM_HOST = 1,
+	PCI_SYSTEM_PERIPHERAL = 2,
+};
+extern int pci_system_type;
+
+/* PCI Bus Endianness. The PCI specification is little endian, however on some
+ * embedded systems (AT697-LEON2 for example) the PCI bus is defined as big
+ * endian (non-standard) in order to avoid byte-twisting.
+ */
+enum {
+	PCI_LITTLE_ENDIAN = 0,
+	PCI_BIG_ENDIAN = 1,
+};
+extern int pci_endian;
+
 /* Return the number of PCI busses in the system */
 extern int pci_bus_count(void);
-
-/* Initialize PCI subsystem */
-extern int pci_init(void);
 
 /* Scan the PCI bus and print the PCI device/functions/bridges and their
  * current resources and size to the system console.

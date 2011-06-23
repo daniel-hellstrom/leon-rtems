@@ -24,6 +24,13 @@ uint32_t pci_invalid_address = 0;
 /* PCI System type. Configuration Library setup this */
 int pci_system_type = PCI_SYSTEM_NONE;
 
+/* PCI Endianness.
+ *
+ * Host driver or BSP must override this be writing here if bus is defined
+ * as non-standard big-endian.
+ */
+int pci_endian = PCI_LITTLE_ENDIAN;
+
 /* Configure PCI devices and bridges, and setup the RAM data structures
  * describing the PCI devices currently present in the system
  */
