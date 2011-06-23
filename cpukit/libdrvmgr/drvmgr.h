@@ -605,36 +605,44 @@ extern int drvmgr_func_call(void *obj, int funcid, void *a, void *b, void *c, vo
  *
  * Used to request optional functions by a bus or device driver
  */
-#define DRVMGR_FUNCID(major, minor) ((((major) & 0xffff) << 16) | ((minor) & 0xffff))
+#define DRVMGR_FUNCID(major, minor) ((((major) & 0xfff) << 20) | ((minor) & 0xfffff))
 #define DRVMGR_FUNCID_NONE 0
 #define DRVMGR_FUNCID_END DRVMGR_FUNCID(DRVMGR_FUNCID_NONE, 0)
 
 /* Major Function ID */
 enum {
-	FUNCID_NONE             = 0x0,
-	FUNCID_RW               = 0x1, /* Read/Write functions */
+	FUNCID_NONE             = 0x000,
+	FUNCID_RW               = 0x001, /* Read/Write functions */
 };
 
 /* Select Sub-Function Read/Write function by ID */
-#define RW_SIZE_1   0x0001    /* Access Size */
-#define RW_SIZE_2   0x0002
-#define RW_SIZE_4   0x0004
-#define RW_SIZE_8   0x0008
-#define RW_SIZE_ANY 0x0000
+#define RW_SIZE_1   0x00001    /* Access Size */
+#define RW_SIZE_2   0x00002
+#define RW_SIZE_4   0x00004
+#define RW_SIZE_8   0x00008
+#define RW_SIZE_ANY 0x00000
+#define RW_SIZE(id) ((unsigned int)(id) & 0xf)
 
-#define RW_DIR_ANY  0x0000   /* Access Direction */
-#define RW_READ     0x0000
-#define RW_WRITE    0x0010
-#define RW_SET      0x0020
+#define RW_DIR_ANY  0x00000   /* Access Direction */
+#define RW_READ     0x00000   /* Read */
+#define RW_WRITE    0x00010   /* Write */
+#define RW_SET      0x00020   /* Write with same value (memset) */
+#define RW_DIR(id)  (((unsigned int)(id) >> 4) & 0x3)
 
-#define RW_TYPE_ANY 0x0000  /* Access type */
-#define RW_REG      0x0100
-#define RW_MEM      0x0200
-#define RW_MEMREG   0x0300
-#define RW_CFG      0x0400
+#define RW_RAW      0x00000  /* Raw access - no swapping (machine default) */
+#define RW_LITTLE   0x00040  /* Little Endian */
+#define RW_BIG      0x00080  /* Big Endian */
+#define RW_ENDIAN(id) (((unsigned int)(id) >> 6) & 0x3)
 
-#define RW_ARG      0x1000 /* Optional Argument */
-#define RW_ERR      0x2000 /* Optional Error Handler */
+#define RW_TYPE_ANY 0x00000  /* Access type */
+#define RW_REG      0x00100
+#define RW_MEM      0x00200
+#define RW_MEMREG   0x00300
+#define RW_CFG      0x00400
+#define RW_TYPE(id) (((unsigned int)(id) >> 8) & 0xf)
+
+#define RW_ARG      0x01000 /* Optional Argument */
+#define RW_ERR      0x02000 /* Optional Error Handler */
 
 /* Build a Read/Write function ID */
 #define DRVMGR_RWFUNC(minor) DRVMGR_FUNCID(FUNCID_RW, minor)
