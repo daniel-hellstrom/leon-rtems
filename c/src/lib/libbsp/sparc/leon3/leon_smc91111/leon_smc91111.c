@@ -13,12 +13,12 @@
 #define SMC91111_BASE_PIO  4
 
 scmv91111_configuration_t leon_scmv91111_configuration = {
-  SMC91111_BASE_ADDR,                 /* base address */
-  LEON_TRAP_TYPE (SMC91111_BASE_IRQ), /* vector number */
-  SMC91111_BASE_PIO,                  /* PIO */
-  100,                                /* 100b */
-  1,                                  /* fulldx */
-  1                                   /* autoneg */
+  SMC91111_BASE_ADDR,    /* base address */
+  SMC91111_BASE_IRQ,     /* vector number to IRQ funcs (on LEON IRQ is used) */
+  SMC91111_BASE_PIO,     /* PIO */
+  100,                   /* 100b */
+  1,                     /* fulldx */
+  1                      /* autoneg */
 };
 
 int _rtems_smc91111_driver_attach (struct rtems_bsdnet_ifconfig *config,
