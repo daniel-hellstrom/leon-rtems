@@ -29,7 +29,8 @@ memory space and cardbus bridges.
 In order to support different architectures and with small foot-print embedded
 systems in mind the PCI Library offers four different configuration options
 listed below. It is selected during compile time by defining the appropriate
-macros in confdefs.h.
+macros in confdefs.h. It is also possible to enable NONE (No Configuration)
+which can be used for debuging PCI access functions.
 @itemize @bullet
 @item Auto Configuration (do Plug & Play)
 @item Read Configuration (read BIOS or boot loader configuration)
@@ -234,8 +235,8 @@ to find PCI devices and resources using the same PCI API as for the host
 @subsection PCI Access
 
 The PCI access routines are low-level routines provided for drivers,
-configuration software, etc. in order to access different regions in way not
-dependent upon the host driver, BSP or platform:
+configuration software, etc. in order to access different regions in a way
+not dependent upon the host driver, BSP or platform.
 @itemize @bullet
 @item PCI configuration space
 @item PCI I/O space
@@ -244,18 +245,26 @@ dependent upon the host driver, BSP or platform:
 @end itemize
 
 By using the access routines drivers can be made portable over different
-architectures. The access routines take the architecture endianess into
+architectures. The access routines take the architecture endianness into
 consideration and let the host driver or BSP implement I/O space and
 configuration space access.
 
 Some non-standard hardware may also define the PCI bus big-endian, for example
 the LEON2 AT697 PCI host bridge and some LEON3 systems may be configured that
-way. It is up to the BSP to set the appropriate PCI endianess on compile time
-(CONFIGURE_PCI_BIG_ENDIAN).
+way. It is up to the BSP to set the appropriate PCI endianness on compile time
+(BSP_PCI_BIG_ENDIAN) in order for inline macros to be correctly defined.
+Another possibility is to use the function pointers defined by the access
+layer to implement drivers that support "run-time endianness detection".
+
 
 @subsubsection Configuration space
 
-Configuration space is accessed using the routines listed below.
+Configuration space is accessed using the routines listed below. The
+pci_dev_t type is used to specify a specific PCI bus, device and function. It
+is up to the host driver or BSP to create a valid access to the requested
+PCI slot. Requests made to slots that is not supported by hardware should
+result in PCISTS_MSTABRT and/or data must be ignored (writes) or 0xffffffff
+is always returned (reads).
 
 @example
   /* Configuration Space Access Read Routines */
@@ -269,13 +278,18 @@ Configuration space is accessed using the routines listed below.
   extern int pci_cfg_w32(pci_dev_t dev, int ofs, uint32_t data);
 @end example
 
+
 @subsubsection I/O space
 
 The BSP or driver provide special routines in order to access I/O space. Some
 architectures have a special instruction accessing I/O space, others have it
-mapped into the standard address space accessed by the CPU over a window. The
-window size may vary and must be taken into consideration by the driver. The
-below routes must be used to access I/O space:
+mapped into a "PCI I/O window" in the standard address space accessed by the
+CPU. The window size may vary and must be taken into consideration by the
+host driver. The below routines must be used to access I/O space. The address
+given to the functions is not the PCI I/O addresses, the caller must have
+translated PCI I/O addresses (available in the PCI BARs) into a BSP or host
+driver custom address, see @ref{Access functions} how addresses are
+translated.
 
 @example
 /* Read a register over PCI I/O Space */
@@ -289,9 +303,10 @@ extern void pci_io_w16(uint32_t adr, uint16_t data);
 extern void pci_io_w32(uint32_t adr, uint32_t data);
 @end example
 
+
 @subsubsection Registers over Memory space
 
-PCI host bridge hardware normally swap data accesses into the endianess of the
+PCI host bridge hardware normally swap data accesses into the endianness of the
 host architecture in order to lower the load of the CPU, peripherals can do DMA
 without swapping. However, the host controller can not separate a standard
 memory access from a memory access to a register, registers may be mapped into
@@ -315,20 +330,77 @@ In order to support non-standard big-endian PCI bus the above pci_* functions
 is required, pci_ld_le16 != ld_le16 on big endian PCI buses. 
 
 
+@subsubsection Access functions
+
+The PCI Access Library can provide device drivers with function pointers
+executing the above Configuration, I/O and Memory space accesses. The
+functions have the same arguments and return values as the as the above
+functions.
+
+The pci_access_func() function defined below can be used to get a function
+pointer of a specific access type.
+
+@example
+  /* Get Read/Write function for accessing a register over PCI Memory Space
+   * (non-inline functions).
+   *
+   * Arguments
+   *  wr             0(Read), 1(Write)
+   *  size           1(Byte), 2(Word), 4(Double Word)
+   *  func           Where function pointer will be stored
+   *  endian         PCI_LITTLE_ENDIAN or PCI_BIG_ENDIAN
+   *  type           1(I/O), 3(REG over MEM), 4(CFG)
+   *
+   * Return
+   *  0              Found function
+   *  others         No such function defined by host driver or BSP
+   */
+  int pci_access_func(int wr, int size, void **func, int endian, int type);
+@end example
+
+PCI devices drivers may be written to support run-time detection of endianess,
+this is mosly for debugging or for development systems. When the product is
+finally deployed macros switch to using the inline functions instead which
+have been configured for the correct endianness.
+
+
 @subsubsection PCI address translation
 
 When PCI addresses, both I/O and memory space, is not mapped 1:1 address
 translation before access is needed. If drivers read the PCI resources directly
 using configuration space routines or in the device tree, the addresses given
-are PCI addresses. The below function can be used to translate PCI addresses
-into CPU accessible.
+are PCI addresses. The below functions can be used to translate PCI addresses
+into CPU accessible addresses or vise versa, translation may be different for
+different PCI spaces/regions.
 
 @example
-  /* Translate PCI address into CPU accessible address
-   * *address is in/out
-   */
-  static inline int pci_address(void **address, int type);
+  /* Translate PCI address into CPU accessible address */
+  static inline int pci_pci2cpu(uint32_t *address, int type);
+
+  /* Translate CPU accessible address into PCI address (for DMA) */
+  static inline int pci_cpu2pci(uint32_t *address, int type);
 @end example
+
+
+@subsection PCI Interrupt
+
+The PCI specification defines four different interrupt lines INTA#..INTD#,
+the interrupts are low level sensitive which make it possible to support
+multiple interrupt sources on the same interrupt line. Since the lines are
+level sensitive the interrupt sources must be acknowledged before clearing the
+interrupt contoller, or the interrupt controller must be masked. The BSP must
+provide a routine for clearing/acknowledging the interrupt controller, it is
+up to the interrupt service routine to acknowledge the interrupt source.
+
+The PCI Library relies on the BSP for implementing shared interrupt handling
+through the BSP_PCI_shared_interrupt_* functions/macros, they must be defined
+when including bsp.h.
+
+PCI device drivers may use the pci_interrupt_ routines in order to call the
+BSP specific functions in a platform independent way. The PCI interrupt
+interface has been made similar to the RTEMS IRQ extension so that a BSP can
+use the standard RTEMS interrupt functions directly.
+
 
 @subsection PCI Shell command
 

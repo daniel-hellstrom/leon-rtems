@@ -172,13 +172,13 @@ extern void pci_io_w8(uint32_t adr, uint8_t data);
 extern void pci_io_w16(uint32_t adr, uint16_t data);
 extern void pci_io_w32(uint32_t adr, uint32_t data);
 
-/* Get Translate PCI address into CPU accessible address */
+/* Translate PCI address into CPU accessible address */
 static inline int pci_pci2cpu(uint32_t *address, int type)
 {
 	return pci_access_ops.translate(address, type, 0);
 }
 
-/* Get Translate CPU accessible address into PCI address (for DMA) */
+/* Translate CPU accessible address into PCI address (for DMA) */
 static inline int pci_cpu2pci(uint32_t *address, int type)
 {
 	return pci_access_ops.translate(address, type, 1);
@@ -196,7 +196,7 @@ static inline void pci_st8(volatile uint8_t *addr, uint8_t val)
 	*addr = val;
 }
 
-#ifdef CONFIGURE_PCI_BIG_ENDIAN
+#ifdef BSP_PCI_BIG_ENDIAN
 
 /* BSP has decided Big Endian PCI Bus (non-standard) */
 
@@ -286,7 +286,7 @@ static inline void pci_st_be32(volatile uint32_t *addr, uint32_t val)
 
 #endif
 
-/* Get Read/Write function for accessing a register over PCI Memory Space 
+/* Get Read/Write function for accessing a register over PCI Memory Space
  * (non-inline functions).
  *
  * Arguments

@@ -286,6 +286,19 @@
 extern "C" {
 #endif
 
+/* The PCI Library have the following build time configuration options. It is
+ * up to the BSP header file (bsp.h) to set options properly.
+ *
+ * BSP_PCI_BIG_ENDIAN    - Access inline routines will be for a big-endian PCI
+ *                         bus, if not defined the routines will assume that
+ *                         PCI is as the standard defines: little-endian.
+ *
+ *                         Note that drivers may be run-time configurable,
+ *                         meaning that they may adopt to either big-endian or
+ *                         little-endian PCI bus, the host driver or BSP may
+ *                         detect endianness during run-time.
+ */
+
 /* Error return values */
 enum {
 	PCISTS_ERR         = -1, /* Undefined Error */
