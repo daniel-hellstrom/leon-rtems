@@ -424,8 +424,6 @@ int shell_pci_usage(int argc, char *argv[], struct shell_pci_modifier *mod)
   return 0;
 }
 
-#define GET_PCIID 1
-#define GET_PCIOFS 2
 #define MODIFIER_NUM 12
 static struct shell_pci_modifier shell_pci_modifiers[MODIFIER_NUM] =
 {
