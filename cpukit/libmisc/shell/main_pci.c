@@ -263,6 +263,27 @@ int shell_pci_pciid(int argc, char *argv[], struct shell_pci_modifier *mod)
   return 0;
 }
 
+int shell_pci_getdev(int argc, char *argv[], struct shell_pci_modifier *mod)
+{
+  unsigned long pciid;
+  struct pci_dev *dev;
+
+  if (argc != 3)
+    return -1;
+
+  pciid = get_pciid_from_string(argv[2]);
+  if ((pciid & 0xffff0000) != 0)
+    return -1;
+
+  if (pci_get_dev(pciid, &dev)) {
+    printf(" GETDEV: no device on [%lx:%lx:%lx]\n", PCI_DEV_EXPAND(pciid));
+    return 0;
+  }
+
+  printf(" PCI RAM DEVICE: %p\n", dev);
+  return 0;
+}
+
 int pci_summary(void)
 {
 	char *str;
@@ -305,6 +326,7 @@ const char pci_usage_str[] =
  "  pci pciid PCIID                    Print bus:dev:fun for PCIID\n"
  "  pci pcfg                           Print current PCI config for\n"
  "                                     static configuration library\n"
+ "  pci getdev {PCIID|bus:dev:fun}     Get PCI Device from RAM tree\n"
  "  pci --help\n";
 
 static void usage(void)
@@ -320,7 +342,7 @@ int shell_pci_usage(int argc, char *argv[], struct shell_pci_modifier *mod)
 
 #define GET_PCIID 1
 #define GET_PCIOFS 2
-#define MODIFIER_NUM 10
+#define MODIFIER_NUM 11
 static struct shell_pci_modifier shell_pci_modifiers[MODIFIER_NUM] =
 {
   {"ls", shell_pci_ls, 0},
@@ -332,6 +354,7 @@ static struct shell_pci_modifier shell_pci_modifiers[MODIFIER_NUM] =
   {"w32", shell_pci_write, 4},
   {"pciid", shell_pci_pciid, 0},
   {"pcfg", shell_pci_pcfg, 0},
+  {"getdev", shell_pci_getdev, 0},
   {"--help", shell_pci_usage},
 };
 
