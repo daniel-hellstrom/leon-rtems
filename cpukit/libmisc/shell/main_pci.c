@@ -284,6 +284,89 @@ int shell_pci_getdev(int argc, char *argv[], struct shell_pci_modifier *mod)
   return 0;
 }
 
+int shell_pci_infodev(int argc, char *argv[], struct shell_pci_modifier *mod)
+{
+  unsigned long arg;
+  struct pci_dev *dev;
+  struct pci_bus *bus;
+  struct pci_res *res;
+  char *type_str, *str1, *res_types[3] = {" IO16", "MEMIO", "MEM"};
+  int i, res_avail;
+
+  if (argc != 3)
+    return -1;
+
+  arg = strtoul(argv[2], NULL, 0);
+  if (arg == ULONG_MAX && errno == ERANGE)
+    return -1;
+
+  dev = (struct pci_dev *)arg;
+  if (!dev) {
+    printf(" INFODEV: invalid device\n");
+    return 0;
+  }
+
+  if (dev->flags & PCI_DEV_BRIDGE) {
+    type_str = "PCI-to-PCI BRIDGE";
+    if (!dev->bus)
+      type_str = "PCI HOST BRIDGE";
+  } else
+    type_str = "PCI DEVICE";
+  printf(" %s at [%x:%x:%x]\n", type_str, PCI_DEV_EXPAND(dev->busdevfun));
+
+  bus = (struct pci_bus *)dev;
+  if (bus) {
+    printf(" PRIMARY:       BUS 0x%x\n", bus->pri);
+    printf(" SECONDARY:     BUS 0x%x\n", bus->num);
+    printf(" SUB ORDINATE:  BUS 0x%x\n", bus->sord);
+  }
+
+  printf(" PCIID:         0x%04x\n", dev->busdevfun);
+  bus = dev->bus;
+  if (!bus) {
+    printf(" AT BUS:        0x%x via Host Bridge\n", bus->num);
+  } else {
+    printf(" AT BUS:        0x%x via Bridge at [%x:%x:%x]\n", bus->num, 
+           PCI_DEV_EXPAND(bus->dev.busdevfun));
+  }
+  printf(" VENDOR:        0x%04x\n", dev->vendor);
+  printf(" DEVICE:        0x%04x\n", dev->device);
+  printf(" SUB VENDOR:    0x%04x\n", dev->subvendor);
+  printf(" SUB DEVICE:    0x%04x\n", dev->subdevice);
+  printf(" CLASS:         0x%06lx\n", dev->classrev >> 8);
+  printf(" REVISION:      0x%02lx\n", dev->classrev & 0xff);
+  printf(" IRQ:           %d\n", dev->sysirq);
+
+  res_avail = 0;
+  for (i = 0; i < DEV_RES_CNT; i++) {
+    res = &dev->resources[i];
+
+    if ((res->flags & PCI_RES_TYPE_MASK) == 0)
+      continue;
+
+    str1 = res_types[(res->flags & PCI_RES_TYPE_MASK) - 1];
+    if (res->flags & PCI_RES_IO32)
+      str1 = " IO32";
+
+    if (res_avail == 0) {
+      puts(" RESOURCES:");
+      res_avail = 1;
+    }
+
+    if (res->flags & PCI_RES_FAIL) {
+      printf("  %s[%d]:  NOT ASSIGNED", str1, i);
+      continue;
+    }
+
+    printf("  %s[%d]:  %08lx-%08lx\n", str1, i, res->start, res->end - 1);
+  }
+
+  if (res_avail == 0)
+    puts(" NO CONFIGURED RESOURCES AVAILABLE");
+
+  return 0;
+}
+
 int pci_summary(void)
 {
 	char *str;
@@ -327,6 +410,7 @@ const char pci_usage_str[] =
  "  pci pcfg                           Print current PCI config for\n"
  "                                     static configuration library\n"
  "  pci getdev {PCIID|bus:dev:fun}     Get PCI Device from RAM tree\n"
+ "  pci infodev DEV_ADR                Info about a PCI RAM Device\n"
  "  pci --help\n";
 
 static void usage(void)
@@ -342,7 +426,7 @@ int shell_pci_usage(int argc, char *argv[], struct shell_pci_modifier *mod)
 
 #define GET_PCIID 1
 #define GET_PCIOFS 2
-#define MODIFIER_NUM 11
+#define MODIFIER_NUM 12
 static struct shell_pci_modifier shell_pci_modifiers[MODIFIER_NUM] =
 {
   {"ls", shell_pci_ls, 0},
@@ -355,6 +439,7 @@ static struct shell_pci_modifier shell_pci_modifiers[MODIFIER_NUM] =
   {"pciid", shell_pci_pciid, 0},
   {"pcfg", shell_pci_pcfg, 0},
   {"getdev", shell_pci_getdev, 0},
+  {"infodev", shell_pci_infodev, 0},
   {"--help", shell_pci_usage},
 };
 
