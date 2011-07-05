@@ -432,12 +432,6 @@ int pcibus_dev_register(struct pci_dev *dev, void *arg)
 	/* Register New Device */
 	drvmgr_dev_register(newdev);
 
-	/* If device is a bridge we scan the secondary (child) devices */
-	if (dev->flags & PCI_DEV_BRIDGE) {
-		pci_for_each_dev((struct pci_bus *)dev, pcibus_dev_register,
-					pcibus);
-	}
-
 	return 0;
 }
 
@@ -511,12 +505,14 @@ int pcibus_dev_register(pci_dev_t pcidev, void *arg)
 /* Register all AMBA devices available on the AMBAPP bus */
 static int pcibus_devs_register(struct drvmgr_bus *bus)
 {
+	/* return value 0=DRVMGR_OK works with pci_for_each/pci_for_each_dev */
 #ifdef USE_PCI_CFG_LIB
-	pci_for_each_dev(&pci_hb, pcibus_dev_register, bus);
+	/* Walk the PCI device tree in RAM */
+	return pci_for_each_dev(pcibus_dev_register, bus);
 #else
-	pci_for_each(pcibus_dev_register, bus);
+	/* Scan PCI Configuration space */
+	return pci_for_each(pcibus_dev_register, bus);
 #endif
-	return DRVMGR_OK;
 }
 
 /*** DEVICE FUNCTIONS ***/
