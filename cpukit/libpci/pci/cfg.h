@@ -109,6 +109,14 @@ extern int pci_for_each_dev(
 extern int pci_find_dev(uint16_t ven, uint16_t dev, int index,
 			struct pci_dev **ppdev);
 
+/* Get PCI device from RAM device tree by BUS|SLOT|FUNC.
+ *
+ * Return Values
+ * -1  pci_get_dev did not find a device matching the criterion
+ *  0  device was found, *ppdev was updated with the PCI device address
+ */
+extern int pci_get_dev(pci_dev_t pcidev, struct pci_dev **ppdev);
+
 /* Resource flags */
 #define PCI_RES_IO 1
 #define PCI_RES_MEMIO 2
