@@ -403,7 +403,6 @@ void pci_find_devs(struct pci_bus *bus)
 				tmp = (64 << 24) | (0xff << 16) |
 				      (bridge->num << 8) | bridge->pri;
 				PCI_CFG_W32(pcidev, PCI_PRIMARY_BUS, tmp);
-#warning SET_BRIDGE_CONTROL REGISTER HERE.
 
 				/* Scan Secondary Bus */
 				pci_find_devs(bridge);

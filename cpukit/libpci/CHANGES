@@ -41,3 +41,6 @@
   current PCI configuration space setup, BAR assigment sort implementation
   speeded up drastically (bootup time noticable shorter), interrupt assignment
   implemented, PCI Host driver extracted from library, support for I/O areas.
+
+
+.... not updated ... lots of more changes
