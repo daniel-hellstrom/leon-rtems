@@ -12,7 +12,7 @@
  */
 
 #include <pci.h>
-#include <pci/cfg.h>
+#include <pci/access.h>
 
 struct compare_info {
 	int index;
@@ -20,20 +20,23 @@ struct compare_info {
 	uint16_t device;
 };
 
-static int compare_dev_id(struct pci_dev *dev, void *arg)
+static int compare_dev_id(pci_dev_t pcidev, void *arg)
 {
 	struct compare_info *info = arg;
+	uint16_t vid, did;
 
-	if ((dev->vendor != info->vendor) || (dev->device != info->device))
+	pci_cfg_r16(pcidev, PCI_VENDOR_ID, &vid);
+	pci_cfg_r16(pcidev, PCI_DEVICE_ID, &did);
+	if ((vid != info->vendor) || (did != info->device))
 		return 0;
 	if (info->index-- == 0)
-		return dev;
+		return pcidev;
 	else
 		return 0;
 }
 
-/* Find a Device in PCI device tree located in RAM */
-int pci_find_dev(uint16_t ven, uint16_t dev, int index, struct pci_dev **ppdev)
+/* Find a Device in PCI configuration space */
+int pci_find(uint16_t ven, uint16_t dev, int index, pci_dev_t *pdev)
 {
 	struct compare_info info;
 	int result;
@@ -42,9 +45,9 @@ int pci_find_dev(uint16_t ven, uint16_t dev, int index, struct pci_dev **ppdev)
 	info.vendor = ven;
 	info.device = dev;
 
-	result = pci_for_each_dev(compare_dev_id, &info);
-	if (ppdev)
-		*ppdev = (struct pci_dev *)result;
+	result = pci_for_each(compare_dev_id, &info);
+	if (pdev)
+		*pdev = (pci_dev_t)result;
 	if (result == 0)
 		return -1;
 	else

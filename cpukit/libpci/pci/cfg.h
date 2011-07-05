@@ -63,17 +63,51 @@ struct pci_res; /* Resource: BAR, ROM or Bridge Window */
 /* The Host Bridge and all subdevices (the PCI RAM data structure) */
 extern struct pci_bus pci_hb;
 
-/* Iterate over all PCI devices on a bus (not child buses) and call func(),
+/* Iterate over all PCI devices on a bus (see search options) and call func(),
  * iteration is stopped if a non-zero value is returned by func().
  *
  * The function iterates over the PCI RAM data structure, it is not
  * available until after all devices have been found and pci_hb is populated,
- * typcially after pci_config_init() is called.
+ * typically after pci_config_init() is called.
+ *
+ * search options: 0 (no child buses), 1 (depth first, recursive)
+ *
+ * Return Values
+ *  0  All PCI devices were processed, func() returned 0 on every call
+ *  X  func() returned non-zero X value, the search was stopped
  */
-extern int pci_for_each_dev(
+#define SEARCH_DEPTH 1
+extern int pci_for_each_child(
 	struct pci_bus *bus,
 	int (*func)(struct pci_dev *, void *arg),
+	void *arg,
+	int search);
+
+/* Depth first search of all PCI devices in PCI RAM data structure and call
+ * func(dev, arg), iteration is stopped if a non-zero value is returned by
+ * func().
+ *
+ * The function iterates over the PCI RAM data structure, it is not
+ * available until after all devices have been found and pci_hb is populated,
+ * typically after pci_config_init() is called.
+ *
+ * Return Values
+ *  0  All PCI devices were processed, func() returned 0 on every call
+ *  X  func() returned non-zero X value, the search was stopped
+ */
+extern int pci_for_each_dev(
+	int (*func)(struct pci_dev *, void *arg),
 	void *arg);
+
+/* Get PCI device from RAM device tree for a device matching PCI Vendor, Device
+ * and instance number 'index'.
+ *
+ * Return Values
+ * -1  pci_find_dev did not find a device matching the criterion.
+ *  0  device was found, *ppdev was updated with the PCI device address
+ */
+extern int pci_find_dev(uint16_t ven, uint16_t dev, int index,
+			struct pci_dev **ppdev);
 
 /* Resource flags */
 #define PCI_RES_IO 1

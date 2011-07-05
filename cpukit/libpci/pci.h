@@ -344,6 +344,8 @@ extern void pci_print(void);
 extern void pci_print_dev(pci_dev_t dev);
 extern void pci_print_device(int bus, int slot, int function);
 
+/*** PCI Configuration Space direct access routines ***/
+
 /* Function iterates over all PCI buses/devices/functions and calls
  * func(PCIDEV,arg) for each present device. The iteration is stopped if
  * func() returns non-zero result the same result is returned. As long
@@ -363,7 +365,7 @@ extern int pci_for_each(int (*func)(pci_dev_t, void*), void *arg);
  * -1  pci_find_dev did not find a device matching the criterion.
  *  0  device was found, *pdev was updated with the device's BUS|SLOT|FUNC
  */
-extern int pci_find_dev(uint16_t ven, uint16_t dev, int index, pci_dev_t *pdev);
+extern int pci_find(uint16_t ven, uint16_t dev, int index, pci_dev_t *pdev);
 
 #ifdef __cplusplus
 }

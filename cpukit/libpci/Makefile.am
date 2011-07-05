@@ -29,9 +29,11 @@ libpci_a_SOURCES += pci_cfg_print_code.c
 libpci_a_SOURCES += pci_cfg_read.c
 libpci_a_SOURCES += pci_cfg_static.c
 libpci_a_SOURCES += pci_cfg_peripheral.c
+libpci_a_SOURCES += pci_find.c
 libpci_a_SOURCES += pci_find_dev.c
 libpci_a_SOURCES += pci_for_each.c
 libpci_a_SOURCES += pci_for_each_dev.c
+libpci_a_SOURCES += pci_for_each_child.c
 libpci_a_SOURCES += pci_irq.c
 libpci_a_SOURCES += pci_print.c
 

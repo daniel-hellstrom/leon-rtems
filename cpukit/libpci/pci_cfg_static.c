@@ -32,15 +32,13 @@
 /* Number of buses */
 extern int pci_bus_cnt;
 
-int pci_cfg_static_init_bus(struct pci_bus *bus);
-
 /* Enumrate one bus if device is a bridge, and all it's subordinate buses */
 static int pci_init_dev(struct pci_dev *dev, void *unused)
 {
 	uint32_t tmp;
 	uint16_t tmp16, cmd;
 	struct pci_bus *bridge;
-	int ret = 0, maxbars, i, romofs;
+	int maxbars, i, romofs;
 	pci_dev_t pcidev = dev->busdevfun;
 	struct pci_res *res;
 
@@ -122,8 +120,6 @@ static int pci_init_dev(struct pci_dev *dev, void *unused)
 		PCI_CFG_W32(pcidev, PCI_PREF_BASE_UPPER32, 0);
 		PCI_CFG_W32(pcidev, PCI_PREF_LIMIT_UPPER32, 0);
 
-		ret = pci_cfg_static_init_bus(bridge);
-
 		cmd |= PCI_COMMAND_MASTER;
 		romofs = PCI_ROM_ADDRESS1;
 		maxbars = 2;
@@ -148,13 +144,7 @@ static int pci_init_dev(struct pci_dev *dev, void *unused)
 	}
 	PCI_CFG_W16(pcidev, PCI_COMMAND, cmd);
 
-	return ret;
-}
-
-/* Initialize all devices on a bus and on all child buses */
-int pci_cfg_static_init_bus(struct pci_bus *bus)
-{
-	return pci_for_each_dev(bus, pci_init_dev, NULL);
+	return 0;
 }
 
 /* Assume that user has defined static setup array in pci_hb */
@@ -163,7 +153,6 @@ int pci_config_static(void)
 	pci_bus_cnt = pci_hb.sord + 1;
 	pci_system_type = PCI_SYSTEM_HOST;
 
-	pci_cfg_static_init_bus(&pci_hb);
-
-	return 0;
+	/* Init all PCI devices according to depth-first search algorithm */
+	return pci_for_each_dev(pci_init_dev, NULL);
 }

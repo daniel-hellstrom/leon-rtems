@@ -514,14 +514,6 @@ void pci_find_bar(struct pci_dev *dev, int bar)
 		PCI_DEV_EXPAND(pcidev), str, bar, res->size);
 }
 
-int pci_find_res_dev(struct pci_dev *dev, void *unused);
-int pci_add_res_dev(struct pci_dev *dev, void *arg);
-
-static inline void pci_find_res_bus(struct pci_bus *bus)
-{
-	pci_for_each_dev(bus, pci_find_res_dev, 0);
-}
-
 int pci_find_res_dev(struct pci_dev *dev, void *unused)
 {
 	struct pci_bus *bridge;
@@ -556,9 +548,6 @@ int pci_find_res_dev(struct pci_dev *dev, void *unused)
 
 		PCI_CFG_W32(pcidev, 0x20, 0x0000ffff);
 		bridge->flags |= PCI_BUS_MEMIO;
-
-		/* Find resources of devices behind bridge */
-		pci_find_res_bus(bridge);
 	} else {
 		/* Normal PCI Device as max 6 BARs */
 		maxbars = 6;
@@ -572,6 +561,8 @@ int pci_find_res_dev(struct pci_dev *dev, void *unused)
 	return 0;
 }
 
+int pci_add_res_dev(struct pci_dev *dev, void *arg);
+
 void pci_add_res_bus(struct pci_bus *bus, int type)
 {
 	int tindex = type - 1;
@@ -584,7 +575,7 @@ void pci_add_res_bus(struct pci_bus *bus, int type)
 	 * converted to MEMIO in the process.
 	 */
 	if (!((type == PCI_BUS_IO) && ((bus->flags & PCI_BUS_IO) == 0))) {
-		pci_for_each_dev(bus, pci_add_res_dev, (void *)type);
+		pci_for_each_child(bus, pci_add_res_dev, (void *)type, 0);
 
 		/* Reorder Bus resources to fit more optimally (avoid dead
 		 * PCI space). Currently they are sorted by boundary and size.
@@ -828,17 +819,12 @@ int pci_set_res_dev(struct pci_dev *dev, void *unused)
 {
 	int i, maxbars;
 
-	if (dev->flags & PCI_DEV_BRIDGE) {
-		/* PCI-PCI Bridge */
+	if (dev->flags & PCI_DEV_BRIDGE)
 		maxbars = 2 + 3; /* 2 BARs + 3 Bridge-Windows "Virtual BARs" */
-
-		/* Set all child devices allocated resources */
-		pci_for_each_dev((struct pci_bus *)dev, pci_set_res_dev, NULL);
-	} else {
+	else
 		maxbars = 6; /* Normal PCI Device as max 6 BARs. */
-	}
 
-	/* Set BAR reosuces with previous allocated values */
+	/* Set BAR resources with previous allocated values */
 	for (i = 0; i < maxbars; i++)
 		pci_set_bar(dev, i);
 	pci_set_bar(dev, DEV_RES_ROM);
@@ -874,9 +860,6 @@ int pci_set_irq_dev(struct pci_dev *dev, void *cfg)
 	uint8_t irq_pin, irq_line, *psysirq;
 	pci_dev_t pcidev;
 	struct pci_dev *top;
-
-	if (dev->flags & PCI_DEV_BRIDGE)
-		pci_for_each_dev((struct pci_bus *)dev, pci_set_irq_dev, cfg);
 
 	psysirq = &dev->sysirq;
 	pcidev = dev->busdevfun;
@@ -982,7 +965,7 @@ int pci_config_auto(void)
 	 * that are allocated an address are initilized later on.
 	 */
 	DBG("\n\n--- PCI RESOURCES ---\n");
-	pci_find_res_bus(&pci_hb);
+	pci_for_each_dev(pci_find_res_dev, 0);
 
 	/* Add all device's resources to bus and sort them to fit in the PCI
 	 * Window. The device resources are propagated upwards through bridges
@@ -1034,7 +1017,7 @@ int pci_config_auto(void)
 	DBG(" I/O:                  [0x%08x-0x%08x]\n", startio, endio);
 
 	/* Set all allocated BARs and Bridge Windows */
-	pci_for_each_dev(&pci_hb, pci_set_res_dev, NULL);
+	pci_for_each_dev(pci_set_res_dev, NULL);
 
 	/* Initialize IRQs of all devices. According to the PCI-PCI bridge
 	 * specification the IRQs are routed differently depending on slot
@@ -1044,7 +1027,7 @@ int pci_config_auto(void)
 	if ((autocfg->options & CFGOPT_NOSETUP_IRQ) == 0) {
 		if (autocfg->irq_route == NULL) /* use standard irq routing */
 			autocfg->irq_route = pci_route_irq;
-		pci_for_each_dev(&pci_hb, pci_set_irq_dev, autocfg);
+		pci_for_each_dev(pci_set_irq_dev, autocfg);
 	}
 
 	DBG("PCI resource allocation done\n");

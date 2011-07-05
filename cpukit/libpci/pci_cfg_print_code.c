@@ -124,24 +124,19 @@ int pci_cfg_print_bus(struct pci_bus *bus)
 	printf("};\n");
 
 	/* Print all child devices */
-	pci_for_each_dev(bus, pci_cfg_print_dev, NULL);
+	pci_for_each_child(bus, pci_cfg_print_dev, NULL, 0);
 
 	return 0;
 }
 
 int pci_cfg_print_forw_dev(struct pci_dev *dev, void *unused)
 {
-	struct pci_bus *bridge;
-	if (dev->flags & PCI_DEV_BRIDGE) {
-		bridge = (struct pci_bus *)dev;
-		pci_for_each_dev(bridge, pci_cfg_print_forw_dev, NULL);
-	} else {
+	if ((dev->flags & PCI_DEV_BRIDGE) == 0) {
 		printf("static struct pci_dev dev_%x_%x_%x;\n",
 			PCI_DEV_EXPAND(dev->busdevfun));
 	}
 	return 0;
 }
-
 
 void pci_cfg_print(void)
 {
@@ -162,7 +157,7 @@ void pci_cfg_print(void)
 			printf("static struct pci_bus bus%d;\n", i);
 	}
 	printf("\n/* FORWARD DEVICE DECLARATIONS */\n");
-	pci_for_each_dev(&pci_hb, pci_cfg_print_forw_dev, NULL);
+	pci_for_each_dev(pci_cfg_print_forw_dev, NULL);
 
 	pci_cfg_print_bus(&pci_hb);
 }
