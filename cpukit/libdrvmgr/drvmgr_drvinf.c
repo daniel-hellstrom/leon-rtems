@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include <drvmgr/drvmgr.h>
+#include "drvmgr_internal.h"
 
 /* Get device pointer from knowing the Driver and the Driver minor 
  * that was assigned to it
@@ -30,12 +31,15 @@ int drvmgr_get_dev(
 	struct drvmgr_dev *dev;
 	if ( !drv )
 		return -1;
+
+	DRVMGR_LOCK_READ();
 	dev = drv->dev;
-	while( dev ){
-		if ( dev->minor_drv == minor)
+	while (dev) {
+		if (dev->minor_drv == minor)
 			break;
 		dev = dev->next_in_drv;
 	}
+	DRVMGR_UNLOCK();
 	if ( !dev )
 		return -1;
 	if ( pdev )

@@ -104,8 +104,10 @@ void drvmgr_print_topo()
 
 	/* Print Bus topology */
 	printf(" --- BUS TOPOLOGY ---\n");
+	DRVMGR_LOCK_READ();
 	dev = mgr->root_dev;
 	drvmgr_dev_print(dev, "", 1);
+	DRVMGR_UNLOCK();
 	printf("\n\n");
 }
 
@@ -126,6 +128,8 @@ void drvmgr_print_mem(void)
 	unsigned int drvmem = 0;
 	unsigned int resmem = 0;
 	unsigned int devprivmem = 0;
+
+	DRVMGR_LOCK_READ();
 
 	bus = BUS_LIST_HEAD(&mgr->buses[DRVMGR_LEVEL_MAX]);
 	while ( bus ) {
@@ -170,6 +174,8 @@ void drvmgr_print_mem(void)
 		dev = dev->next;
 	}
 
+	DRVMGR_UNLOCK();
+
 	printf(" --- MEMORY USAGE ---\n");
 	printf(" BUS:          %d bytes\n", busmem);
 	printf(" DRV:          %d bytes\n", drvmem);
@@ -199,6 +205,8 @@ void drvmgr_summary(void)
 	}
 	printf(" NUMBER OF DRIVERS:               %d\n", drvcnt);
 
+	DRVMGR_LOCK_READ();
+
 	for (i=0; i<=DRVMGR_LEVEL_MAX; i++) {
 		buscnt = 0;
 		bus = BUS_LIST_HEAD(&mgr->buses[i]);
@@ -224,6 +232,8 @@ void drvmgr_summary(void)
 				i, devcnt);
 		}
 	}
+
+	DRVMGR_UNLOCK();
 
 	printf("\n\n");
 }
@@ -296,12 +306,14 @@ void drvmgr_info_bus(struct drvmgr_bus *bus, unsigned int options)
 
 	/* Print Devices on this bus? */
 	if (options & OPTION_BUS_DEVS) {
+		DRVMGR_LOCK_READ();
 		dev = bus->children;
 		while ( dev ) {
 			printf("   |- DEV[%02d]: %p  %s\n", dev->minor_bus,
 				dev, dev->name ? dev->name : "NO_NAME");
 			dev = dev->next_in_bus;
 		}
+		DRVMGR_UNLOCK();
 	}
 }
 
@@ -332,12 +344,14 @@ void drvmgr_info_drv(struct drvmgr_drv *drv, unsigned int options)
 
 	/* Print devices united with this driver? */
 	if (options & OPTION_DRV_DEVS) {
+		DRVMGR_LOCK_READ();
 		dev = drv->dev;
 		while ( dev ) {
 			printf("  DEV[%02d]:     %p  %s\n", dev->minor_drv,
 				dev, dev->name ? dev->name : "NO_NAME");
 			dev = dev->next_in_drv;
 		}
+		DRVMGR_UNLOCK();
 	}
 }
 

@@ -5,6 +5,9 @@ struct rtems_driver_manager {
 	int	level;
 	int	initializing_objs;
 
+	/* Device tree Lock */
+	rtems_id		lock;
+
 	/* The first device - The root device and it's driver */
 	struct drvmgr_dev	*root_dev;
 	struct drvmgr_drv	*root_drv;
@@ -34,3 +37,16 @@ struct rtems_driver_manager {
 };
 
 extern struct rtems_driver_manager drv_mgr;
+
+extern void _DRV_Manager_Lock(void);
+extern void _DRV_Manager_Unlock(void);
+extern int _DRV_Manager_Init_Lock(void);
+
+/* The best solution is to implement the locking with a RW lock, however there
+ * is no such API available. Care must be taken so that dead-lock isn't created
+ * for example in recursive functions.
+ */
+#define DRVMGR_LOCK_INIT() _DRV_Manager_Init_Lock()
+#define DRVMGR_LOCK_WRITE() _DRV_Manager_Lock()
+#define DRVMGR_LOCK_READ() _DRV_Manager_Lock()
+#define DRVMGR_UNLOCK() _DRV_Manager_Unlock()

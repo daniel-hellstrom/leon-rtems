@@ -1,5 +1,6 @@
 #include <drvmgr/drvmgr.h>
 #include <drvmgr/drvmgr_list.h>
+#include "drvmgr_internal.h"
 
 int drvmgr_for_each_dev(
 	struct drvmgr_list *devlist,
@@ -10,7 +11,9 @@ int drvmgr_for_each_dev(
 	)
 {
 	struct drvmgr_dev *dev;
-	int ret;
+	int ret = 0;
+
+	DRVMGR_LOCK_READ();
 
 	/* Get First Device */
 	dev = DEV_LIST_HEAD(devlist);
@@ -19,8 +22,11 @@ int drvmgr_for_each_dev(
 		     ((state_clr_mask != 0) && ((dev->state & state_clr_mask) == 0)) ||
 		     ((state_set_mask == 0) && (state_clr_mask == 0)) )
 			if ( (ret=func(dev, arg)) != 0 )
-				return ret;
+				break;
 		dev = dev->next;
 	}
-	return 0;
+
+	DRVMGR_UNLOCK();
+
+	return ret;
 }

@@ -137,7 +137,7 @@ struct drvmgr_bus_ops {
 	int	(*int_mask)(struct drvmgr_dev *, int index);
 	int	(*int_unmask)(struct drvmgr_dev *, int index);
 
-	/* Get Paramters */
+	/* Get Parameters */
 	int	(*get_params)(struct drvmgr_dev *, struct drvmgr_bus_params *);
 	/* Get Frequency of Bus */
 	int	(*freq_get)(struct drvmgr_dev*, int, unsigned int*);
@@ -374,6 +374,16 @@ extern int drvmgr_bus_register(struct drvmgr_bus *bus);
 
 /*! Unregister a bus */
 extern int drvmgr_bus_unregister(struct drvmgr_bus *bus);
+
+/*! Unregister all child devices of a bus.
+ *
+ * This function is called from the bus driver, from a "safe" state where
+ * devices will not be added or removed on this particular bus at this time
+ */
+extern int drvmgr_children_unregister(struct drvmgr_bus *bus);
+
+/* Separate a device from the driver it has been united with */
+extern int drvmgr_dev_drv_separate(struct drvmgr_dev *dev);
 
 /*! Allocate a device structure, if no memory available rtems_error_fatal_occurred 
  * is called.

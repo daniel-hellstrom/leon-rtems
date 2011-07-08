@@ -31,6 +31,7 @@ struct rtems_driver_manager drv_mgr =
 {
 	.level =		0,
 	.initializing_objs =	0,
+	.lock =                 0,
 	.root_drv =		NULL,
 	.root_dev =		NULL,
 
@@ -87,7 +88,10 @@ void _DRV_Manager_initialization(void)
 {
 	struct drvmgr_drv_reg_func *drvreg;
 
-	/* drv_mgr is already initialized statically by compiler */
+	/* drv_mgr is already initialized statically by compiler except
+	 * the lock
+	 */
+	DRVMGR_LOCK_INIT();
 
 	/* Call driver register functions. */
 	drvreg = &drvmgr_drivers[0];
@@ -113,8 +117,9 @@ void drvmgr_init_update(void)
 	/* "Lock" to make sure we don't use up the stack and that the lists
 	 * remain consistent.
 	 */
+	DRVMGR_LOCK_WRITE();
 	if ( mgr->initializing_objs || (mgr->level == 0) )
-		return;
+		goto out;
 	mgr->initializing_objs = 1;
 
 init_registered_buses:
@@ -134,10 +139,14 @@ init_registered_buses:
 			 */
 			drvmgr_list_remove_head(&mgr->buses[level]);
 
+			DRVMGR_UNLOCK();
+
 			/* Initialize Bus, this will register devices on
 			 * the bus. Take bus into next level.
 			 */
 			do_bus_init(mgr, bus, level+1);
+
+			DRVMGR_LOCK_WRITE();
 		}
 
 		/* Take devices into next level */
@@ -151,8 +160,12 @@ init_registered_buses:
 			 */
 			drvmgr_list_remove_head(&mgr->devices[level]);
 
+			DRVMGR_UNLOCK();
+
 			/* Initialize Device, this may register a new bus */
 			do_dev_init(mgr, dev, level+1);
+
+			DRVMGR_LOCK_WRITE();
 
 			bus_might_been_registered = 1;
 		}
@@ -166,6 +179,9 @@ init_registered_buses:
 
 	/* Release bus/device initialization "Lock" */
 	mgr->initializing_objs = 0;
+
+out:
+	DRVMGR_UNLOCK();
 }
 
 /* Take bus into next level */
@@ -199,6 +215,8 @@ static int do_bus_init(
 		}
 	}
 
+	DRVMGR_LOCK_WRITE();
+
 	/* Bus taken into the new level */
 	bus->level = level;
 
@@ -208,12 +226,16 @@ static int do_bus_init(
 	 */
 	drvmgr_list_add_tail(&mgr->buses[level], bus);
 
+	DRVMGR_UNLOCK();
+
 	return 0;
 
 inactivate_out:
+	DRVMGR_LOCK_WRITE();
 	bus->state |= BUS_STATE_INIT_FAILED;
 	bus->state |= BUS_STATE_LIST_INACTIVE;
 	drvmgr_list_add_head(&mgr->buses_inactive, bus);
+	DRVMGR_UNLOCK();
 
 	DBG("do_bus_init(%d): (DEV: %s) failed\n", level, bus->dev->name);
 
@@ -268,6 +290,7 @@ static int do_dev_init(
 		}
 	}
 
+	DRVMGR_LOCK_WRITE();
 	/* Dev taken into new level */
 	dev->level = level;
 
@@ -275,13 +298,16 @@ static int do_dev_init(
 	 * in the same order as init[N]()
 	 */
 	drvmgr_list_add_tail(&mgr->devices[level], dev);
+	DRVMGR_UNLOCK();
 
 	return 0;
 
 inactivate_out:
+	DRVMGR_LOCK_WRITE();
 	dev->state |= DEV_STATE_INIT_FAILED;
 	dev->state |= DEV_STATE_LIST_INACTIVE;
 	drvmgr_list_add_head(&mgr->devices_inactive, dev);
+	DRVMGR_UNLOCK();
 
 	DBG("do_dev_init(%d): DRV: %s (DEV: %s) failed\n",
 		level, dev->drv->name, dev->name);
@@ -334,6 +360,14 @@ int drvmgr_drv_register(struct drvmgr_drv *drv)
 	/* Put driver into list of registered drivers */
 	drvmgr_list_add_head(&mgr->drivers, drv);
 
+	/* TODO: we could scan for devices that this new driver has support
+	 *       for. However, at this stage we assume that all drivers are
+	 *       registered before devices are registered.
+	 *
+	 * LOCK: From the same assumsion locking the driver list is not needed
+	 *       either.
+	 */
+
 	return 0;
 }
 
@@ -349,6 +383,8 @@ static void drvmgr_insert_dev_into_drv(
 {
 	struct drvmgr_dev *curr, **pprevnext;
 	int minor;
+
+	DRVMGR_LOCK_WRITE();
 
 	minor = 0;
 	pprevnext = &drv->dev;
@@ -370,6 +406,8 @@ static void drvmgr_insert_dev_into_drv(
 	/* Set minor */
 	dev->minor_drv = minor;
 	drv->dev_cnt++;
+
+	DRVMGR_UNLOCK();
 }
 
 /* Insert a device into a bus device list and assign a bus minor number to the
@@ -422,11 +460,17 @@ static struct drvmgr_drv *drvmgr_dev_find_drv(
 	struct rtems_driver_manager *mgr = &drv_mgr;
 	struct drvmgr_drv *drv;
 
+	/* NOTE: No locking is needed here since Driver list is supposed to be
+	 *       initialized once during startup, we treat it as a static
+	 *       read-only list
+	 */
+
 	/* Try to find a driver that can handle this device */
 	for (drv = DRV_LIST_HEAD(&mgr->drivers); drv; drv = drv->next)
 		if (dev->parent->ops->unite(drv, dev) == 1)
-			return drv;
-	return NULL;
+			break;
+
+	return drv;
 }
 
 /* Register a device */
@@ -504,6 +548,8 @@ int drvmgr_dev_register(struct drvmgr_dev *dev)
 		}
 	}
 
+	DRVMGR_LOCK_WRITE();
+
 	drvmgr_list_add_tail(init_list, dev);
 
 	if (bus) {
@@ -512,12 +558,15 @@ int drvmgr_dev_register(struct drvmgr_dev *dev)
 		 */
 		drvmgr_insert_dev_into_bus(bus, dev);
 
+		DRVMGR_UNLOCK();
+
 		/* Trigger Device initialization if not root device and
 		 * has a driver
 		 */
 		if (dev->drv)
 			drvmgr_init_update();
-	}
+	} else
+		DRVMGR_UNLOCK();
 
 	return 0;
 }
@@ -527,8 +576,12 @@ int drvmgr_bus_register(struct drvmgr_bus *bus)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
 
+	DRVMGR_LOCK_WRITE();
+
 	/* Put driver into list of found buses */
 	drvmgr_list_add_tail(&mgr->buses[0], bus);
+
+	DRVMGR_UNLOCK();
 
 	/* Take bus into level1 and so on */
 	drvmgr_init_update();
@@ -578,7 +631,11 @@ int drvmgr_alloc_bus(struct drvmgr_bus **pbus, int extra)
 void drvmgr_bus_res_add(struct drvmgr_bus *bus,
 				struct drvmgr_bus_res *bres)
 {
-	/* insert first in bus resource list */
+	/* insert first in bus resource list. Locking isn't needed since
+	 * resources can only be added before resource requests are made.
+	 * When bus has been registered resources are considered a read-only
+	 * tree.
+	 */
 	bres->next = bus->reslist;
 	bus->reslist = bres;
 }
