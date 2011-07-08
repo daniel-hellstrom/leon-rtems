@@ -4,16 +4,16 @@
 #include <libcpu/access.h>
 
 struct pci_memreg_ops pci_memreg_sparc_le_ops = {
-	.ld8    = sparc_ld8,
-	.st8    = sparc_st8,
+	.ld8    = _ld8,
+	.st8    = _st8,
 
-	.ld_le16 = sparc_ld_le16,
-	.st_le16 = sparc_st_le16,
-	.ld_be16 = sparc_ld_be16,
-	.st_be16 = sparc_st_be16,
+	.ld_le16 = _ld_le16,
+	.st_le16 = _st_le16,
+	.ld_be16 = _ld_be16,
+	.st_be16 = _st_be16,
 
-	.ld_le32 = sparc_ld_le32,
-	.st_le32 = sparc_st_le32,
-	.ld_be32 = sparc_ld_be32,
-	.st_be32 = sparc_st_be16,
+	.ld_le32 = _ld_le32,
+	.st_le32 = _st_le32,
+	.ld_be32 = _ld_be32,
+	.st_be32 = _st_be16,
 };

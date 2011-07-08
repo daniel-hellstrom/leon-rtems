@@ -412,12 +412,12 @@ struct pci_access_drv at697pci_access_drv = {
 	},
 	.io =
 	{	/* AT697 only supports non-standard Big-Endian PCI Bus */
-		sparc_ld8,
-		sparc_ld_be16,
-		sparc_ld_be32,
-		sparc_st8,
-		sparc_st_be16,
-		sparc_st_be32,
+		_ld8,
+		_ld_be16,
+		_ld_be32,
+		_st8,
+		_st_be16,
+		_st_be32,
 
 	},
 	.memreg = &pci_memreg_sparc_be_ops,

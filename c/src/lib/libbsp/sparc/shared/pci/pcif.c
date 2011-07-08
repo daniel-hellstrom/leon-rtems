@@ -312,12 +312,12 @@ struct pci_access_drv pcif_access_drv = {
 	},
 	.io =	/* PCIF only supports Big-endian */
 	{
-		sparc_ld8,
-		sparc_ld_be16,
-		sparc_ld_be32,
-		sparc_st8,
-		sparc_st_be16,
-		sparc_st_be32,
+		_ld8,
+		_ld_be16,
+		_ld_be32,
+		_st8,
+		_st_be16,
+		_st_be32,
 	},
 	.memreg = &pci_memreg_sparc_be_ops,
 	.translate = pcif_translate,

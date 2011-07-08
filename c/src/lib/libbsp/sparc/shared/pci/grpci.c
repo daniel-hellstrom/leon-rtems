@@ -384,12 +384,12 @@ struct pci_access_drv grpci_access_drv = {
 	},
 	.io =
 	{
-		sparc_ld8,
-		sparc_ld_le16,
-		sparc_ld_le32,
-		sparc_st8,
-		sparc_st_le16,
-		sparc_st_le32,
+		_ld8,
+		_ld_le16,
+		_ld_le32,
+		_st8,
+		_st_le16,
+		_st_le32,
 	},
 	.memreg = &pci_memreg_sparc_le_ops,
 	.translate = grpci_translate,
@@ -397,12 +397,12 @@ struct pci_access_drv grpci_access_drv = {
 
 struct pci_io_ops grpci_io_ops_be =
 {
-	sparc_ld8,
-	sparc_ld_be16,
-	sparc_ld_be32,
-	sparc_st8,
-	sparc_st_be16,
-	sparc_st_be32,
+	_ld8,
+	_ld_be16,
+	_ld_be32,
+	_st8,
+	_st_be16,
+	_st_be32,
 };
 
 int grpci_hw_init(struct grpci_priv *priv)

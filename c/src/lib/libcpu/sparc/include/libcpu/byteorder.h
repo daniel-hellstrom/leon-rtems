@@ -1,8 +1,12 @@
 /*
  * byteorder.h  - Endian conversion for SPARC. SPARC is big endian only.
  *
- * Copyright (C) 2011  Daniel Hellstrom (daniel@gaisler.com)
+ *  COPYRIGHT (c) 2011
+ *  Aeroflex Gaisler.
  *
+ *  The license and distribution terms for this file may be
+ *  found in the file LICENSE in this distribution or at
+ *  http://www.rtems.com/license/LICENSE.
  */
 
 #ifndef _LIBCPU_BYTEORDER_H
