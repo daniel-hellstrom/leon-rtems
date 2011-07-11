@@ -289,7 +289,7 @@ void pcibus_dev_info(
 	struct pci_res *res;
 	char buf[64];
 	int i;
-	char *str1, *res_types[3] = {" IO16", "  MEM", "MEMIO"};
+	char *str1, *res_types[3] = {" IO16", "MEMIO", "  MEM"};
 	uint32_t pcistart;
 
 	if (!dev)
