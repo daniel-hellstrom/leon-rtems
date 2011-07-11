@@ -1,20 +1,18 @@
 /*  Driver Manager Configuration file.
  *
- *  COPYRIGHT (c) 2009.
+ *  COPYRIGHT (c) 2009-2011
  *  Aeroflex Gaisler AB
- *
- *  The configuration consist of an array with function pointers that
- *  register one or more drivers that will be used by the Driver Manger.
- * 
- *  The Functions are called in the order they are declared.
- *
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
  *  http://www.rtems.com/license/LICENSE.
  *
+ *  The configuration consist of an array with function pointers that
+ *  register one or more drivers that will be used by the Driver Manger.
+ *
+ *  The Functions are called in the order they are declared.
+ *
  */
-
 
 #ifndef _DRIVER_MANAGER_CONFDEFS_H_
 #define _DRIVER_MANAGER_CONFDEFS_H_
@@ -32,34 +30,34 @@ extern struct drvmgr_drv_reg_func drvmgr_drivers[];
 
 /*** AMBA Plug & Play Drivers ***/
 #define DRIVER_AMBAPP_GAISLER_GPTIMER_REG {gptimer_register_drv}
-extern void gptimer_register_drv (void);
+extern void gptimer_register_drv(void);
 
 #define DRIVER_AMBAPP_GAISLER_APBUART_REG {apbuart_cons_register_drv}
 extern void apbuart_cons_register_drv(void);
 
 #define DRIVER_AMBAPP_GAISLER_GRETH_REG {greth_register_drv}
-extern void greth_register_drv (void);
+extern void greth_register_drv(void);
 
 #define DRIVER_AMBAPP_GAISLER_GRSPW_REG {grspw_register_drv}
-extern void grspw_register_drv (void);
+extern void grspw_register_drv(void);
 
 #define DRIVER_AMBAPP_GAISLER_GRCAN_REG {grcan_register_drv}
-extern void grcan_register_drv (void);
+extern void grcan_register_drv(void);
 
 #define DRIVER_AMBAPP_GAISLER_OCCAN_REG {occan_register_drv}
-extern void occan_register_drv (void);
+extern void occan_register_drv(void);
 
 #define DRIVER_AMBAPP_GAISLER_B1553BRM_REG {b1553brm_register_drv}
-extern void b1553brm_register_drv (void);
+extern void b1553brm_register_drv(void);
 
 #define DRIVER_AMBAPP_GAISLER_B1553RT_REG {b1553rt_register_drv}
-extern void b1553rt_register_drv (void);
+extern void b1553rt_register_drv(void);
 
 #define DRIVER_AMBAPP_GAISLER_GRTM_REG {grtm_register_drv}
-extern void grtm_register_drv (void);
+extern void grtm_register_drv(void);
 
 #define DRIVER_AMBAPP_GAISLER_GRTC_REG {grtc_register_drv}
-extern void grtc_register_drv (void);
+extern void grtc_register_drv(void);
 
 #define DRIVER_AMBAPP_MCTRL_REG {mctrl_register_drv}
 extern void mctrl_register_drv(void);
@@ -152,7 +150,6 @@ extern void grtc_rmap_register_drv(void);
 #define DRIVER_RMAP_AMBAPP_GRTM {grtm_rmap_register_drv}
 extern void grtm_rmap_register_drv(void);
 
-	
 /*** AES drivers ***/
 #define DRIVER_AMBAPP_GAISLER_GRAES_REG {graes_register_drv}
 extern void graes_register_drv(void);
@@ -160,10 +157,9 @@ extern void graes_register_drv(void);
 /*** GRPWRX drivers ***/
 #define DRIVER_AMBAPP_GAISLER_GRPWRX_REG {grpwrx_register_drv}
 extern void grpwrx_register_drv(void);
-	
+
 /* CONFIGURE DRIVER MANAGER */
-struct drvmgr_drv_reg_func drvmgr_drivers[] =
-{
+struct drvmgr_drv_reg_func drvmgr_drivers[] = {
 	/*** AMBA Plug & Play Drivers ***/
 #ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GPTIMER
 	DRIVER_AMBAPP_GAISLER_GPTIMER_REG,
@@ -292,13 +288,13 @@ struct drvmgr_drv_reg_func drvmgr_drivers[] =
 #ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GRAES
 	DRIVER_AMBAPP_GAISLER_GRAES_REG,
 #endif
-	
+
 	/* GRPWRX AMBA Plug&Play driver */
 #ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GRPWRX
 	DRIVER_AMBAPP_GAISLER_GRPWRX_REG,
 #endif
 
-	
+
 /* Macros for adding custom drivers without needing to recompile
  * kernel.
  */

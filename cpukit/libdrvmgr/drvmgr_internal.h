@@ -1,6 +1,16 @@
-/*! Structure hold all information the driver manager needs to know of. Used internally
- *  by Driver Manager routines.
+/*  Private driver manager declarations
+ *
+ *  COPYRIGHT (c) 2009-2011
+ *  Aeroflex Gaisler AB
+ *
+ *  The license and distribution terms for this file may be
+ *  found in the file LICENSE in this distribution or at
+ *  http://www.rtems.com/license/LICENSE.
+ *
+ *  Structure hold all information the driver manager needs to know of. Used
+ *  internally by Driver Manager routines.
  */
+
 struct rtems_driver_manager {
 	int	level;
 	int	initializing_objs;
@@ -23,7 +33,7 @@ struct rtems_driver_manager {
 	 */
 	struct drvmgr_list	buses[DRVMGR_LEVEL_MAX+1];
 	/* Buses failed to initialize or has been removed by not freed */
-	struct drvmgr_list	buses_inactive;		
+	struct drvmgr_list	buses_inactive;
 
 	/* Devices that reached a certain initialization level.
 	 * Lists by Level:
@@ -31,7 +41,7 @@ struct rtems_driver_manager {
 	 *  N=1..MAX-1  - Reached init level N
 	 *  N=MAX       - Successfully initialized device
 	 */
-	struct drvmgr_list	devices[DRVMGR_LEVEL_MAX+1];	
+	struct drvmgr_list	devices[DRVMGR_LEVEL_MAX+1];
 	/*!< Devices failed to initialize, removed, ignored, no driver */
 	struct drvmgr_list	devices_inactive;
 };

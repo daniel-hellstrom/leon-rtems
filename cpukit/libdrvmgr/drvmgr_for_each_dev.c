@@ -17,12 +17,14 @@ int drvmgr_for_each_dev(
 
 	/* Get First Device */
 	dev = DEV_LIST_HEAD(devlist);
-	while ( dev ) {
-		if ( ((state_set_mask != 0) && ((dev->state & state_set_mask) == state_set_mask)) ||
-		     ((state_clr_mask != 0) && ((dev->state & state_clr_mask) == 0)) ||
-		     ((state_set_mask == 0) && (state_clr_mask == 0)) )
-			if ( (ret=func(dev, arg)) != 0 )
+	while (dev) {
+		if (((state_set_mask != 0) && ((dev->state & state_set_mask) == state_set_mask)) ||
+		    ((state_clr_mask != 0) && ((dev->state & state_clr_mask) == 0)) ||
+		    ((state_set_mask == 0) && (state_clr_mask == 0))) {
+			ret = func(dev, arg);
+			if (ret != 0)
 				break;
+		}
 		dev = dev->next;
 	}
 

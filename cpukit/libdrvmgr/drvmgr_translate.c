@@ -1,11 +1,14 @@
-/*  Driver Manager Driver Translate Interface Implementation.
+/*  Driver Manager Driver Translate Interface Implementation
  *
  *  COPYRIGHT (c) 2010.
  *  Aeroflex Gaisler AB
  *
- *  This is the part the device drivers use, the functions rely on that
- *  the parent bus driver has implemented the neccessary operations
- *  correctly.
+ *  The license and distribution terms for this file may be
+ *  found in the file LICENSE in this distribution or at
+ *  http://www.rtems.com/license/LICENSE.
+ *
+ *  Used by device drivers. The functions rely on that the parent bus driver
+ *  has implemented the neccessary operations correctly.
  *
  *  The translate functions are used to translate addresses between buses
  *  for DMA cores located on a "remote" bus, or for memory-mapped obtaining
@@ -14,13 +17,8 @@
  *  For an example, PCI I/O might be memory-mapped at the PCI Host bridge,
  *  say address 0xfff10000-0xfff1ffff is mapped to the PCI I/O address
  *  of 0x00000000-0x0000ffff. The PCI Host bridge driver may then set up
- *  a map so that a driver that get PCI address 0x100 can translate that 
+ *  a map so that a driver that get PCI address 0x100 can translate that
  *  into 0xfff10100.
- *
- *  The license and distribution terms for this file may be
- *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
- *
  */
 
 #include <stdio.h>
@@ -46,10 +44,10 @@ int drvmgr_mmap_translate(
 	struct drvmgr_mmap_entry *mmap;
 	char *src, *local_adr, *remote_adr;
 
-	if ( !dev || !dev->parent ) {
+	if (!dev || !dev->parent) {
 		ret = -1;
 		dst = (void *)0xffffffff;
-	} else if ( !dev->parent->mmaps ) {
+	} else if (!dev->parent->mmaps) {
 		dst = src_address;
 		ret = 0;
 	} else {
@@ -57,10 +55,10 @@ int drvmgr_mmap_translate(
 		dst = (void *)0xffffffff;
 		src = src_address;
 		mmap = dev->parent->mmaps;
-		while ( mmap->map_size != 0 ) {
+		while (mmap->map_size != 0) {
 
-			if ( from_remote_to_cpu ) {
-				/* Translate from remote address into 
+			if (from_remote_to_cpu) {
+				/* Translate from remote address into
 				 * CPU address
 				 */
 				local_adr = (char *)mmap->remote_adr;
@@ -81,7 +79,7 @@ int drvmgr_mmap_translate(
 			mmap++;
 		}
 	}
-	if ( dst_address )
+	if (dst_address)
 		*dst_address = dst;
 	return ret;
 }

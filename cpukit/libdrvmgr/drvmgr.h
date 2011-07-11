@@ -1,16 +1,12 @@
 /*  Driver Manager Interface.
  *
- *  COPYRIGHT (c) 2009.
+ *  COPYRIGHT (c) 2009-2011
  *  Aeroflex Gaisler AB
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
  *  http://www.rtems.com/license/LICENSE.
  *
- *
- *
- * Define this to make the driver manager do Breath First "searching" when 
- * initializing devices on buses. If not defined depth first will be used.
  */
 
 #ifndef _DRIVER_MANAGER_H_
@@ -52,23 +48,24 @@ struct drvmgr_drv;	/* Driver */
 #define DRVMGR_BUS_TYPE_AMBAPP_RMAP 7	/* SpaceWire RMAP accessed AMBA Plug & Play bus */
 
 enum {
- DRVMGR_OBJ_NONE = 0,
- DRVMGR_OBJ_DRV = 1,
- DRVMGR_OBJ_BUS = 2,
- DRVMGR_OBJ_DEV = 3,
+	DRVMGR_OBJ_NONE = 0,
+	DRVMGR_OBJ_DRV = 1,
+	DRVMGR_OBJ_BUS = 2,
+	DRVMGR_OBJ_DEV = 3,
 };
 
-/*** Driver indentification ***/ 
-
-/* 64-bit identification integer definition
- *  ¤ Bus ID 8-bit [7..0]
- *  ¤ Reserved 8-bit field [63..56]
- *  ¤ Device ID specific for bus type 48-bit [55..8]  (Different buses have different unique identifications for hardware/driver.)
+/*** Driver indentification ***
+ *
+ * 64-bit identification integer definition
+ *  * Bus ID 8-bit [7..0]
+ *  * Reserved 8-bit field [63..56]
+ *  * Device ID specific for bus type 48-bit [55..8]  (Different buses have
+ *    different unique identifications for hardware/driver.)
  *
  * ID Rules
- *  ¤ A root bus driver must always have device ID set to 0. There can only by one root bus driver
- *    for a certain bus type.
- *  ¤ A Driver ID must identify a unique hardware core
+ *  * A root bus driver must always have device ID set to 0. There can only by
+ *    one root bus driver for a certain bus type.
+ *  * A Driver ID must identify a unique hardware core
  *
  */
 
@@ -82,42 +79,40 @@ enum {
 #define DRIVER_ID_DEV_MASK 0x00FFFFFFFFFFFF00ULL
 
 /* Set Bus ID Mask. */
-#define DRIVER_ID(busid, devid) \
-	(unsigned long long)( (((unsigned long long)(devid) << 8) & DRIVER_ID_DEV_MASK) | ((unsigned long long)(busid) & DRIVER_ID_BUS_MASK) )
+#define DRIVER_ID(busid, devid) ((unsigned long long) \
+	((((unsigned long long)(devid) << 8) & DRIVER_ID_DEV_MASK) | \
+	 ((unsigned long long)(busid) & DRIVER_ID_BUS_MASK)))
 
 /* Get IDs */
-#define DRIVER_BUSID_GET(id)		((unsigned long long)(id) & DRIVER_ID_BUS_MASK)
-#define DRIVER_DEVID_GET(id)		(((unsigned long long)(id) & DRIVER_ID_DEV_MASK) >> 8)
+#define DRIVER_BUSID_GET(id)	((unsigned long long)(id) & DRIVER_ID_BUS_MASK)
+#define DRIVER_DEVID_GET(id)	(((unsigned long long)(id) & DRIVER_ID_DEV_MASK) >> 8)
 
 #define DRIVER_ROOTBUS_ID(bus_type)	DRIVER_ID(bus_type, 0)
 
 /*** Root Bus drivers ***/
 
 /* Generic Hard coded Root bus: Driver ID */
-#define DRIVER_ROOT_ID			DRIVER_ROOTBUS_ID(DRVMGR_BUS_TYPE_ROOT)
+#define DRIVER_ROOT_ID		DRIVER_ROOTBUS_ID(DRVMGR_BUS_TYPE_ROOT)
 
 /* PCI Plug & Play bus: Driver ID */
-#define DRIVER_PCIBUS_ID		DRIVER_ROOTBUS_ID(DRVMGR_BUS_TYPE_PCI)
+#define DRIVER_PCIBUS_ID	DRIVER_ROOTBUS_ID(DRVMGR_BUS_TYPE_PCI)
 
 /* AMBA Plug & Play bus: Driver ID */
-#define DRIVER_GRLIB_AMBAPP_ID		DRIVER_ROOTBUS_ID(DRVMGR_BUS_TYPE_AMBAPP)
+#define DRIVER_GRLIB_AMBAPP_ID	DRIVER_ROOTBUS_ID(DRVMGR_BUS_TYPE_AMBAPP)
 
 /* AMBA Hard coded bus: Driver ID */
-#define DRIVER_LEON2_AMBA_ID		DRIVER_ROOTBUS_ID(DRVMGR_BUS_TYPE_LEON2_AMBA)
+#define DRIVER_LEON2_AMBA_ID	DRIVER_ROOTBUS_ID(DRVMGR_BUS_TYPE_LEON2_AMBA)
 
 /* Distributed AMBA Plug & Play bus: Driver ID */
-#define DRIVER_AMBAPP_DIST_ID		DRIVER_ROOTBUS_ID(DRVMGR_BUS_TYPE_AMBAPP_DIST)
+#define DRIVER_AMBAPP_DIST_ID	DRIVER_ROOTBUS_ID(DRVMGR_BUS_TYPE_AMBAPP_DIST)
 
-/*! Bus parameters used by driver interface functions to aquire information about 
- * bus. All Bus drivers should implement the operation 'get_params' so that the
- * driver interface routines can access bus dependent information in an non-dependent 
- * way.
+/*! Bus parameters used by driver interface functions to aquire information
+ * about bus. All Bus drivers should implement the operation 'get_params' so
+ * that the driver interface routines can access bus dependent information in
+ * an non-dependent way.
  */
 struct drvmgr_bus_params {
-#if 0
-	unsigned int	freq_hz;		/*!< Frequency of bus in Hz */
-#endif
-	char		*dev_prefix;		/*!<  */
+	char		*dev_prefix;		/*!< Optional name prefix */
 };
 
 /* Interrupt Service Routine (ISR) */
@@ -156,19 +151,20 @@ struct drvmgr_func {
 #define DRVMGR_FUNC_END {0, NULL}
 
 /*** Resource definitions ***
- * 
+ *
  * Overview of structures:
- *  All bus resources entries (_bus_res) are linked together per bus (bus_info->reslist).
- *  One bus resource entry has a pointer to an array of driver resources (_drv_res). One driver 
- *  resouces is made out of an array of keys (drvmgr_key). All keys belongs to the 
- *  same driver and harwdare device. Each key has a Name, Type ID and Data interpreted 
- *  differently depending on the Type ID (union drvmgr_key_value).
+ *  All bus resources entries (_bus_res) are linked together per bus
+ *  (bus_info->reslist). One bus resource entry has a pointer to an array of
+ *  driver resources (_drv_res). One driver resouces is made out of an array
+ *  of keys (drvmgr_key). All keys belongs to the same driver and harwdare
+ *  device. Each key has a Name, Type ID and Data interpreted differently
+ *  depending on the Type ID (union drvmgr_key_value).
  *
  */
 
 /* Key Data Types */
 #define KEY_TYPE_NONE		0
-#define KEY_TYPE_INT 		1
+#define KEY_TYPE_INT		1
 #define KEY_TYPE_STRING		2
 #define KEY_TYPE_POINTER	3
 
@@ -178,9 +174,9 @@ struct drvmgr_func {
 
 /*! Union of different values */
 union drvmgr_key_value {
-	unsigned int		i;		/*!< Key data type UNSIGNED INTEGER */
-	char			*str;		/*!< Key data type STRING */
-	void			*ptr;		/*!< Key data type ADDRESS/POINTER */
+	unsigned int		i;	/*!< Key data type UNSIGNED INTEGER */
+	char			*str;	/*!< Key data type STRING */
+	void			*ptr;	/*!< Key data type ADDRESS/POINTER */
 };
 
 /* One key. One Value. Holding information relevant to the driver. */
@@ -190,8 +186,8 @@ struct drvmgr_key {
 	union drvmgr_key_value	key_value;	/* The value or pointer to the value */
 };
 
-/*! Driver resource entry, Driver resources for a certain device instance, containing a number of keys 
- * Where each key hold the data of interest.
+/*! Driver resource entry, Driver resources for a certain device instance,
+ *  containing a number of keys where each key hold the data of interest.
  */
 struct drvmgr_drv_res {
 	uint64_t		drv_id;		/*!< Identifies the driver this resource is aiming */
@@ -208,12 +204,12 @@ struct drvmgr_bus_res {
 /*! MAP entry. Describes an linear address space translation. Untranslated
  *  Start, Translated Start and length.
  *
- * Used by bus drivers to describe the address translation needed for 
+ * Used by bus drivers to describe the address translation needed for
  * the translation driver interface.
  */
 struct drvmgr_mmap_entry {
 	unsigned int	map_size;	/*!< Size of memory Window */
-	char		*local_adr;	/*!< Start address of Window from CPU's 
+	char		*local_adr;	/*!< Start address of Window from CPU's
 					 * point of view */
 	char		*remote_adr;	/*!< Start address of Remote system
 					 * point of view */
@@ -300,8 +296,9 @@ struct drvmgr_drv {
 	unsigned int		dev_priv_size;	/*!< If non-zero DRVMGR will allocate memory for dev->priv */
 };
 
-/*! Structure defines a function pointer called when driver manager is ready for drivers to register
- *  themselfs. Used to select drivers available to the driver manager.
+/*! Structure defines a function pointer called when driver manager is ready
+ *  for drivers to register themselfs. Used to select drivers available to the
+ *  driver manager.
  */
 struct drvmgr_drv_reg_func {
 	void (*drv_reg)(void);
@@ -322,7 +319,7 @@ enum {
 	DRVMGR_FAIL = -1
 };
 
-/*! Initialize data structures of the driver management system. 
+/*! Initialize data structures of the driver management system.
  *  Calls predefined register driver functions so that drivers can
  *  register themselves.
  */
@@ -357,15 +354,15 @@ extern int drvmgr_drv_register(struct drvmgr_drv *drv);
 /*! Register a device */
 extern int drvmgr_dev_register(struct drvmgr_dev *dev);
 
-/*! Remove a device, and all its children devices if device is a bus device. The device 
- *  driver will be requested to remove the device and once gone from bus, device and 
- *  driver list the device is put into a inactive list for debugging (this is optional
- *  by using remove argument).
+/*! Remove a device, and all its children devices if device is a bus device. The
+ *  device driver will be requested to remove the device and once gone from bus,
+ *  device and driver list the device is put into a inactive list for debugging
+ *  (this is optional by using remove argument).
  *
  * Removing the Root Bus Device is not supported.
  *
- * \param remove If non-zero the device will be deallocated, and not put into the 
- *               inacitve list.
+ * \param remove If non-zero the device will be deallocated, and not put into
+ *               the inacitve list.
  */
 extern int drvmgr_dev_unregister(struct drvmgr_dev *dev);
 
@@ -385,19 +382,19 @@ extern int drvmgr_children_unregister(struct drvmgr_bus *bus);
 /* Separate a device from the driver it has been united with */
 extern int drvmgr_dev_drv_separate(struct drvmgr_dev *dev);
 
-/*! Allocate a device structure, if no memory available rtems_error_fatal_occurred 
- * is called.
+/*! Allocate a device structure, if no memory available
+ *  rtems_error_fatal_occurred is called.
  * The 'extra' argment tells how many bytes extra space is to be allocated after
  * the device structure, this is typically used for "businfo" structures. The extra
  * space is always aligned to a 4-byte boundary.
  */
 extern int drvmgr_alloc_dev(struct drvmgr_dev **pdev, int extra);
 
-/*! Allocate a bus structure, if no memory available rtems_error_fatal_occurred 
+/*! Allocate a bus structure, if no memory available rtems_error_fatal_occurred
  * is called.
  * The 'extra' argment tells how many bytes extra space is to be allocated after
- * the device structure, this is typically used for "businfo" structures. The extra
- * space is always aligned to a 4-byte boundary.
+ * the device structure, this is typically used for "businfo" structures. The
+ * extra space is always aligned to a 4-byte boundary.
  */
 extern int drvmgr_alloc_bus(struct drvmgr_bus **pbus, int extra);
 
@@ -406,22 +403,23 @@ extern int drvmgr_alloc_bus(struct drvmgr_bus **pbus, int extra);
 /*! Add resources to a bus, typically used by a bus driver.
  *
  * \param bus   The Bus to add the resources to.
- * \param res   An array with Driver resources, all together are called bus resources.
+ * \param res   An array with Driver resources, all together are called bus
+ *              resources.
  */
 extern void drvmgr_bus_res_add(struct drvmgr_bus *bus,
 					struct drvmgr_bus_res *bres);
 
-/*! Find all the resource keys for a device among all driver resources on a bus. Typically
- *  used by a device driver to get configuration options.
+/*! Find all the resource keys for a device among all driver resources on a
+ *  bus. Typically used by a device driver to get configuration options.
  *
  * \param dev   Device to find resources for
  * \param key   Location where the pointer to the driver resource array (drvmgr_drv_res->keys) is stored.
  */
 extern int drvmgr_keys_get(struct drvmgr_dev *dev, struct drvmgr_key **keys);
 
-/*! Return the one key that matches key name from a driver keys array. The keys can be obtained
- *  using drvmgr_keys_get.
- *  
+/*! Return the one key that matches key name from a driver keys array. The keys
+ *  can be obtained using drvmgr_keys_get().
+ *
  * \param keys       An array of keys ended with KEY_EMPTY to search among.
  * \param key_name   Name of key to search for among the keys.
  */
@@ -429,28 +427,32 @@ extern struct drvmgr_key *drvmgr_key_get(struct drvmgr_key *keys, char *key_name
 
 /*! Extract key value from the key in the keys array matching name and type.
  *
- *  This function calls drvmgr_keys_get to get the key requested (from key name), then determines
- *  if the type is correct. A pointer to the key value is returned.
- *  
+ *  This function calls drvmgr_keys_get to get the key requested (from key
+ *  name), then determines if the type is correct. A pointer to the key value
+ *  is returned.
+ *
  *  \param keys       An array of keys ended with KEY_EMPTY to search among.
  *  \param key_name   Name of key to search for among the keys.
  *  \param key_type   Data Type of value. INTEGER, ADDRESS, STRING.
- *  \return           Returns NULL if no value found matching Key Name and Key Type.
+ *  \return           Returns NULL if no value found matching Key Name and Key
+ *                    Type.
  */
 extern union drvmgr_key_value *drvmgr_key_val_get(
 	struct drvmgr_key *keys,
 	char *key_name,
 	int key_type);
 
-/*! Get key value from the bus resources matching [device[drv_id, minor_bus], key name, key type] 
- * if no matching key NULL is returned.
+/*! Get key value from the bus resources matching [device[drv_id, minor_bus],
+ *  key name, key type] if no matching key NULL is returned.
  *
- * This is typically used by device drivers to find a particular device resource.
+ * This is typically used by device drivers to find a particular device
+ * resource.
  *
  * \param dev         The device to search resource for.
  * \param key_name    The key name to search for
  * \param key_type    The key type expected.
- * \return            Returns NULL if no value found matching Key Name and Key Type was found for device.
+ * \return            Returns NULL if no value found matching Key Name and
+ *                    Key Type was found for device.
  */
 extern union drvmgr_key_value *drvmgr_dev_key_get(
 	struct drvmgr_dev *dev,
@@ -460,7 +462,7 @@ extern union drvmgr_key_value *drvmgr_dev_key_get(
 /*** DRIVER INTERACE USED TO REQUEST INFORMATION/SERVICES FROM BUS DRIVER ***/
 
 /*! Get parent bus */
-static __inline__ struct drvmgr_bus *drvmgr_get_parent(struct drvmgr_dev *dev)
+static inline struct drvmgr_bus *drvmgr_get_parent(struct drvmgr_dev *dev)
 {
 	if (dev)
 		return dev->parent;
@@ -469,7 +471,7 @@ static __inline__ struct drvmgr_bus *drvmgr_get_parent(struct drvmgr_dev *dev)
 }
 
 /*! Get Driver of device */
-static __inline__ struct drvmgr_drv *drvmgr_get_drv(struct drvmgr_dev *dev)
+static inline struct drvmgr_drv *drvmgr_get_drv(struct drvmgr_dev *dev)
 {
 	if (dev)
 		return dev->drv;
@@ -477,13 +479,13 @@ static __inline__ struct drvmgr_drv *drvmgr_get_drv(struct drvmgr_dev *dev)
 		return NULL;
 }
 
-/*! Get Device pointer from Driver and Driver minor number 
+/*! Get Device pointer from Driver and Driver minor number
  *
  * \param drv         Driver the device is united with.
  * \param minor       Driver minor number assigned to device.
  * \param pdev        Location where the Device point will be stored.
- * \return            Zero on success. -1 on failure, when device was not found in driver 
- *                    device list.
+ * \return            Zero on success. -1 on failure, when device was not
+ *                    found in driver device list.
  */
 extern int drvmgr_get_dev(
 	struct drvmgr_drv *drv,
@@ -504,21 +506,24 @@ extern int drvmgr_freq_get(
 /*! Return 0 if dev is not located on the root bus, 1 if on root bus */
 extern int drvmgr_on_rootbus(struct drvmgr_dev *dev);
 
-/*! Get device name prefix, this name can be used to register a unique name in the 
- *  filesystem or to get an idea where the device is located.
+/*! Get device name prefix, this name can be used to register a unique name in
+ *  the bus->error filesystem or to get an idea where the device is located.
  *
  * \param dev         The Device to get the device Prefix for.
  * \param dev_prefix  Location where the prefix will be stored.
  */
 extern int drvmgr_get_dev_prefix(struct drvmgr_dev *dev, char *dev_prefix);
 
-/*! Register a shared interrupt handler. Since this service is shared among interrupt 
- *  drivers/handlers the handler[arg] must be installed before the interrupt can be
- *  cleared or disabled. The handler is by default disabled after registration.
+/*! Register a shared interrupt handler. Since this service is shared among
+ *  interrupt drivers/handlers the handler[arg] must be installed before the
+ *  interrupt can be cleared or disabled. The handler is by default disabled
+ *  after registration.
  *
- *  \param index      Index is used to identify the IRQ number if hardware has multiple IRQ sources. 
- *                    Normally Index is set to 0 to indicated the first and only IRQ source.
- *                    A negative index is interpreted as a absolute bus IRQ number.
+ *  \param index      Index is used to identify the IRQ number if hardware has
+ *                    multiple IRQ sources. Normally Index is set to 0 to
+ *                    indicated the first and only IRQ source.
+ *                    A negative index is interpreted as a absolute bus IRQ
+ *                    number.
  *  \param isr        Interrupt Service Routine.
  *  \param arg        Optional ISR argument.
  */
@@ -529,11 +534,13 @@ extern int drvmgr_interrupt_register(
 	drvmgr_isr isr,
 	void *arg);
 
-/*! Unregister an interrupt handler. This also disables the interrupt before unregistering
- *  the interrupt handler.
- *  \param index      Index is used to identify the IRQ number if hardware has multiple IRQ sources. 
- *                    Normally Index is set to 0 to indicated the first and only IRQ source.
- *                    A negative index is interpreted as a absolute bus IRQ number.
+/*! Unregister an interrupt handler. This also disables the interrupt before
+ *  unregistering the interrupt handler.
+ *  \param index      Index is used to identify the IRQ number if hardware has
+ *                    multiple IRQ sources. Normally Index is set to 0 to
+ *                    indicated the first and only IRQ source.
+ *                    A negative index is interpreted as a absolute bus IRQ
+ *                    number.
  *  \param isr        Interrupt Service Routine, previously registered.
  *  \param arg        Optional ISR argument, previously registered.
  */
@@ -546,7 +553,7 @@ extern int drvmgr_interrupt_unregister(
 /*! Clear (ACK) pending interrupt
  *
  *  \param dev        Device to clear interrupt for.
- *  \param index      Index is used to identify the IRQ number if hardware has multiple IRQ sources. 
+ *  \param index      Index is used to identify the IRQ number if hardware has multiple IRQ sources.
  *                    Normally Index is set to 0 to indicated the first and only IRQ source.
  *                    A negative index is interpreted as a absolute bus IRQ number.
  *  \param isr        Interrupt Service Routine, previously registered.
@@ -560,7 +567,7 @@ extern int drvmgr_interrupt_clear(
  *  if used the caller has masked/disabled the interrupt just before.
  *
  *  \param dev        Device to clear interrupt for.
- *  \param index      Index is used to identify the IRQ number if hardware has multiple IRQ sources. 
+ *  \param index      Index is used to identify the IRQ number if hardware has multiple IRQ sources.
  *                    Normally Index is set to 0 to indicated the first and only IRQ source.
  *                    A negative index is interpreted as a absolute bus IRQ number.
  *  \param isr        Interrupt Service Routine, previously registered.
@@ -574,7 +581,7 @@ extern int drvmgr_interrupt_unmask(
  *  since this will stop all other (shared) ISRs to be disabled until _unmask() is called.
  *
  *  \param dev        Device to mask interrupt for.
- *  \param index      Index is used to identify the IRQ number if hardware has multiple IRQ sources. 
+ *  \param index      Index is used to identify the IRQ number if hardware has multiple IRQ sources.
  *                    Normally Index is set to 0 to indicated the first and only IRQ source.
  *                    A negative index is interpreted as a absolute bus IRQ number.
  */
@@ -582,7 +589,7 @@ extern int drvmgr_interrupt_mask(
 	struct drvmgr_dev *dev,
 	int index);
 
-/*! Translate address 
+/*! Translate address
  * 1. From CPU local bus to a remote bus for example a PCI target (from_remote_to_cpu = 0)
  * 2. From remote bus to CPU local bus (from_remote_to_cpu = 1)
  *
@@ -715,8 +722,8 @@ extern void drvmgr_rw_memset(
 
 /*** PRINT INFORMATION ABOUT DRIVER MANAGER ***/
 
-/*! Calls func() for every device found matching the search requirements of 
- * set_mask and clr_mask. Each bit set in set_mask must be set in the 
+/*! Calls func() for every device found matching the search requirements of
+ * set_mask and clr_mask. Each bit set in set_mask must be set in the
  * device state bit mask (dev->state), and Each bit in the clr_mask must
  * be cleared in the device state bit mask (dev->state). There are three
  * special cases:
@@ -724,10 +731,10 @@ extern void drvmgr_rw_memset(
  * 1. If state_set_mask and state_clr_mask are zero the state bits are
  *    ignored and all cores are treated as a match.
  *
- * 2. If state_set_mask is zero the function func will not be called due to 
+ * 2. If state_set_mask is zero the function func will not be called due to
  *    a bit being set in the state mask.
  *
- * 3. If state_clr_mask is zero the function func will not be called due to 
+ * 3. If state_clr_mask is zero the function func will not be called due to
  *    a bit being cleared in the state mask.
  *
  * If the function func() returns a non-zero value then for_each_dev will
@@ -736,7 +743,7 @@ extern void drvmgr_rw_memset(
  * \param devlist            The list to iterate though searching for devices.
  * \param state_set_mask     Defines the bits that must be set in dev->state
  * \param state_clr_mask     Defines the bits that must be cleared in dev->state
- * \param func               Function called on each 
+ * \param func               Function called on each
  *
  */
 extern int drvmgr_for_each_dev(
