@@ -84,6 +84,7 @@ include_HEADERS += ../../sparc/shared/include/gr_701.h
 libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_rasta_adcdac.c
 libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_rasta_io.c
 libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_701.c
+libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_rasta_spw_router.c
 
 # B1553BRM
 libbsp_a_SOURCES += ../../sparc/shared/1553/b1553brm.c

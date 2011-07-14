@@ -44,6 +44,7 @@ EXTRA_DIST += shared/pci/gr_rasta_adcdac.c
 EXTRA_DIST += shared/pci/gr_rasta_io.c
 EXTRA_DIST += shared/pci/gr_701.c
 EXTRA_DIST += shared/pci/gr_tmtc_1553.c
+EXTRA_DIST += shared/pci/gr_rasta_spw_router.c
 
 # DEBUG
 EXTRA_DIST += shared/include/debug_defs.h
