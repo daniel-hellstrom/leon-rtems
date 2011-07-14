@@ -26,14 +26,22 @@ struct router_regs {
 	unsigned int routes[224];	/* 0x480 */
 	unsigned int pctrl[32];		/* 0x800 */
 	unsigned int psts[32];		/* 0x880 */
-	unsigned int tprescaler;	/* 0x900 */
-	unsigned int treload[31];	/* 0x904 */
+	unsigned int treload[32];	/* 0x900 */
 	unsigned int resv3[32];		/* 0x980 */
 	unsigned int cfgsts;		/* 0xA00 */
 	unsigned int timecode;		/* 0xA04 */
 	unsigned int ver;		/* 0xA08 */
 	unsigned int idiv;		/* 0xA0C */
 	unsigned int cfgwe;		/* 0xA10 */
+	unsigned int tprescaler;	/* 0xA14 */
+	unsigned int resv4[123];	/* 0xA18 */
+	unsigned int charo[31];		/* 0xC04 */
+	unsigned int resv5;		/* 0xC80 */
+	unsigned int chari[31];		/* 0xC84 */
+	unsigned int resv6;		/* 0xD00 */
+	unsigned int pkto[31];		/* 0xD04 */
+	unsigned int resv7;		/* 0xD80 */
+	unsigned int pkti[31];		/* 0xD84 */
 };
 
 struct router_priv {
@@ -131,7 +139,7 @@ int router_init2(struct drvmgr_dev *dev)
 	struct router_priv *priv = dev->priv;
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
-	char prefix[16];
+	char prefix[32];
 	rtems_status_code status;
 
 	if ( priv == NULL )
@@ -316,8 +324,8 @@ int router_config_set(struct router_priv *priv, struct router_config *cfg)
 
 	/* Write Timer Reload Register */
 	if ( cfg->flags & ROUTER_FLG_TRLD ) {
-		for (i=0; i<priv->nports; i++)
-			REG_WRITE(&priv->regs->treload[i], cfg->timer_reload[i-1]);
+		for (i=0; i<=priv->nports; i++)
+			REG_WRITE(&priv->regs->treload[i], cfg->timer_reload[i]);
 	}
 
 	return 0;
@@ -331,7 +339,7 @@ int router_config_read(struct router_priv *priv, struct router_config *cfg)
 	cfg->iid = REG_READ(&priv->regs->ver) & 0xff;
 	cfg->idiv = REG_READ(&priv->regs->idiv) & 0xff;
 	cfg->timer_prescaler = REG_READ(&priv->regs->tprescaler);
-	for (i=0; i<priv->nports; i++)
+	for (i=0; i<=priv->nports; i++)
 		cfg->timer_reload[i] = REG_READ(&priv->regs->treload[i]);
 
 	return 0;

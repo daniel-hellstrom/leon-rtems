@@ -35,7 +35,7 @@ struct router_config {
 
 	/* Timer Prescaler and Reload */
 	unsigned int timer_prescaler;
-	unsigned int timer_reload[31];
+	unsigned int timer_reload[32];
 };
 
 /* Logical routing table */
