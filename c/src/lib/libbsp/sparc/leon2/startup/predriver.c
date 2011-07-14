@@ -32,7 +32,8 @@ struct leon2_bus leon2_bus_config __attribute__((weak)) =
 {
         &drv_mgr_leon2_std_cores[0],   /* The standard cores, defined by driver */
         &leon2_amba_custom_cores[0],   /* custom cores, defined by us */
-        NULL
+        DRVMGR_TRANSLATE_ONE2ONE,
+	DRVMGR_TRANSLATE_ONE2ONE,
 };
 
 /* Driver resources on LEON2 AMBA bus. Used to set options for particular

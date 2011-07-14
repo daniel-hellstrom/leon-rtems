@@ -466,7 +466,7 @@ static int graes_start(struct graes_priv *pDev)
 
 
 	/* Set Descriptor Pointer Base register to point to first descriptor */
-	drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->bds, (void **)&transaddr);
+	drvmgr_translate(pDev->dev, 0, 0, (void *)pDev->bds, (void **)&transaddr);
 	regs->dma_bd = transaddr;
 	
 	DBG("GRAES: set bd to 0x%08x\n",transaddr);
@@ -699,7 +699,7 @@ static unsigned int graes_trans(struct graes_priv *pDev, struct graes_block *cur
 	 */
 	if ( curr_frm->flags & (GRAES_FLAGS_TRANSLATE|GRAES_FLAGS_TRANSLATE_AND_REMEMBER) ) {
 		/* Do translation */
-		drvmgr_mmap_translate(pDev->dev, 0, (void *)addr_in, (void **)&addr);
+		drvmgr_translate(pDev->dev, 0, 0, (void *)addr_in, (void **)&addr);
 		if ( curr_frm->flags & GRAES_FLAGS_TRANSLATE_AND_REMEMBER ) {
 			if ( addr_in != addr ) {
 				/* Translation needed */
@@ -770,9 +770,9 @@ static int graes_schedule_ready(struct graes_priv *pDev, int ints_off)
 			curr_bd->bd->u.d[i++] = addr;
 		}
 
-		drvmgr_mmap_translate(pDev->dev, 0, (void *)curr_bd->next->bd, (void **)&naddr);
+		drvmgr_translate(pDev->dev, 0, 0, (void *)curr_bd->next->bd, (void **)&naddr);
 		curr_bd->bd->u.d[i++] = naddr;
-		
+
 		if ( curr_bd->next == pDev->_ring ){
 			
 			/* Wrap around */

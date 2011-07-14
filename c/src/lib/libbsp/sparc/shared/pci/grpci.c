@@ -122,6 +122,10 @@ struct grpci_priv {
 	unsigned int			pci_conf_end;
 
 	uint32_t			devVend; /* Host PCI Vendor/Device ID */
+
+	struct drvmgr_map_entry	maps_up[2];
+	struct drvmgr_map_entry	maps_down[2];
+	struct pcibus_config	config;
 };
 
 int grpci_init1(struct drvmgr_dev *dev);
@@ -549,6 +553,22 @@ int grpci_init(struct grpci_priv *priv)
 		return -3;
 	}
 
+	/* Down streams translation table */
+	priv->maps_down[0].name = "AMBA -> PCI MEM Window";
+	priv->maps_down[0].size = priv->pci_area_end - priv->pci_area;
+	priv->maps_down[0].from_adr = priv->pci_area;
+	priv->maps_down[0].to_adr = priv->pci_area;
+	/* End table */
+	priv->maps_down[1].size = 0;
+
+	/* Up streams translation table */
+	priv->maps_up[0].name = "Target BAR1 -> AMBA";
+	priv->maps_up[0].size = priv->bar1_size;
+	priv->maps_up[0].from_adr = priv->bar1_pci_adr;
+	priv->maps_up[0].to_adr = priv->bar1_pci_adr;
+	/* End table */
+	priv->maps_up[1].size = 0;
+
 	return 0;
 }
 
@@ -622,7 +642,9 @@ int grpci_init1(struct drvmgr_dev *dev)
 		return DRVMGR_FAIL;
 	}
 
-	return pcibus_register(dev);
+	priv->config.maps_down = &priv->maps_down[0];
+	priv->config.maps_up = &priv->maps_up[0];
+	return pcibus_register(dev, &priv->config);
 }
 
 /* DMA functions which uses GRPCIs optional DMA controller (len in words) */

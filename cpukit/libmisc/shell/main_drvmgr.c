@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <drvmgr/drvmgr.h>
 
 #include <rtems.h>
@@ -276,6 +277,48 @@ int shell_drvmgr_mem(int argc, char *argv[])
   return 0;
 }
 
+int shell_drvmgr_translate(int argc, char *argv[])
+{
+  int rc, cpu, up, obj_type;
+  void *obj, *dst;
+  unsigned long src, tmp;
+
+  if (argc != 5)
+    return -1;
+
+  obj = get_obj_adr(argv[2]);
+  if (!obj)
+    return -3;
+
+  obj_type = *(int *)obj;
+  if (obj_type != DRVMGR_OBJ_DEV) {
+    puts(" ID is not a device\n");
+    return 0;
+  }
+
+  tmp = strtoul(argv[3], NULL, 0);
+  if (tmp > 3) {
+    puts(" Not a valid option OPT, only [0..3] is valid");
+    return 0;
+  }
+  cpu = tmp & 1;
+  up = (tmp >> 1) & 1;
+
+  src = strtoul(argv[4], NULL, 0);
+  if (src == ULONG_MAX && errno == ERANGE) {
+    puts(" Not a valid source address");
+    return 0;
+  }
+
+  rc = drvmgr_translate((struct drvmgr_dev *)obj, cpu, up, (void *)src, &dst);
+  if (rc != 0)
+    printf(" Address %p could not be translated\n", (void *)src);
+  else
+    printf(" %p => %p\n", (void *)src, dst);
+
+  return 0;
+}
+
 const char drvmgr_usage_str[] =
  " usage:\n"
  "  drvmgr buses         List bus specfic information on all buses\n"
@@ -291,6 +334,8 @@ const char drvmgr_usage_str[] =
  "  drvmgr short [ID]    Short info about all devices/buses or one\n"
  "                       device/bus\n"
  "  drvmgr topo          Show bus topology with all devices\n"
+ "  drvmgr tr ID OPT ADR Translate hw(0)/cpu(1) (OPT bit0) address ADR\n"
+ "                       down(0)/up(1) streams (OPT bit1) for device\n"
  "  drvmgr --help\n";
 
 static void usage(void)
@@ -309,7 +354,7 @@ struct shell_drvmgr_modifier {
   int (*func)(int argc, char *argv[]);
 };
 
-#define MODIFIER_NUM 11
+#define MODIFIER_NUM 12
 static struct shell_drvmgr_modifier shell_drvmgr_modifiers[MODIFIER_NUM] =
 {
   {"buses", shell_drvmgr_buses},
@@ -322,6 +367,7 @@ static struct shell_drvmgr_modifier shell_drvmgr_modifiers[MODIFIER_NUM] =
   {"res", shell_drvmgr_res},
   {"short", shell_drvmgr_short},
   {"topo", shell_drvmgr_topo},
+  {"tr", shell_drvmgr_translate},
   {"--help", shell_drvmgr_usage},
 };
 

@@ -517,7 +517,7 @@ static int pcibus_devs_register(struct drvmgr_bus *bus)
 
 /*** DEVICE FUNCTIONS ***/
 
-int pcibus_register(struct drvmgr_dev *dev)
+int pcibus_register(struct drvmgr_dev *dev, struct pcibus_config *config)
 {
 	struct pcibus_priv *priv;
 	int i, fid, rc;
@@ -533,7 +533,8 @@ int pcibus_register(struct drvmgr_dev *dev)
 	dev->bus->ops = &pcibus_ops;
 	dev->bus->dev_cnt = 0;
 	dev->bus->reslist = NULL;
-	dev->bus->mmaps = NULL;
+	dev->bus->maps_up = config->maps_up;
+	dev->bus->maps_down = config->maps_down;
 	dev->bus->funcs = &pcibus_funcs;
 
 	/* Copy function definitions from PCI Layer */

@@ -456,12 +456,12 @@ static rtems_device_driver grcan_start(struct grcan_priv *pDev)
   }
 
   /* Setup receiver */
-  drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->rx, (void **)&pDev->regs->rx0addr);
+  drvmgr_translate(pDev->dev, 0, 0, (void *)pDev->rx, (void **)&pDev->regs->rx0addr);
   /*pDev->regs->rx0addr = MEMAREA_TO_HW((unsigned int)pDev->rx);*/
   pDev->regs->rx0size = pDev->rxbuf_size;
 
   /* Setup Transmitter */
-  drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->tx, (void **)&pDev->regs->tx0addr);
+  drvmgr_translate(pDev->dev, 0, 0, (void *)pDev->tx, (void **)&pDev->regs->tx0addr);
   /*pDev->regs->tx0addr = MEMAREA_TO_HW((unsigned int)pDev->tx);*/
   pDev->regs->tx0size = pDev->txbuf_size;
 

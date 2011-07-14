@@ -350,8 +350,9 @@ int gr1553rt_bd_init(
 	if ( dataptr & 1 ) {
 		/* Translate address from CPU-local into remote */
 		dataptr &= ~1;
-		drvmgr_mmap_translate(
+		drvmgr_translate(
 			*priv->pdev,
+			0,
 			0,
 			(void *)dataptr,
 			(void **)&dataptr
@@ -396,8 +397,9 @@ int gr1553rt_bd_update(
 			 * be used when RT core is accessed over the PCI bus.
 			 */
 			dataptr &= ~1;
-			drvmgr_mmap_translate(
+			drvmgr_translate(
 				*priv->pdev,
+				0,
 				0,
 				(void *)dataptr,
 				(void **)&dataptr
@@ -834,8 +836,9 @@ int gr1553rt_sw_alloc(struct gr1553rt_priv *priv)
 		priv->evlog_buffer = malloc(priv->cfg.evlog_size * 2);
 	} else if ( (unsigned int)priv->cfg.evlog_buffer & 1 ) {
 		/* Translate Address from HARDWARE (REMOTE) to CPU-LOCAL */
-		drvmgr_mmap_translate(
+		drvmgr_translate(
 			*priv->pdev,
+			1,
 			1,
 			(void *)((unsigned int)priv->cfg.evlog_buffer & ~0x1),
 			(void **)&priv->evlog_buffer
@@ -851,8 +854,9 @@ int gr1553rt_sw_alloc(struct gr1553rt_priv *priv)
 		priv->bd_buffer = malloc(size);
 	} else if ( (unsigned int)priv->cfg.bd_buffer & 1 ) {
 		/* Translate Address from HARDWARE (REMOTE) to CPU-LOCAL */
-		drvmgr_mmap_translate(
+		drvmgr_translate(
 			*priv->pdev,
+			1,
 			1,
 			(void *)((unsigned int)priv->cfg.bd_buffer & ~0x1),
 			(void **)&priv->bd_buffer
@@ -875,8 +879,9 @@ int gr1553rt_sw_alloc(struct gr1553rt_priv *priv)
 		priv->satab_buffer = malloc((16 * 32) * 2);
 	} else if ( (unsigned int)priv->cfg.satab_buffer & 1 ) {
 		/* Translate Address from HARDWARE (REMOTE) to CPU-LOCAL */
-		drvmgr_mmap_translate(
+		drvmgr_translate(
 			*priv->pdev,
+			1,
 			1,
 			(void *)((unsigned int)priv->cfg.satab_buffer & ~0x1),
 			(void **)&priv->satab_buffer
@@ -902,8 +907,9 @@ void gr1553rt_sw_init(struct gr1553rt_priv *priv)
 	buf = (buf + 0x1ff) & ~0x1ff;
 	priv->sas_cpu = (struct gr1553rt_sa *)buf;
 	/* Translate Address from CPU-LOCAL to HARDWARE (REMOTE) */
-	drvmgr_mmap_translate(
+	drvmgr_translate(
 		*priv->pdev,
+		0,
 		0,
 		(void *)buf,
 		(void **)&priv->sas_hw
@@ -915,8 +921,9 @@ void gr1553rt_sw_init(struct gr1553rt_priv *priv)
 	buf = (buf + 0xf) & ~0xf;
 	priv->bds_cpu = (struct gr1553rt_bd *)buf;
 	/* Translate from CPU address to hardware address */
-	drvmgr_mmap_translate(
+	drvmgr_translate(
 		*priv->pdev,
+		0,
 		0,
 		(void *)buf,
 		(void **)&priv->bds_hw
@@ -929,8 +936,9 @@ void gr1553rt_sw_init(struct gr1553rt_priv *priv)
 	buf = (buf + (priv->cfg.evlog_size-1)) & ~(priv->cfg.evlog_size-1);
 	priv->evlog_cpu_base = (unsigned int *)buf;
 	/* Translate from CPU address to hardware address */
-	drvmgr_mmap_translate(
+	drvmgr_translate(
 		*priv->pdev,
+		0,
 		0,
 		(void *)buf,
 		(void **)&priv->evlog_hw_base

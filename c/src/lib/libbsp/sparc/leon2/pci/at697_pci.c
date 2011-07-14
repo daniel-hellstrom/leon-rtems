@@ -166,6 +166,10 @@ struct at697pci_priv {
 	uint32_t		devVend; /* PCI Device and Vendor ID of Host */
 	uint32_t		bar1_pci_adr;
 	uint32_t		bar2_pci_adr;
+
+	struct drvmgr_map_entry	maps_up[3];
+	struct drvmgr_map_entry	maps_down[2];
+	struct pcibus_config	config;
 };
 
 struct at697pci_priv *at697pcipriv = NULL;
@@ -532,6 +536,26 @@ int at697pci_init(struct at697pci_priv *priv)
 		return -3;
 	}
 
+	/* Down streams translation table */
+	priv->maps_down[0].name = "AMBA -> PCI MEM Window";
+	priv->maps_down[0].size = 0xF0000000 - 0xA0000000;
+	priv->maps_down[0].from_adr = 0xA0000000;
+	priv->maps_down[0].to_adr = 0xA0000000;
+	/* End table */
+	priv->maps_down[1].size = 0;
+
+	/* Up streams translation table, 2x16Mb mapped 1:1  */
+	priv->maps_up[0].name = "Target BAR0 -> AMBA";
+	priv->maps_up[0].size = 0x01000000; /* 16Mb BAR1 */
+	priv->maps_up[0].from_adr = priv->bar1_pci_adr;
+	priv->maps_up[0].to_adr = priv->bar1_pci_adr;
+	priv->maps_up[1].name = "Target BAR1 -> AMBA";
+	priv->maps_up[1].size = 0x01000000; /* 16Mb BAR2 */
+	priv->maps_up[1].from_adr = priv->bar2_pci_adr;
+	priv->maps_up[1].to_adr = priv->bar2_pci_adr;
+	/* End table */
+	priv->maps_up[2].size = 0;
+
 	return 0;
 }
 
@@ -588,7 +612,9 @@ int at697pci_init1(struct drvmgr_dev *dev)
 		return DRVMGR_FAIL;
 	}
 
-	return pcibus_register(dev);
+	priv->config.maps_down = &priv->maps_down[0];
+	priv->config.maps_up = &priv->maps_up[0];
+	return pcibus_register(dev, &priv->config);
 }
 
 int at697pci_init2(struct drvmgr_dev *dev)

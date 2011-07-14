@@ -576,6 +576,15 @@ int drvmgr_dev_register(struct drvmgr_dev *dev)
 int drvmgr_bus_register(struct drvmgr_bus *bus)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
+	struct drvmgr_bus *bus_up;
+
+	/* Get bus architecture depth - the distance from root bus */
+	bus->depth = 0;
+	bus_up = bus->dev->parent;
+	while (bus_up) {
+		bus->depth++;
+		bus_up = bus_up->dev->parent;
+	}
 
 	DRVMGR_LOCK_WRITE();
 

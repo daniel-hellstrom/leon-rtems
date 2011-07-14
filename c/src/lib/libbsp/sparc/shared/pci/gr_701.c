@@ -103,8 +103,9 @@ struct gr701_priv {
 	genirq_t			genirq;
 	int				interrupt_cnt;
 
-	/* GR-701 */
-	struct drvmgr_mmap_entry	bus_maps[3];
+	/* GR-701 Address translation */
+	struct drvmgr_map_entry		bus_maps_up[2];
+	struct drvmgr_map_entry		bus_maps_down[2];
 
 	/* AMBA Plug&Play information on GR-701 */
 	struct ambapp_bus		abus;
@@ -250,6 +251,10 @@ int gr701_hw_init(struct gr701_priv *priv)
 			break;
 	}
 
+	/* Setup Address translation for AMBA bus, assume that PCI BAR
+	 * are mapped 1:1 to CPU.
+	 */
+
 	priv->amba_maps[0].size = 0x04000000;
 	priv->amba_maps[0].local_adr = devinfo->resources[1].address;
 	priv->amba_maps[0].remote_adr = 0xfc000000;
@@ -259,14 +264,21 @@ int gr701_hw_init(struct gr701_priv *priv)
 	priv->amba_maps[1].local_adr = 0;
 	priv->amba_maps[1].remote_adr = 0;
 
-	priv->bus_maps[0].map_size = priv->amba_maps[0].size;
-	priv->bus_maps[0].local_adr = priv->amba_maps[0].local_adr;
-	priv->bus_maps[0].remote_adr = priv->amba_maps[0].remote_adr;
+	/* Setup DOWN-streams address translation */
+	priv->bus_maps_down[0].name = "PCI BAR1 -> AMBA";
+	priv->bus_maps_down[0].size = priv->amba_maps[0].size;
+	priv->bus_maps_down[0].from_adr = devinfo->resources[1].address;
+	priv->bus_maps_down[0].to_adr = 0xfc000000;
 
-	/* Mark end of table */
-	priv->bus_maps[1].map_size = 0;
-	priv->bus_maps[1].local_adr = 0;
-	priv->bus_maps[1].remote_adr = 0;
+	/* Setup UP-streams address translation */
+	priv->bus_maps_up[0].name = "AMBA PCIF Window";
+	priv->bus_maps_up[0].size = 0x10000000;
+	priv->bus_maps_up[0].from_adr = 0xe0000000;
+	priv->bus_maps_up[0].to_adr = 0x40000000;
+
+	/* Mark end of translation tables */
+	priv->bus_maps_down[1].size = 0;
+	priv->bus_maps_up[1].size = 0;
 
 	/* Enable I/O and Mem accesses */
 	pci_cfg_r32(pcidev, PCI_COMMAND, &com1);
@@ -370,7 +382,8 @@ int gr701_init1(struct drvmgr_dev *dev)
 	/* Init amba bus */
 	priv->config.abus = &priv->abus;
 	priv->config.ops = &ambapp_gr701_ops;
-	priv->config.mmaps = &priv->bus_maps[0];
+	priv->config.maps_up = &priv->bus_maps_up[0];
+	priv->config.maps_down = &priv->bus_maps_down[0];
 	if ( priv->dev->minor_drv < gr701_resources_cnt ) {
 		priv->config.resources = gr701_resources[priv->dev->minor_drv];
 	} else {

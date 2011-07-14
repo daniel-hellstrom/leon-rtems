@@ -149,7 +149,8 @@ int ambapp_grlib_init1(struct drvmgr_dev *dev)
 		return RTEMS_NO_MEMORY;
 
 	config->ops = &ambapp_grlib_ops;
-	config->mmaps = NULL;
+	config->maps_up = DRVMGR_TRANSLATE_ONE2ONE;
+	config->maps_down = DRVMGR_TRANSLATE_ONE2ONE;
 	config->abus = drv_mgr_grlib_config->abus;
 	config->resources = drv_mgr_grlib_config->resources;
 	config->funcs = ambapp_grlib_funcs;

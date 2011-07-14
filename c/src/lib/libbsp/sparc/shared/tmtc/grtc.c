@@ -1636,7 +1636,7 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 					
 					/* Translate the base address into an address that the the CPU can understand */
 					mem = ((unsigned int)buf_arg->custom_buffer & ~1);
-					drvmgr_mmap_translate(pDev->dev, 1, (void *)mem, (void **)&pDev->buf);
+					drvmgr_translate(pDev->dev, 1, 1, (void *)mem, (void **)&pDev->buf);
 				} else {
 					pDev->buf = buf_arg->custom_buffer;
 				}
@@ -1655,7 +1655,7 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 			}
 		}
 		/* Translate into a remote address so that GRTC core on a remote AMBA bus (for example over the PCI bus) gets a valid address */
-		drvmgr_mmap_translate(pDev->dev, 0, (void *)pDev->buf, (void **)&pDev->buf_remote);
+		drvmgr_translate(pDev->dev, 0, 0, (void *)pDev->buf, (void **)&pDev->buf_remote);
 		break;
 
 		case GRTC_IOC_GET_BUF_PARAM:

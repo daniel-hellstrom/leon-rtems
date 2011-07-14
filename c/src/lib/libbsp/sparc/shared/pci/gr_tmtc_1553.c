@@ -74,7 +74,7 @@ struct gr_tmtc_1553_priv {
 
 	struct gr_tmtc_1553_ver         *version;
 	LEON3_IrqCtrl_Regs_Map		*irq;
-	struct drvmgr_mmap_entry	bus_maps[4];
+	struct drvmgr_map_entry		bus_maps_down[2];
 
 	struct ambapp_bus		abus;
 	struct ambapp_mmap		amba_maps[4];
@@ -274,18 +274,13 @@ int gr_tmtc_1553_hw_init(struct gr_tmtc_1553_priv *priv)
 	priv->irq->iclear = 0xffff;
 	priv->irq->ilevel = 0;
 
-	priv->bus_maps[0].map_size = priv->amba_maps[0].size;
-	priv->bus_maps[0].local_adr = priv->amba_maps[0].local_adr;
-	priv->bus_maps[0].remote_adr = priv->amba_maps[0].remote_adr;
-
-
-	priv->bus_maps[2].map_size = 0xfffffff0; /* AMBA->PCI Window on GR-TMTC-1553 board */
-	priv->bus_maps[2].local_adr = 0;
-	priv->bus_maps[2].remote_adr = 0;
-
-	priv->bus_maps[3].map_size = 0;
-	priv->bus_maps[3].local_adr = 0;
-	priv->bus_maps[3].remote_adr = 0;
+	/* DOWN streams translation table */
+	priv->bus_maps_down[0].name = "PCI BAR0 -> AMBA";
+	priv->bus_maps_down[0].size = priv->amba_maps[0].size;
+	priv->bus_maps_down[0].from_adr = priv->amba_maps[0].local_adr;
+	priv->bus_maps_down[0].to_adr = priv->amba_maps[0].remote_adr;
+	/* Mark end of translation table */
+	priv->bus_maps_down[1].size = 0;
 
 	/* Successfully registered the board */
 	return 0;
@@ -366,7 +361,11 @@ int gr_tmtc_1553_init1(struct drvmgr_dev *dev)
 	/* Init amba bus */
 	priv->config.abus = &priv->abus;
 	priv->config.ops = &ambapp_tmtc_1553_ops;
-	priv->config.mmaps = &priv->bus_maps[0];
+	priv->config.maps_down = &priv->bus_maps_down[0];
+	/* This PCI device has only target interface so DMA is not supported,
+	 * which means that translation from AMBA->PCI should fail if attempted.
+	 */
+	priv->config.maps_up = DRVMGR_TRANSLATE_NO_BRIDGE;
 	if ( priv->dev->minor_drv < gr_tmtc_1553_resources_cnt ) {
 		priv->config.resources = gr_tmtc_1553_resources[priv->dev->minor_drv];
 	} else {

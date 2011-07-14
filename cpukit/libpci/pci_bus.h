@@ -115,7 +115,8 @@ struct pcibus_regmem_ops {
 
 /* Let driver configure PCI bus driver */
 struct pcibus_config {
-	struct pcibus_regmem_ops *memreg_ops;
+	struct drvmgr_map_entry		*maps_up;
+	struct drvmgr_map_entry		*maps_down;
 };
 
 /* PCI Configuration Space Access - Not implemented (use PCI Lib directly) */
@@ -148,7 +149,7 @@ struct pcibus_config {
 extern struct drvmgr_bus_res pcibus_drv_resources;
 
 /* Attach a PCI bus on top of a PCI Host device */
-extern int pcibus_register(struct drvmgr_dev *dev);
+extern int pcibus_register(struct drvmgr_dev *dev, struct pcibus_config *cfg);
 
 #ifdef __cplusplus
 }

@@ -287,10 +287,28 @@ void drvmgr_info_dev(struct drvmgr_dev *dev, unsigned int options)
 	}
 }
 
+void drvmgr_info_bus_map(struct drvmgr_map_entry *map)
+{
+	if (map == NULL)
+		printf("    Addresses mapped 1:1\n");
+	else if (map == DRVMGR_TRANSLATE_NO_BRIDGE)
+		printf("    No bridge in this direction\n");
+	else {
+		while (map->size != 0) {
+			printf("    0x%08lx-0x%08lx => 0x%08lx-0x%08lx  %s\n",
+				(unsigned long)map->from_adr,
+				(unsigned long)(map->from_adr + map->size - 1),
+				(unsigned long)map->to_adr,
+				(unsigned long)(map->to_adr + map->size - 1),
+				map->name ? map->name : "no label");
+			map++;
+		}
+	}
+}
+
 void drvmgr_info_bus(struct drvmgr_bus *bus, unsigned int options)
 {
 	struct drvmgr_dev *dev;
-	int i;
 
 	/* Print Driver */
 	printf("-- BUS %p --\n", bus);
@@ -303,8 +321,17 @@ void drvmgr_info_bus(struct drvmgr_bus *bus, unsigned int options)
 	printf("  STATE:       0x%08x\n", bus->state);
 	printf("  ERROR:       %d\n", bus->error);
 
+	/* Print address mappings up- (to parent) and down- (from parent to
+	 * this bus) stream the bridge of this bus
+	 */
+	printf("  DOWN STREAMS BRIDGE MAPPINGS  (from parent to this bus)\n");
+	drvmgr_info_bus_map(bus->maps_down);
+	printf("  UP STREAMS BRIDGE MAPPINGS    (from this bus to parent)\n");
+	drvmgr_info_bus_map(bus->maps_up);
+
 	/* Print Devices on this bus? */
 	if (options & OPTION_BUS_DEVS) {
+		printf("  CHILDREN:\n");
 		DRVMGR_LOCK_READ();
 		dev = bus->children;
 		while (dev) {

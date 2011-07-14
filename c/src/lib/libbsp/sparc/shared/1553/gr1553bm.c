@@ -220,8 +220,9 @@ int gr1553bm_config(void *bm, struct gr1553bm_config *cfg)
 			 * to convert it intoTranslate into Hardware a
 			 * hardware accessible address
 			 */
-			drvmgr_mmap_translate(
+			drvmgr_translate(
 				*priv->pdev,
+				1,
 				1,
 				(void *)((unsigned int)cfg->buffer_custom & ~1),
 				(void **)&priv->buffer
@@ -236,12 +237,13 @@ int gr1553bm_config(void *bm, struct gr1553bm_config *cfg)
 
 	/* Align to 16 bytes */
 	priv->buffer_base = ((unsigned int)priv->buffer + (8-1)) & ~(8-1);
-	
+
 	/* Translate address of buffer base into address that Hardware must
 	 * use to access the buffer.
 	 */
-	drvmgr_mmap_translate(
+	drvmgr_translate(
 		*priv->pdev,
+		0,
 		0,
 		(void *)priv->buffer_base,
 		(void **)&priv->buffer_base_hw

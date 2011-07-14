@@ -231,7 +231,8 @@ int leon2_amba_init1(struct drvmgr_dev *dev)
 	dev->bus->ops = &leon2_amba_bus_ops;
 	dev->bus->dev_cnt = 0;
 	dev->bus->reslist = NULL;
-	dev->bus->mmaps = drv_mgr_leon2_bus_config->mmaps;
+	dev->bus->maps_up = drv_mgr_leon2_bus_config->maps_up;
+	dev->bus->maps_down = drv_mgr_leon2_bus_config->maps_down;
 	drvmgr_bus_register(dev->bus);
 
 	return DRVMGR_OK;

@@ -62,7 +62,8 @@ struct leon2_core {
 struct leon2_bus {
 	struct leon2_core		*std_cores;	/* The LEON2 standard cores */
 	struct leon2_core		*custom_cores;	/* Custom cores on the same bus */
-	struct drvmgr_mmap_entry	*mmaps;		/* Memory map */
+	struct drvmgr_map_entry		*maps_up;	/* Memory map ip-stream */
+	struct drvmgr_map_entry		*maps_down;	/* Memory map down-stream */
 };
 
 extern struct leon2_core drv_mgr_leon2_std_cores[];

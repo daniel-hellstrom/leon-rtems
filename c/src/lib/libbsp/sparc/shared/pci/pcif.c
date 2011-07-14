@@ -106,6 +106,11 @@ struct pcif_priv {
 	unsigned int			pci_conf_end;
 
 	uint32_t			devVend; /* Host PCI Vendor/Device ID */
+	uint32_t			bar1_size;
+
+	struct drvmgr_map_entry		maps_up[2];
+	struct drvmgr_map_entry		maps_down[2];
+	struct pcibus_config		config;
 };
 
 int pcif_init1(struct drvmgr_dev *dev);
@@ -329,7 +334,7 @@ struct pci_access_drv pcif_access_drv = {
 int pcif_hw_init(struct pcif_priv *priv)
 {
 	struct pcif_regs *regs;
-	uint32_t data;
+	uint32_t data, size;
 	int mst;
 	pci_dev_t host = PCI_DEV(0, 0, 0);
 
@@ -357,6 +362,11 @@ int pcif_hw_init(struct pcif_priv *priv)
 	regs->bars[1] = 0;
 	regs->bars[2] = 0;
 	regs->bars[3] = 0;
+
+	/* determine size of target BAR1 */
+	pcif_cfg_w32(host, PCI_BASE_ADDRESS_1, 0xffffffff);
+	pcif_cfg_r32(host, PCI_BASE_ADDRESS_1, &size);
+	priv->bar1_size = (~(size & ~0xf)) + 1;
 
 	pcif_cfg_w32(host, PCI_BASE_ADDRESS_0, 0);
 	pcif_cfg_w32(host, PCI_BASE_ADDRESS_1, SYSTEM_MAINMEM_START);
@@ -450,6 +460,22 @@ int pcif_init(struct pcif_priv *priv)
 		return -3;
 	}
 
+	/* Down streams translation table */
+	priv->maps_down[0].name = "AMBA -> PCI MEM Window";
+	priv->maps_down[0].size = priv->pci_area_end - priv->pci_area;
+	priv->maps_down[0].from_adr = priv->pci_area;
+	priv->maps_down[0].to_adr = priv->pci_area;
+	/* End table */
+	priv->maps_down[1].size = 0;
+
+	/* Up streams translation table */
+	priv->maps_up[0].name = "Target BAR1 -> AMBA";
+	priv->maps_up[0].size = priv->bar1_size;
+	priv->maps_up[0].from_adr = SYSTEM_MAINMEM_START;
+	priv->maps_up[0].to_adr = SYSTEM_MAINMEM_START;
+	/* End table */
+	priv->maps_up[1].size = 0;
+
 	return 0;
 }
 
@@ -511,8 +537,9 @@ int pcif_init1(struct drvmgr_dev *dev)
 		return DRVMGR_FAIL;
 	}
 
-
-	return pcibus_register(dev);
+	priv->config.maps_down = &priv->maps_down[0];
+	priv->config.maps_up = &priv->maps_up[0];
+	return pcibus_register(dev, &priv->config);
 }
 
 int pcif_init3(struct drvmgr_dev *dev)

@@ -242,6 +242,10 @@ struct grpci2_priv {
 	unsigned int			pci_conf_end;
 
 	uint32_t			devVend; /* Host PCI Device/Vendor ID */
+
+	struct drvmgr_map_entry		maps_up[7];
+	struct drvmgr_map_entry		maps_down[2];
+	struct pcibus_config		config;
 };
 
 int grpci2_init1(struct drvmgr_dev *dev);
@@ -695,11 +699,12 @@ int grpci2_init(struct grpci2_priv *priv)
 {
 	struct ambapp_apb_info *apb;
 	struct ambapp_ahb_info *ahb;
-	int pin, erridx;
+	int pin, i, j;
 	union drvmgr_key_value *value;
 	char keyname[6];
 	struct amba_dev_info *ainfo = priv->dev->businfo;
 	struct grpci2_pcibar_cfg *barcfg;
+	unsigned int size;
 
 	/* Find PCI core from Plug&Play information */
 	apb = ainfo->info.apb_slv;
@@ -777,6 +782,33 @@ int grpci2_init(struct grpci2_priv *priv)
 	if (grpci2_hw_init(priv))
 		return -3;
 
+	/* Down streams translation table */
+	priv->maps_down[0].name = "AMBA -> PCI MEM Window";
+	priv->maps_down[0].size = priv->pci_area_end - priv->pci_area;
+	priv->maps_down[0].from_adr = priv->pci_area;
+	priv->maps_down[0].to_adr = priv->pci_area;
+	/* End table */
+	priv->maps_down[1].size = 0;
+
+	/* Up streams translation table */
+	/* Setup the Host's PCI Target BARs for others to access (DMA) */
+	barcfg = priv->barcfg;
+	for (i=0,j=0; i<6; i++) {
+		size = barcfg[i].barsize;
+		if (size == 0)
+			continue;
+
+		/* Make sure address is properly aligned */
+		priv->maps_up[j].name = "Target BAR[I] -> AMBA";
+		priv->maps_up[j].size = size;
+		priv->maps_up[j].from_adr = barcfg[i].pciadr & ~(size - 1);
+		priv->maps_up[j].to_adr = barcfg[i].ahbadr & ~(size - 1);
+		j++;
+	}
+
+	/* End table */
+	priv->maps_up[j].size = 0;
+
 	return 0;
 }
 
@@ -850,7 +882,9 @@ int grpci2_init1(struct drvmgr_dev *dev)
 	}
 
 	/* Initialize/Register Driver Manager PCI Bus */
-	return pcibus_register(dev);
+	priv->config.maps_down = &priv->maps_down[0];
+	priv->config.maps_up = &priv->maps_up[0];
+	return pcibus_register(dev, &priv->config);
 }
 
 int grpci2_init3(struct drvmgr_dev *dev)

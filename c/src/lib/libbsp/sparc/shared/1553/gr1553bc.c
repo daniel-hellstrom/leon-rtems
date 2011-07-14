@@ -321,8 +321,9 @@ int gr1553bc_list_table_alloc
 		/* Address given in Hardware accessible address, we
 		 * convert it into CPU-accessible address.
 		 */
-		drvmgr_mmap_translate(
+		drvmgr_translate(
 			*bcpriv->pdev,
+			1,
 			1,
 			(void *)((unsigned int)bdtab_custom & ~0x1),
 			(void **)&list->_table
@@ -342,8 +343,9 @@ int gr1553bc_list_table_alloc
 	 * that into an address which the Hardware can understand
 	 */
 	if ( bcpriv ) {
-		drvmgr_mmap_translate(
+		drvmgr_translate(
 			*bcpriv->pdev,
+			0,
 			0,
 			(void *)list->table_cpu,
 			(void **)&list->table_hw
@@ -1035,8 +1037,9 @@ int gr1553bc_slot_transfer(
 	if ( (unsigned int)dptr & 0x1 ) {
 		struct gr1553bc_priv *bcpriv = list->bc;
 
-		drvmgr_mmap_translate(
+		drvmgr_translate(
 			*bcpriv->pdev,
+			0,
 			0,
 			(void *)((unsigned int)dptr & ~0x1),
 			(void **)&dptr
@@ -1108,8 +1111,9 @@ int gr1553bc_slot_update
 		 * cores.
 		 */
 		if ( dataptr & 0x1 ) {
-			drvmgr_mmap_translate(
+			drvmgr_translate(
 				*bcpriv->pdev,
+				0,
 				0,
 				(void *)(dataptr & ~0x1),
 				(void **)&dptr
@@ -1472,9 +1476,10 @@ void gr1553bc_device_init(struct gr1553bc_priv *priv)
 	priv->irq_log_base = (uint32_t *)
 		(((uint32_t)priv->irq_log_p + (GR1553BC_IRQLOG_SIZE-1)) & 
 		~(GR1553BC_IRQLOG_SIZE-1));
-	/* Translate into Hardware a hardware accessible address */
-	drvmgr_mmap_translate(
+	/* Translate into a hardware accessible address */
+	drvmgr_translate(
 		*priv->pdev,
+		0,
 		0,
 		(void *)priv->irq_log_base,
 		(void **)&priv->irq_log_base_hw

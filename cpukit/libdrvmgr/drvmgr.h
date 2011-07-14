@@ -207,18 +207,22 @@ struct drvmgr_bus_res {
  * Used by bus drivers to describe the address translation needed for
  * the translation driver interface.
  */
-struct drvmgr_mmap_entry {
-	unsigned int	map_size;	/*!< Size of memory Window */
-	char		*local_adr;	/*!< Start address of Window from CPU's
-					 * point of view */
-	char		*remote_adr;	/*!< Start address of Remote system
-					 * point of view */
+struct drvmgr_map_entry {
+	char		*name;		/*!< Map Name */
+	unsigned int	size;		/*!< Size of map window */
+	char		*from_adr;	/*!< Start address of access window used
+					 *   to reach into remote bus */
+	char		*to_adr;	/*!< Start address of remote system
+					 *   address range */
 };
+#define DRVMGR_TRANSLATE_ONE2ONE	NULL
+#define DRVMGR_TRANSLATE_NO_BRIDGE	((void *)1)  /* No bridge, error */
 
 /*! Bus information. Describes a bus. */
 struct drvmgr_bus {
 	int			obj_type;	/*!< DRVMGR_OBJ_BUS */
-	int			bus_type;	/*!< Type of bus */
+	unsigned char		bus_type;	/*!< Type of bus */
+	unsigned char		depth;		/*!< Bus level distance from root bus */
 	struct drvmgr_bus	*next;		/*!< Next Bus */
 	struct drvmgr_dev	*dev;		/*!< Bus device, the hardware... */
 	void			*priv;		/*!< Private data structure used by BUS driver */
@@ -227,7 +231,8 @@ struct drvmgr_bus {
 	struct drvmgr_func	*funcs;		/*!< Extra operations */
 	int			dev_cnt;	/*!< Number of devices this bus has */
 	struct drvmgr_bus_res	*reslist;	/*!< Bus resources, head of a linked list of resources. */
-	struct drvmgr_mmap_entry	*mmaps;		/*!< Memory Map Translation, array of address spaces */
+	struct drvmgr_map_entry	*maps_up;	/*!< Map Translation, array of address spaces upstreams to CPU */
+	struct drvmgr_map_entry	*maps_down;	/*!< Map Translation, array of address spaces downstreams to Hardware */
 
 	/* Bus status */
 	int			level;
@@ -589,25 +594,68 @@ extern int drvmgr_interrupt_mask(
 	struct drvmgr_dev *dev,
 	int index);
 
-/*! Translate address
- * 1. From CPU local bus to a remote bus for example a PCI target (from_remote_to_cpu = 0)
- * 2. From remote bus to CPU local bus (from_remote_to_cpu = 1)
+/*! Translate an address on one bus to an address on another bus.
  *
- * src_address the address to translate, dst_address is where the translated address is stored.
+ *  The device determines source or destination bus, the root bus is always
+ *  the other bus. It is assumed that the CPU is located on the root bus or
+ *  that it can access it without address translation (mapped 1:1).
  *
- * \param dev                  Device to translate addresses for.
- * \param from_remote_to_cpu   Selection tranlation direction.
- * \param src_address          Address to translate
- * \param dst_address          Location where translated address is stored.
+ *  cpu_addresses determines if the address is targeted for the CPU (1) or
+ *  hardware (0) doing DMA.
  *
- * Returns -1 if unable to translate. If no map is present src_address is translated 1:1 (just copied).
+ *  The address conversion can be done up-streams (towards the CPU) or down-
+ *  streams (towards DMA hardware) the bus architecture. The CPU is assumed
+ *  to be located on level 0 top most in the bus hierarchy.
+ *
+ *  Source address is translated and the result is put into *dst_address, if
+ *  the address is not accessible on the other bus -1 is returned.
+ *
+ *  Two common operations is to translate a CPU accessible RAM address to an
+ *  address that DMA units can access (dev=DMA-unit, cpu_address=0, upstream=0,
+ *  src_address=CPU-RAM-ADR) and to translate an address of a PCI resource for
+ *  example RAM mapped into a PCI BAR to an CPU accessible address
+ *  (dev=PCI-device, cpu_address=1, upstream=1, src_address=PCI-BAR-ADR).
+ *
+ *  \param dev             Device to translate addresses for
+ *  \param cpu_addresses   Addresses are inteded for CPU(1) or DMA-Hardware(0)
+ *  \param upsteam         Select translation direction (0=towards hardware,
+ *                         1=towards CPU) and thereby which bus src_address is
+ *                         valid for
+ *  \param src_address     Address to translate
+ *  \param dst_address     Location where translated address is stored
+ *
+ *  Returns -1 if unable to translate. If no map is present src_address is
+ *  translated 1:1 (just copied). If dev is on root-bus no translation is
+ *  performed 0 is returned and src_address is stored in *dst_address.
  */
-extern int drvmgr_mmap_translate(
+extern int drvmgr_translate(
 	struct drvmgr_dev *dev,
-	int from_remote_to_cpu,
+	int cpu_addresses,
+	int upstream,
 	void *src_address,
 	void **dst_address);
 
+/* Translate addresses between buses, used internally to implement
+ * drvmgr_translate. Function is not limited to translate from/to root bus
+ * where CPU is resident, however buses must be on a straight path relative
+ * to each other (parent of parent of parent and so on).
+ *
+ * \param from         src_address is given for this bus
+ * \param to           src_address is translated to this bus
+ * \param reverse      Selects translation method, if map entries are used in
+ *                     the reverse order (map_up->to is used as map_up->from)
+ * \param src_address  Address to be translated
+ * \param dst_address  Translated address is stored here on success (return=0)
+ *
+ * Returns -1 if failed to translate address between buses. 0 successfully
+ * translated, reuslt is in *dst_address
+ */
+extern int drvmgr_translate_bus(
+	struct drvmgr_bus *from,
+	struct drvmgr_bus *to,
+	int reverse,
+	void *src_address,
+	void **dst_address);
 
 /*! Get function pointer from Device Driver or Bus Driver.
  *

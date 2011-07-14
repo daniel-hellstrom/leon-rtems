@@ -310,7 +310,7 @@ int b1553rt_device_init(rt_priv *pDev)
 
             /* Translate the base address into an address that the the CPU can understand */
             mem = (char *)((unsigned int)mem & ~1);
-            drvmgr_mmap_translate(pDev->dev, 1, (void *)mem, (void **)&mem);
+	    drvmgr_translate(pDev->dev, 1, 1, (void *)mem, (void **)&mem);
         }
     } else {
         /* Use dynamically allocated memory */
@@ -332,7 +332,7 @@ int b1553rt_device_init(rt_priv *pDev)
     pDev->mem = (volatile unsigned short *) pDev->memarea_base;
 
     /* Translate the base address into an address that the RT core can understand */
-    drvmgr_mmap_translate(pDev->dev, 0, (void *)mem, (void **)&pDev->memarea_base_remote);
+    drvmgr_translate(pDev->dev, 0, 0, (void *)mem, (void **)&pDev->memarea_base_remote);
 
     pDev->rt_event = NULL;
 

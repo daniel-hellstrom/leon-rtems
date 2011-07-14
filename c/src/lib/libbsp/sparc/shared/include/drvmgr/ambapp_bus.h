@@ -91,7 +91,8 @@ struct ambapp_ops {
 struct ambapp_config {
 	struct ambapp_bus		*abus;		/* Prescanned AMBA PnP bus */
 	struct ambapp_ops		*ops;		/* AMBA bus operations */
-	struct drvmgr_mmap_entry	*mmaps;		/* Bus memory map */
+	struct drvmgr_map_entry		*maps_up;	/* Bus memory map up-stream towards CPU */
+	struct drvmgr_map_entry		*maps_down;	/* Bus memory map down-stream towards HW */
 	struct drvmgr_bus_res		*resources;	/* Driver Resources */
 	int				bus_type;	/* Set DRVMGR_BUS_TYPE_AMBAPP_DIST if distributed AMBA Bus */
 	struct drvmgr_func		*funcs;		/* Custom functions */

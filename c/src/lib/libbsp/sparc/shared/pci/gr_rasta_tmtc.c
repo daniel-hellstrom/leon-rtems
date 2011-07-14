@@ -104,7 +104,8 @@ struct gr_rasta_tmtc_priv {
 	LEON3_IrqCtrl_Regs_Map		*irq;
 	struct grpci_regs		*grpci;
 	struct grgpio_regs		*gpio;
-	struct drvmgr_mmap_entry	bus_maps[4];
+	struct drvmgr_map_entry		bus_maps_down[3];
+	struct drvmgr_map_entry		bus_maps_up[2];
 
 	/* AMBA Plug&Play information on GR-RASTA-TMTC */
 	struct ambapp_bus		abus;
@@ -354,13 +355,19 @@ int gr_rasta_tmtc_hw_init(struct gr_rasta_tmtc_priv *priv)
 	/* Enable DMA by enabling PCI target as master */
 	pci_master_enable(pcidev);
 
-	priv->bus_maps[0].map_size = priv->amba_maps[0].size;
-	priv->bus_maps[0].local_adr = priv->amba_maps[0].local_adr;
-	priv->bus_maps[0].remote_adr = priv->amba_maps[0].remote_adr;
+	/* DOWN streams translation table */
+	priv->bus_maps_down[0].name = "PCI BAR0 -> AMBA";
+	priv->bus_maps_down[0].size = priv->amba_maps[0].size;
+	priv->bus_maps_down[0].from_adr = priv->amba_maps[0].local_adr;
+	priv->bus_maps_down[0].to_adr = priv->amba_maps[0].remote_adr;
 
-	priv->bus_maps[1].map_size = priv->amba_maps[1].size;
-	priv->bus_maps[1].local_adr = priv->amba_maps[1].local_adr;
-	priv->bus_maps[1].remote_adr = priv->amba_maps[1].remote_adr;
+	priv->bus_maps_down[1].name = "PCI BAR1 -> AMBA";
+	priv->bus_maps_down[1].size = priv->amba_maps[1].size;
+	priv->bus_maps_down[1].from_adr = priv->amba_maps[1].local_adr;
+	priv->bus_maps_down[1].to_adr = priv->amba_maps[1].remote_adr;
+
+	/* Mark end of translation table */
+	priv->bus_maps_down[2].size = 0;
 
 	/* Find GRPCI controller AHB Slave interface */
 	tmp = NULL;
@@ -369,13 +376,15 @@ int gr_rasta_tmtc_hw_init(struct gr_rasta_tmtc_priv *priv)
 		return -6;
 	}
 	ahb = (struct ambapp_ahb_info *)tmp->devinfo;
-	priv->bus_maps[2].map_size = ahb->mask[0]; /* AMBA->PCI Window on GR-RASTA-TMTC board */
-	priv->bus_maps[2].local_adr = 0x40000000;
-	priv->bus_maps[2].remote_adr = ahb->start[0];
 
-	priv->bus_maps[3].map_size = 0;
-	priv->bus_maps[3].local_adr = 0;
-	priv->bus_maps[3].remote_adr = 0;
+	/* UP streams translation table */
+	priv->bus_maps_up[0].name = "AMBA GRPCI Window";
+	priv->bus_maps_up[0].size = ahb->mask[0]; /* AMBA->PCI Window on GR-RASTA-TMTC board */
+	priv->bus_maps_up[0].from_adr = ahb->start[0];
+	priv->bus_maps_up[0].to_adr = 0x40000000;
+
+	/* Mark end of translation table */
+	priv->bus_maps_up[1].size = 0;
 
 	/* Successfully registered the RASTA board */
 	return 0;
@@ -462,7 +471,8 @@ int gr_rasta_tmtc_init1(struct drvmgr_dev *dev)
 	/* Init amba bus */
 	priv->config.abus = &priv->abus;
 	priv->config.ops = &ambapp_rasta_tmtc_ops;
-	priv->config.mmaps = &priv->bus_maps[0];
+	priv->config.maps_up = &priv->bus_maps_up[0];
+	priv->config.maps_down = &priv->bus_maps_down[0];
 	if ( priv->dev->minor_drv < gr_rasta_tmtc_resources_cnt ) {
 		priv->config.resources = gr_rasta_tmtc_resources[priv->dev->minor_drv];
 	} else {

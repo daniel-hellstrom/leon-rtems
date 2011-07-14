@@ -325,7 +325,8 @@ int ambapp_rmap_init1(struct drvmgr_dev *dev)
 
 	config = &priv->config;
 	config->ops = &ambapp_rmap_ops;
-	config->mmaps = NULL;
+	config->maps_up = DRVMGR_TRANSLATE_NO_BRIDGE;
+	config->maps_down = DRVMGR_TRANSLATE_NO_BRIDGE;
 	config->abus = &priv->abus;
 	config->bus_type = DRVMGR_BUS_TYPE_AMBAPP_RMAP;
 	config->funcs = priv->funcs;

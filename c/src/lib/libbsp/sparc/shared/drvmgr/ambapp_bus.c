@@ -724,7 +724,8 @@ int ambapp_bus_register(struct drvmgr_dev *dev, struct ambapp_config *config)
 	dev->bus->funcs = config->funcs;
 	dev->bus->dev_cnt = 0;
 	dev->bus->reslist = NULL;
-	dev->bus->mmaps = config->mmaps;
+	dev->bus->maps_up = config->maps_up;
+	dev->bus->maps_down = config->maps_down;
 
 	/* Add resource configuration */
 	if ( priv->config->resources )

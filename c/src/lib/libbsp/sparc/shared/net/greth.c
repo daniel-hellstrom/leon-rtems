@@ -458,9 +458,9 @@ auto_neg_done:
     sc->tx_cnt = 0;
     sc->rx_ptr = 0;
 
-    /* Translate the base address into an address that the BRM core can understand */
-    drvmgr_mmap_translate(sc->dev, 0, (void *)sc->txdesc, (void **)&sc->txdesc_remote);
-    drvmgr_mmap_translate(sc->dev, 0, (void *)sc->rxdesc, (void **)&sc->rxdesc_remote);
+    /* Translate the base address into an address that the GRETH core can understand */
+    drvmgr_translate(sc->dev, 0, 0, (void *)sc->txdesc, (void **)&sc->txdesc_remote);
+    drvmgr_translate(sc->dev, 0, 0, (void *)sc->rxdesc, (void **)&sc->rxdesc_remote);
     regs->txdesc = (int) sc->txdesc_remote;
     regs->rxdesc = (int) sc->rxdesc_remote;
 
@@ -471,7 +471,7 @@ auto_neg_done:
       {
               sc->txdesc[i].ctrl = 0;
               if (!(sc->gbit_mac)) {
-                      drvmgr_mmap_translate(sc->dev, 0, (void *)malloc(GRETH_MAXBUF_LEN), (void **)&sc->txdesc[i].addr);
+                      drvmgr_translate(sc->dev, 0, 0, (void *)malloc(GRETH_MAXBUF_LEN), (void **)&sc->txdesc[i].addr);
               }
 #ifdef GRETH_DEBUG
               /* printf("TXBUF: %08x\n", (int) sc->txdesc[i].addr); */
@@ -485,7 +485,7 @@ auto_neg_done:
                   m->m_data += 2;
 	  m->m_pkthdr.rcvif = &sc->arpcom.ac_if;
           sc->rxmbuf[i] = m;
-          drvmgr_mmap_translate(sc->dev, 0, (void *)mtod(m, uint32_t *), (void **)&sc->rxdesc[i].addr);
+          drvmgr_translate(sc->dev, 0, 0, (void *)mtod(m, uint32_t *), (void **)&sc->rxdesc[i].addr);
           sc->rxdesc[i].ctrl = GRETH_RXD_ENABLE | GRETH_RXD_IRQ;
 #ifdef GRETH_DEBUG
 /* 	  printf("RXBUF: %08x\n", (int) sc->rxdesc[i].addr); */
@@ -678,7 +678,7 @@ again:
                                     m->m_data += 2;
                             dp->rxmbuf[dp->rx_ptr] = m;
                             m->m_pkthdr.rcvif = ifp;
-                            drvmgr_mmap_translate(dp->dev, 0, (void *)mtod (m, uint32_t *), (void **)&dp->rxdesc[dp->rx_ptr].addr);
+                            drvmgr_translate(dp->dev, 0, 0, (void *)mtod (m, uint32_t *), (void **)&dp->rxdesc[dp->rx_ptr].addr);
                             dp->rxPackets++;
                     }
                     if (dp->rx_ptr == dp->rxbufs - 1) {
@@ -733,7 +733,7 @@ sendpacket (struct ifnet *ifp, struct mbuf *m)
 
     len = 0;
     temp = (unsigned char *) NO_CACHE_LOAD(&dp->txdesc[dp->tx_ptr].addr);
-    drvmgr_mmap_translate(dp->dev, 1, (void *)temp, (void **)&temp);
+    drvmgr_translate(dp->dev, 1, 1, (void *)temp, (void **)&temp);
 #ifdef GRETH_DEBUG
     printf("TXD: 0x%08x : BUF: 0x%08x\n", (int) m->m_data, (int) temp);
 #endif
@@ -847,7 +847,7 @@ sendpacket_gbit (struct ifnet *ifp, struct mbuf *m)
             printf("\n");
 #endif
             len += m->m_len;
-            drvmgr_mmap_translate(dp->dev, 0, (void *)(uint32_t *)m->m_data, (void **)&dp->txdesc[dp->tx_ptr].addr);
+            drvmgr_translate(dp->dev, 0, 0, (void *)(uint32_t *)m->m_data, (void **)&dp->txdesc[dp->tx_ptr].addr);
 
             /* Wrap around? */
             if (dp->tx_ptr < dp->txbufs-1) {

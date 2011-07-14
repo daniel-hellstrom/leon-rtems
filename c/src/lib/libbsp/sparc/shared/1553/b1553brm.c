@@ -458,7 +458,7 @@ int b1553brm_device_init(brm_priv *pDev)
 
 			/* Translate the base address into an address that the the CPU can understand */
 			mem = (char *)((unsigned int)mem & ~1);
-			drvmgr_mmap_translate(pDev->dev, 1, (void *)mem, (void **)&mem);
+			drvmgr_translate(pDev->dev, 1, 1, (void *)mem, (void **)&mem);
 		}
 	} else {
 		/* Use dynamically allocated memory */
@@ -485,7 +485,7 @@ int b1553brm_device_init(brm_priv *pDev)
 	pDev->irq_log	= (struct irq_log_list *)(pDev->memarea_base + (0xFFE0<<1)); /* last 64byte */
 
 	/* Translate the base address into an address that the BRM core can understand */
-	drvmgr_mmap_translate(pDev->dev, 0, (void *)mem, (void **)&pDev->memarea_base_remote);
+	drvmgr_translate(pDev->dev, 0, 0, (void *)mem, (void **)&pDev->memarea_base_remote);
 
 	pDev->bm_event = NULL;
 	pDev->rt_event = NULL;
