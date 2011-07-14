@@ -51,7 +51,7 @@
  * CPU RAM is mapped 1:1 to PCI space.
  */
 extern unsigned int _RAM_START;
-#define AHBMST2PCIADR (_RAM_START & 0xf0000000)
+#define AHBMST2PCIADR (((unsigned int)&_RAM_START) & 0xf0000000)
 
 /* PCI ID */
 #define PCIID_VENDOR_GAISLER		0x1AC8
@@ -343,7 +343,7 @@ int gr_rasta_adcdac_hw_init1(struct gr_rasta_adcdac_priv *priv)
 	priv->bus_maps_up[0].name = "AMBA GRPCI Window";
 	priv->bus_maps_up[0].size = ahb->mask[0]; /* AMBA->PCI Window on GR-RASTA-ADCDAC board */
 	priv->bus_maps_up[0].from_adr = ahb->start[0];
-	priv->bus_maps_up[0].to_adr = 0x40000000;
+	priv->bus_maps_up[0].to_adr = priv->ahbmst2pci_map & 0xf0000000;
 
 	/* Mark end of translation table */
 	priv->bus_maps_up[1].size = 0;
