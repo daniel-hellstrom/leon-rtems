@@ -99,7 +99,7 @@ void spwcuc_int_enable(void *spwcuc)
 	struct spwcuc_priv *priv = (struct spwcuc_priv *)spwcuc;
 
 	/* Register and Enable Interrupt at Interrupt controller */
-	drvmgr_interrupt_enable(priv->dev, 0, "spwcuc", spwcuc_isr, priv);
+	drvmgr_interrupt_register(priv->dev, 0, "spwcuc", spwcuc_isr, priv);
 }
 
 void spwcuc_int_disable(void *spwcuc)
