@@ -158,7 +158,7 @@ int apbuart_init2(struct drvmgr_dev *dev)
 int apbuart_init3(struct drvmgr_dev *dev)
 {
 	struct apbuart_priv *priv;
-	char prefix[16];
+	char prefix[32];
 	char devName[32];
 	rtems_status_code status;
 

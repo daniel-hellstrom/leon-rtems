@@ -370,7 +370,7 @@ static int grtc_init2(struct drvmgr_dev *dev)
 static int grtc_init3(struct drvmgr_dev *dev)
 {
 	struct grtc_priv *priv;
-	char prefix[16];
+	char prefix[32];
 	rtems_status_code status;
 
 	priv = dev->priv;

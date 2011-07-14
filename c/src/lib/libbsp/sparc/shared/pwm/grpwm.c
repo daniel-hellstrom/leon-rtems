@@ -237,7 +237,7 @@ int grpwm_init2(struct drvmgr_dev *dev)
 int grpwm_init3(struct drvmgr_dev *dev)
 {
 	struct grpwm_priv *priv = dev->priv;
-	char prefix[16];
+	char prefix[32];
 	rtems_status_code status;
 
 	if ( !priv )

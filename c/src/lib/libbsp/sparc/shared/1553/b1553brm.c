@@ -326,7 +326,7 @@ int b1553brm_init2(struct drvmgr_dev *dev)
 int b1553brm_init3(struct drvmgr_dev *dev)
 {
 	brm_priv *priv;
-	char prefix[16];
+	char prefix[32];
 	rtems_status_code status;
 
 	priv = dev->priv;

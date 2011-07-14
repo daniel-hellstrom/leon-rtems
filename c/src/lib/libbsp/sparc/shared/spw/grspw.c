@@ -442,7 +442,7 @@ int grspw_init2(struct drvmgr_dev *dev)
 int grspw_init3(struct drvmgr_dev *dev)
 {
 	GRSPW_DEV *priv;
-	char prefix[16];
+	char prefix[32];
 	rtems_status_code status;
 
 	priv = dev->priv;

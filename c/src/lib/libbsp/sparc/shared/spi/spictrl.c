@@ -233,7 +233,7 @@ int spictrl_init2(struct drvmgr_dev *dev)
 int spictrl_init3(struct drvmgr_dev *dev)
 {
 	struct spictrl_priv *priv;
-	char prefix[16];
+	char prefix[32];
 	char devName[32];
 	int rc;
 
