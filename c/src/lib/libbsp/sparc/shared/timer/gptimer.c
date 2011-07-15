@@ -20,6 +20,9 @@
  *                available, or in AMP systems. By default the TLIB selects the
  *                first timer registered as system clock timer.
  *
+ *  The BSP define APBUART_INFO_AVAIL in order to add the info routine
+ *  used for debugging.
+ *
  *  COPYRIGHT (c) 2010.
  *  Aeroflex Gaisler.
  *
@@ -31,12 +34,8 @@
  *   created
  */
 
-/* On small systems undefine GPTIMER_INFO to avoid sprintf get dragged in,
- * user only for debugging anyway
- */
-#define GPTIMER_INFO
-
 #include <rtems.h>
+#include <bsp.h>
 #include <stdlib.h>
 #include <drvmgr/drvmgr.h>
 #include <drvmgr/ambapp_bus.h>
@@ -47,7 +46,7 @@
 volatile LEON3_Timer_Regs_Map *LEON3_Timer_Regs = 0;
 #endif
 
-#ifdef GPTIMER_INFO
+#ifdef GPTIMER_INFO_AVAIL
 #include <stdio.h>
 #endif
 
@@ -138,7 +137,7 @@ struct tlib_drv gptimer_tlib_drv;
 int gptimer_device_init(struct gptimer_priv *priv);
 
 int gptimer_init1(struct drvmgr_dev *dev);
-#ifdef GPTIMER_INFO
+#ifdef GPTIMER_INFO_AVAIL
 static int gptimer_info(
 	struct drvmgr_dev *dev,
 	void (*print_line)(void *p, char *str),
@@ -324,7 +323,7 @@ int gptimer_init1(struct drvmgr_dev *dev)
 	return DRVMGR_OK;
 }
 
-#ifdef GPTIMER_INFO
+#ifdef GPTIMER_INFO_AVAIL
 static int gptimer_info(
 	struct drvmgr_dev *dev,
 	void (*print_line)(void *p, char *str),

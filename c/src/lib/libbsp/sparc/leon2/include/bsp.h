@@ -180,6 +180,16 @@ extern void BSP_shared_interrupt_mask(int irq);
 /* AT697 has PCI defined as big endian */
 #define BSP_PCI_BIG_ENDIAN
 
+/* Common driver build-time configurations. On small systems undefine
+ * [DRIVER]_INFO_AVIAL to avoid info routines get dragged in. It is good
+ * for debugging and printing information about the system, but makes the
+ * image bigger.
+ */
+#define APBUART_INFO_AVAIL            /* APBUART Console driver */
+#define GPTIMER_INFO_AVAIL            /* GPTIMER Timer driver */
+#define GRTC_RMAP_INFO_AVAIL          /* GRTC over SpaceWire/RMAP driver */
+#define AMBAPPBUS_INFO_AVAIL          /* AMBAPP Bus driver */
+
 #ifdef __cplusplus
 }
 #endif

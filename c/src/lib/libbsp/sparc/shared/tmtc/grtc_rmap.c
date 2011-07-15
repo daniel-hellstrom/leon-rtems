@@ -11,6 +11,9 @@
  *  -- BY DEFAULT, DISTRIBUTION OR DISCLOSURE IS NOT PERMITTED.
  *  -------------------------------------------------------------------------- 
  *
+ *  The BSP define GRTC_RMAP_INFO_AVAIL in order to add the info routine
+ *  used for debugging.
+ *
  *  2009-11-21, Daniel Hellstrom <daniel@gaisler.com>
  *    Created from on-chip GRTC driver
  *
@@ -51,8 +54,6 @@
 #define MEMGET(pDev, dst, src, len) pDev->rw_rmem(dst, (const void *)src, len, &pDev->rw_arg)
 
 /**** END: RMAP STUFF ****/
-
-#define GRTC_RMAP_INFO
 
 /*
 #define DEBUG
@@ -353,7 +354,7 @@ static int grtc_device_init(struct grtc_priv *pDev);
 static int grtc_init2(struct drvmgr_dev *dev);
 static int grtc_init3(struct drvmgr_dev *dev);
 
-#ifdef GRTC_RMAP_INFO
+#ifdef GRTC_RMAP_INFO_AVAIL
 static int grtc_info(
 	struct drvmgr_dev *dev,
 	void (*print_line)(void *p, char *str),
@@ -2159,7 +2160,7 @@ static rtems_device_driver grtc_initialize(
 	return RTEMS_SUCCESSFUL;
 }
 
-#ifdef GRTC_RMAP_INFO
+#ifdef GRTC_RMAP_INFO_AVAIL
 static int grtc_info(
 	struct drvmgr_dev *dev,
 	void (*print_line)(void *p, char *str),

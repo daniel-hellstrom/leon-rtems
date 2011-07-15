@@ -3,14 +3,18 @@
  *  COPYRIGHT (c) 2008.
  *  Aeroflex Gaisler.
  *
+ *  The license and distribution terms for this file may be
+ *  found in the file LICENSE in this distribution or at
+ *  http://www.rtems.com/license/LICENSE.
+ *
  *  This is the general part of the different AMBA Plug & Play
  *  drivers. The drivers are wrappers around this driver, making
  *  the code size smaller for systems with multiple AMBA Plug & 
  *  Play buses.
  *
- *  The license and distribution terms for this file may be
- *  found in the file LICENSE in this distribution or at
- *  http://www.rtems.com/license/LICENSE.
+ *  The BSP define APBUART_INFO_AVAIL in order to add the info routine
+ *  used for debugging.
+ *
  *
  *  2009-11-20, Daniel Hellstrom <daniel@gaisler.com>
  *   Added support for AMBA-RMAP
@@ -19,9 +23,6 @@
  *    Created
  *
  */
-
-/* On small systems undefine AMBAPPBUS_INFO to avoid sprintf get dragged in */
-#define AMBAPPBUS_INFO
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,7 +81,7 @@ struct drvmgr_bus_ops ambapp_bus_ops =
 	.int_unmask	= ambapp_int_unmask,
 	.get_params	= ambapp_get_params,
 	.freq_get	= ambapp_bus_freq_get,
-#ifdef AMBAPPBUS_INFO
+#ifdef AMBAPPBUS_INFO_AVAIL
 	.info_dev	= ambapp_dev_info,
 #endif
 };
@@ -362,7 +363,7 @@ int ambapp_get_params(struct drvmgr_dev *dev, struct drvmgr_bus_params *params)
 	}
 }
 
-#ifdef AMBAPPBUS_INFO
+#ifdef AMBAPPBUS_INFO_AVAIL
 void ambapp_dev_info(
 	struct drvmgr_dev *dev,
 	void (*print_line)(void *p, char *str),
