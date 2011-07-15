@@ -102,13 +102,12 @@ void console_dev_init(struct console_priv *con, int minor)
 
 void console_dev_register(struct console_dev *dev)
 {
-	int i, minor;
+	int i, minor = 0;
 	struct console_priv *con;
 
 	if ( (dev->flags & CONSOLE_FLAG_SYSCON) && !cons[0].dev ) {
 		con = &cons[0];
 		con->flags = FLAG_SYSCON;
-		minor = 0;
 	} else {
 		for (i=1; i<CONSOLE_MAX; i++) {
 			if ( !cons[i].dev ) {
@@ -185,14 +184,30 @@ rtems_device_driver console_open(
 	rtems_device_minor_number	minor,
 	void				*arg)
 {
+	rtems_status_code status;
+	struct termios term;
+
 	if ( (minor >= CONSOLE_MAX) || !cons[minor].dev )
 		return RTEMS_INVALID_NUMBER;
 
-	return rtems_termios_open(
+	status = rtems_termios_open(
 			major,
 			(int)cons[minor].dev,
 			arg,
 			cons[minor].dev->callbacks);
+
+	/* Inherit UART hardware parameters from bootloader on system console */
+	if ((status == RTEMS_SUCCESSFUL) && (cons[minor].flags & FLAG_SYSCON) &&
+	    (cons[minor].dev->ops.get_uart_attrs != NULL)) {
+		if (tcgetattr(STDIN_FILENO, &term) >= 0) {
+			cons[minor].dev->ops.get_uart_attrs(cons[minor].dev,
+								&term);
+			term.c_oflag |= ONLCR;
+			tcsetattr(STDIN_FILENO, TCSANOW, &term);
+		}
+	}
+
+	return status;
 }
 
 rtems_device_driver console_close(

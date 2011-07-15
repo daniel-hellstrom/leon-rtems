@@ -6,6 +6,9 @@
  *  - syscon (0=Force not Ssystem Console, 1=Suggest System Console)
  *  - dbgcon (0=Force not Debug Console, 1=Suggest Debug Console)
  *
+ *  The BSP define APBUART_INFO_AVAIL in order to add the info routine
+ *  used for debugging.
+ *
  *  COPYRIGHT (c) 2008.
  *  Aeroflex Gaisler.
  *
@@ -16,9 +19,6 @@
  *  2010-09-27, Daniel Hellstrom <daniel@gaisler.com>
  *   created
  */
-
-/* On small systems undefine APBUART_INFO to avoid sprintf get dragged in */
-#define APBUART_INFO
 
 /******************* Driver manager interface ***********************/
 #include <bsp.h>
@@ -57,6 +57,7 @@ struct apbuart_priv {
 };
 
 /* TERMIOS Layer Callback functions */
+void apbuart_get_attributes(struct console_dev *condev, struct termios *t);
 int apbuart_set_attributes(int minor, const struct termios *t);
 int apbuart_write_polled(int minor, const char *buf, int len);
 int apbuart_pollRead(int minor);
@@ -71,9 +72,10 @@ char apbuart_dbg_in_char(struct console_dev *);
 void apbuart_dbg_out_char(struct console_dev *, char c);
 
 void apbuart_isr(void *arg);
+int apbuart_get_baud(struct apbuart_priv *uart);
 
 int apbuart_init1(struct drvmgr_dev *dev);
-#ifdef APBUART_INFO
+#ifdef APBUART_INFO_AVAIL
 static int apbuart_info(
 	struct drvmgr_dev *dev,
 	void (*print_line)(void *p, char *str),
@@ -219,6 +221,7 @@ int apbuart_init1(struct drvmgr_dev *dev)
 
 	priv->condev.dbgops = &apbuart_dbg_ops;
 	priv->condev.fsname = NULL;
+	priv->condev.ops.get_uart_attrs = apbuart_get_attributes;
 
 	/* Select 0=Polled, 1=IRQ, 2=Task-Driven UART Mode */
 	value = drvmgr_dev_key_get(priv->dev, "mode", KEY_TYPE_INT);
@@ -252,7 +255,7 @@ int apbuart_init1(struct drvmgr_dev *dev)
 	return DRVMGR_OK;
 }
 
-#ifdef APBUART_INFO
+#ifdef APBUART_INFO_AVAIL
 static int apbuart_info(
 	struct drvmgr_dev *dev,
 	void (*print_line)(void *p, char *str),
@@ -284,7 +287,8 @@ static int apbuart_info(
 	print_line(p, buf);
 	sprintf(buf, "CTRL REG:    0x%x", priv->regs->ctrl);
 	print_line(p, buf);
-	sprintf(buf, "SCALER REG:  0x%x", priv->regs->scaler);
+	sprintf(buf, "SCALER REG:  0x%x  baud rate %d",
+				priv->regs->scaler, apbuart_get_baud(priv));
 	print_line(p, buf);
 
 	return DRVMGR_OK;
@@ -413,6 +417,76 @@ int apbuart_pollRead_task(int minor)
 	return EOF;
 }
 
+struct apbuart_baud {
+	unsigned int num;
+	unsigned int baud;
+};
+struct apbuart_baud apbuart_baud_table[] = {
+	{B50, 50},
+	{B75, 75},
+	{B110, 110},
+	{B134, 134},
+	{B150, 150},
+	{B200, 200},
+	{B300, 300},
+	{B600, 600},
+	{B1200, 1200},
+	{B1800, 1800},
+	{B2400, 2400},
+	{B4800, 4800},
+	{B9600, 9600},
+	{B19200, 19200},
+	{B38400, 38400},
+	{B57600, 57600},
+	{B115200, 115200},
+	{B230400, 230400},
+	{B460800, 460800},
+};
+#define BAUD_NUM (sizeof(apbuart_baud_table)/sizeof(struct apbuart_baud))
+
+int apbuart_baud_num2baud(unsigned int num)
+{
+	int i;
+
+	for(i=0; i<BAUD_NUM; i++)
+		if (apbuart_baud_table[i].num == num)
+			return apbuart_baud_table[i].baud;
+	return -1;
+}
+
+struct apbuart_baud *apbuart_baud_find_closest(unsigned int baud)
+{
+	int i, diff;
+
+	for(i=0; i<BAUD_NUM-1; i++) {
+		diff = apbuart_baud_table[i+1].baud -
+			apbuart_baud_table[i].baud;
+		if (baud < (apbuart_baud_table[i].baud + diff/2))
+			return &apbuart_baud_table[i];
+	}
+	return &apbuart_baud_table[BAUD_NUM-1];
+}
+
+int apbuart_get_baud(struct apbuart_priv *uart)
+{
+	unsigned int core_clk_hz;
+	unsigned int scaler;
+
+	/* Get current scaler setting */
+	scaler = uart->regs->scaler;
+
+	/* Get APBUART core frequency */
+	drvmgr_freq_get(uart->dev, DEV_APB_SLV, &core_clk_hz);
+
+	/* Calculate baud rate from generator "scaler" number */
+	return core_clk_hz / (scaler * 8);
+}
+
+struct apbuart_baud *apbuart_get_baud_closest(struct apbuart_priv *uart)
+{
+	return apbuart_baud_find_closest(apbuart_get_baud(uart));
+}
+
 int apbuart_set_attributes(int minor, const struct termios *t)
 {
 	unsigned int core_clk_hz;
@@ -464,29 +538,7 @@ int apbuart_set_attributes(int minor, const struct termios *t)
 	uart->regs->ctrl = ctrl;
 
 	/* Baud rate */
-	switch(t->c_cflag & CBAUD){
-		default:	baud = -1;	break;
-		case B50:	baud = 50;	break;
-		case B75:	baud = 75;	break;
-		case B110:	baud = 110;	break;
-		case B134:	baud = 134;	break;
-		case B150:	baud = 150;	break;
-		case B200:	baud = 200;	break;
-		case B300:	baud = 300;	break;
-		case B600:	baud = 600;	break;
-		case B1200:	baud = 1200;	break;
-		case B1800:	baud = 1800;	break;
-		case B2400:	baud = 2400;	break;
-		case B4800:	baud = 4800;	break;
-		case B9600:	baud = 9600;	break;
-		case B19200:	baud = 19200;	break;
-		case B38400:	baud = 38400;	break;
-		case B57600:	baud = 57600;	break;
-		case B115200:	baud = 115200;	break;
-		case B230400:	baud = 230400;	break;
-		case B460800:	baud = 460800;	break;
-	}
-
+	baud = apbuart_baud_num2baud(t->c_cflag & CBAUD);
 	if ( baud > 0 ){
 		/* Get APBUART core frequency */
 		drvmgr_freq_get(uart->dev, DEV_APB_SLV, &core_clk_hz);
@@ -501,13 +553,40 @@ int apbuart_set_attributes(int minor, const struct termios *t)
 	return 0;
 }
 
+void apbuart_get_attributes(struct console_dev *condev, struct termios *t)
+{
+	struct apbuart_priv *uart = (struct apbuart_priv *)condev;
+	unsigned int ctrl;
+	struct apbuart_baud *baud;
+
+	t->c_cflag = t->c_cflag & ~(CSIZE|PARENB|PARODD|CLOCAL|CBAUD);
+
+	/* Hardware support only CS8 */
+	t->c_cflag |= CS8;
+
+	/* Read out current parity */
+	ctrl = uart->regs->ctrl;
+	if (ctrl & LEON_REG_UART_CTRL_PE) {
+		if (ctrl & LEON_REG_UART_CTRL_PS)
+			t->c_cflag |= PARENB|PARODD; /* Odd parity */
+		else
+			t->c_cflag |= PARENB; /* Even parity */
+	}
+
+	if ((ctrl & LEON_REG_UART_CTRL_FL) == 0)
+		t->c_cflag |= CLOCAL;
+
+	baud = apbuart_get_baud_closest(uart);
+	t->c_cflag |= baud->num;
+}
+
 int apbuart_write_polled(int minor, const char *buf, int len)
 {
 	int nwrite = 0;
 	struct apbuart_priv *uart = (struct apbuart_priv *)minor;
 
 	while (nwrite < len) {
-		apbuart_outbyte_polled(uart, *buf++, 1, 0);
+		apbuart_outbyte_polled(uart, *buf++, 0, 0);
 		nwrite++;
 	}
 	return nwrite;

@@ -22,6 +22,10 @@ struct console_dbg_ops {
 	void (*out_char)(struct console_dev *, char c);
 };
 
+struct console_cons_ops {
+	void (*get_uart_attrs)(struct console_dev *, struct termios *t);
+};
+
 struct console_dev {
 	/* Set to non-zero if this UART should be system console and/or
 	 * debug console.
@@ -30,6 +34,7 @@ struct console_dev {
 	struct console_dbg_ops *dbgops;
 	char *fsname; /* File system prefix */
 	const struct rtems_termios_callbacks *callbacks; /* TERMIOS Callbacks */
+	struct console_cons_ops ops;
 };
 
 extern void console_dev_register(struct console_dev *dev);
