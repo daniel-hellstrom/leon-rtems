@@ -110,6 +110,9 @@ extern void grctm_register(void);
 #define DRIVER_AMBAPP_GAISLER_SPW_ROUTER_REG {router_register_drv}
 extern void router_register_drv(void);
 
+#define DRIVER_AMBAPP_GAISLER_AHBSTAT_REG {ahbstat_register_drv}
+extern void ahbstat_register_drv(void);
+
 
 /*** LEON2 AMBA Hard coded bus Drivers ***/
 #define DRIVER_LEON2_AT697PCI_REG {at697pci_register_drv}
@@ -244,6 +247,9 @@ struct drvmgr_drv_reg_func drvmgr_drivers[] = {
 #endif
 #ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_SPW_ROUTER
 	DRIVER_AMBAPP_GAISLER_SPW_ROUTER_REG,
+#endif
+#ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_AHBSTAT
+	DRIVER_AMBAPP_GAISLER_AHBSTAT_REG,
 #endif
 
 	/*** LEON2 AMBA Drivers ***/

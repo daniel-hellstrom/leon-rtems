@@ -61,11 +61,13 @@ include_HEADERS += include/amba.h
 include_HEADERS += ../../sparc/shared/include/ambapp.h
 include_HEADERS += ../../sparc/shared/include/ambapp_ids.h
 include_HEADERS += ../../sparc/shared/include/grlib.h
+include_HEADERS += ../../sparc/shared/include/ahbstat.h
 libbsp_a_SOURCES += amba/amba.c
 libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp.c
 libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp_old.c
 libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp_names.c
 libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp_show.c
+libbsp_a_SOURCES += ../../sparc/shared/amba/ahbstat.c
 
 # Clock Driver and Timer Library
 include_HEADERS += ../../sparc/shared/include/tlib.h

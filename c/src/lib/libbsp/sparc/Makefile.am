@@ -21,6 +21,8 @@ EXTRA_DIST += shared/amba/ambapp.c
 EXTRA_DIST += shared/amba/ambapp_names.c
 EXTRA_DIST += shared/amba/ambapp_show.c
 EXTRA_DIST += shared/include/grlib.h
+EXTRA_DIST += shared/amba/ahbstat.c
+EXTRA_DIST += shared/include/ahbstat.h
 
 # IRQ
 EXTRA_DIST += shared/irq/irq-shared.c

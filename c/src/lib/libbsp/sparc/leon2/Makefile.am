@@ -62,10 +62,12 @@ libbsp_a_SOURCES += clock/ckinit.c ../../../shared/clockdrv_shell.h
 include_HEADERS += ../../sparc/shared/include/ambapp.h
 include_HEADERS += ../../sparc/shared/include/ambapp_ids.h
 include_HEADERS += ../../sparc/shared/include/grlib.h
+include_HEADERS += ../../sparc/shared/include/ahbstat.h
 libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp.c
 libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp_old.c
 libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp_names.c
 libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp_show.c
+libbsp_a_SOURCES += ../../sparc/shared/amba/ahbstat.c
 
 ### PCI ###
 include_HEADERS += ../../sparc/shared/include/grpci2.h
