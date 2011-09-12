@@ -148,6 +148,7 @@ int ambapp_leon2_init1(struct drvmgr_dev *dev)
 		return DRVMGR_NOMEM;
 
 	config = &priv->config;
+	config->abus = &priv->abus;
 	config->ops = &ambapp_leon2_ops;
 	config->maps_up = DRVMGR_TRANSLATE_ONE2ONE;
 	config->maps_down = DRVMGR_TRANSLATE_ONE2ONE;
