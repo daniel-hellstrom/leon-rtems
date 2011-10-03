@@ -185,7 +185,7 @@ typedef struct {
 
 /* Function pointer called upon timecode receive */
 void (*grspw_timecode_callback)
-    (GRSPW_DEV *pDev, LEON3_SPACEWIRE_Regs_Map *regs, int minor, unsigned int tc) = NULL;
+    (void *pDev, void *regs, int minor, unsigned int tc) = NULL;
 
 #ifdef GRSPW_DONT_BYPASS_CACHE
 #define _SPW_READ(address) (*(volatile unsigned int *)(address))
@@ -732,13 +732,14 @@ static void grspw_interrupt(void *arg)
 
 	status = SPW_STATUS_READ(pDev);
 	/*SPW_STATUS_WRITE(pDev, SPW_STATUS_CE | SPW_STATUS_ER | SPW_STATUS_DE | SPW_STATUS_PE | SPW_STATUS_WE | SPW_STATUS_IA | SPW_STATUS_EE | SPW_STATUS_TO);*/
-	SPW_STATUS_WRITE(pDev, status & (SPW_STATUS_CE | SPW_STATUS_ER | SPW_STATUS_DE | SPW_STATUS_PE | SPW_STATUS_WE | SPW_STATUS_IA | SPW_STATUS_EE | SPW_STATUS_TO));
+	SPW_STATUS_WRITE(pDev, status & (SPW_STATUS_CE | SPW_STATUS_ER | SPW_STATUS_DE | SPW_STATUS_PE | SPW_STATUS_WE | SPW_STATUS_IA | SPW_STATUS_EE));
 
 	/* Make sure to put the timecode handling first in order to get the smallest
 	 * possible interrupt latency
 	 */
 	if ( (status & SPW_STATUS_TO) && (grspw_timecode_callback != NULL) ) {
 	    /* Timecode received. Let custom function handle this */
+	    SPW_STATUS_WRITE(pDev, SPW_STATUS_TO);
 	    timecode = SPW_READ(&pDev->regs->time);
 	    (grspw_timecode_callback)(pDev,pDev->regs,pDev->minor,timecode);
 	}
@@ -1243,7 +1244,10 @@ static rtems_device_driver grspw_control(
 			if ((unsigned int)ioarg->buffer > 1) {
 				return RTEMS_INVALID_NAME;
 			}
-			SPW_CTRL_WRITE(pDev, (SPW_CTRL_READ(pDev) & 0xFFFFFDF7) | ((unsigned int)ioarg->buffer << 9) | (pDev->config.link_err_irq << 3));
+			tmp = (SPW_CTRL_READ(pDev) & 0xFFFFFDF7) | ((unsigned int)ioarg->buffer << 9);
+			if (tmp & (SPW_CTRL_LI|SPW_CTRL_TQ))
+				tmp |= SPW_CTRL_IE;
+			SPW_CTRL_WRITE(pDev, tmp);
 			SPACEWIRE_DBGC(DBGSPW_IOCTRL, "CTRL REG: %x\n", SPW_CTRL_READ(pDev));
 			if (((SPW_CTRL_READ(pDev) >> 9) & 1) != (unsigned int)ioarg->buffer) {
 				return RTEMS_IO_ERROR;
@@ -1519,24 +1523,29 @@ static rtems_device_driver grspw_control(
 			mask = tmp & (SPACEWIRE_TCODE_CTRL_IE_MSK|SPACEWIRE_TCODE_CTRL_TT_MSK|SPACEWIRE_TCODE_CTRL_TR_MSK);
 			mask <<= 8;
 			tmp &= mask;
-			SPW_WRITE(&pDev->regs->ctrl,
-			    ((SPW_READ(&pDev->regs->ctrl) & ~(mask)) | tmp));
+			tmp = (SPW_CTRL_READ(pDev) & ~(mask | SPW_CTRL_IE)) | tmp;
+			if (tmp & (SPW_CTRL_LI|SPW_CTRL_TQ))
+				tmp |= SPW_CTRL_IE;
+			SPW_CTRL_WRITE(pDev, tmp);
 			break;
-		
+
 		/* Set time register and optionaly send a time code */
 		case SPACEWIRE_IOCTRL_SET_TCODE:
 			tmp = (unsigned int)ioarg->buffer;
 			/* Set timecode register */
-			SPW_WRITE(&pDev->regs->time,
-			    ((SPW_READ(&pDev->regs->time) & ~(0xff)) | (tmp & SPACEWIRE_TCODE_TCODE)));
-			/* Send timecode directly ? */
-			if ( tmp & SPACEWIRE_TCODE_TX ){
-			    SPW_WRITE(&pDev->regs->ctrl,
-				((SPW_READ(&pDev->regs->ctrl) & ~(SPW_CTRL_TR)) | SPW_CTRL_TR));
+			if (tmp & SPACEWIRE_TCODE_SET) {
+				SPW_WRITE(&pDev->regs->time,
+				    ((SPW_READ(&pDev->regs->time) & ~(0xff)) |
+				    (tmp & SPACEWIRE_TCODE_TCODE)));
+			}
+			/* Send timecode directly (tick-in) ? */
+			if (tmp & SPACEWIRE_TCODE_TX) {
+			    SPW_CTRL_WRITE(pDev,
+				((SPW_CTRL_READ(pDev) & ~(SPW_CTRL_TI)) | SPW_CTRL_TI));
 			}
 			break;
 
-		/* Set time register and optionaly send a time code */
+		/* Read time code register and tick-out status bit */
 		case SPACEWIRE_IOCTRL_GET_TCODE:
 			tmp = (unsigned int)ioarg->buffer;
 			if ( !tmp ){
@@ -1544,7 +1553,11 @@ static rtems_device_driver grspw_control(
 			}
 
 			/* Copy timecode register */
-			*(unsigned int *)tmp = SPW_READ(&pDev->regs->time);
+			if (SPW_READ(&pDev->regs->status) & SPW_STATUS_TO) {
+				*(unsigned int *)tmp = (1 << 8) | SPW_READ(&pDev->regs->time);
+			} else {
+				*(unsigned int *)tmp = SPW_READ(&pDev->regs->time);
+			}
 			break;
 
 		case SPACEWIRE_IOCTRL_SET_READ_TIMEOUT:

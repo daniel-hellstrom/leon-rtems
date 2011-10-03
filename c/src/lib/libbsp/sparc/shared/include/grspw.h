@@ -143,11 +143,17 @@ typedef struct {
 
 /* SPACEWIRE_IOCTRL_SET_TCODE argument mask */
 #define SPACEWIRE_TCODE_TCODE                0x0ff
+#define SPACEWIRE_TCODE_SET                  0x100 /* Set Timecode register */
 #define SPACEWIRE_TCODE_TX                   0x400
 
 void grspw_register_drv (void);
 
 void grspw_print(int options);
+
+/* Global GRSPW Function pointer called upon timecode receive interrupt */
+extern void (*grspw_timecode_callback)
+    (void *pDev, void *regs, int minor, unsigned int tc);
+
 
 #ifdef __cplusplus
 }
