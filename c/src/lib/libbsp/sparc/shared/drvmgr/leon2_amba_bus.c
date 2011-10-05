@@ -124,7 +124,7 @@ struct drvmgr_key leon2_gpio0[] =
 	KEY_EMPTY
 };
 
-struct leon2_core drv_mgr_leon2_std_cores[] = 
+struct leon2_core leon2_std_cores[] = 
 {
 	{{LEON2_AMBA_TIMER_ID}, "Timers", &leon2_timers[0]},
 	{{LEON2_AMBA_UART_ID}, "Uart1", &leon2_uart1[0]},
@@ -134,14 +134,14 @@ struct leon2_core drv_mgr_leon2_std_cores[] =
 	EMPTY_LEON2_CORE
 };
 
-static struct leon2_bus *drv_mgr_leon2_bus_config = NULL;
-static struct drvmgr_bus_res *drv_mgr_leon2_bus_res = NULL;
+static struct leon2_bus *leon2_bus_config = NULL;
+static struct drvmgr_bus_res *leon2_bus_res = NULL;
 
-int drv_mgr_leon2_init(struct leon2_bus *bus_config, struct drvmgr_bus_res *resources)
+int leon2_root_register(struct leon2_bus *bus_config, struct drvmgr_bus_res *resources)
 {
 	/* Save the configuration for later */
-	drv_mgr_leon2_bus_config = bus_config;
-	drv_mgr_leon2_bus_res = resources;
+	leon2_bus_config = bus_config;
+	leon2_bus_res = resources;
 
 	/* Register root device driver */
 	drvmgr_root_drv_register(&leon2_bus_drv);
@@ -231,8 +231,8 @@ int leon2_amba_init1(struct drvmgr_dev *dev)
 	dev->bus->ops = &leon2_amba_bus_ops;
 	dev->bus->dev_cnt = 0;
 	dev->bus->reslist = NULL;
-	dev->bus->maps_up = drv_mgr_leon2_bus_config->maps_up;
-	dev->bus->maps_down = drv_mgr_leon2_bus_config->maps_down;
+	dev->bus->maps_up = leon2_bus_config->maps_up;
+	dev->bus->maps_down = leon2_bus_config->maps_down;
 	drvmgr_bus_register(dev->bus);
 
 	return DRVMGR_OK;
@@ -253,12 +253,12 @@ int leon2_amba_bus_init1(struct drvmgr_bus *bus)
 	struct leon2_core *core;
 	int i;
 
-	if ( drv_mgr_leon2_bus_res )
-		drvmgr_bus_res_add(bus, drv_mgr_leon2_bus_res);
+	if ( leon2_bus_res )
+		drvmgr_bus_res_add(bus, leon2_bus_res);
 
 	/**** REGISTER NEW DEVICES ****/
 	i=0;
-	core = drv_mgr_leon2_bus_config->std_cores;
+	core = leon2_bus_config->std_cores;
 	if ( core ) {
 		while ( core->id.core_id ) {
 			if ( leon2_amba_dev_register(bus, core, i) ) {
@@ -268,7 +268,7 @@ int leon2_amba_bus_init1(struct drvmgr_bus *bus)
 			core++;
 		}
 	}
-	core = drv_mgr_leon2_bus_config->custom_cores;
+	core = leon2_bus_config->custom_cores;
 	if ( core ) {
 		while ( core->id.core_id ) {
 			if ( leon2_amba_dev_register(bus, core, i) ) {

@@ -66,7 +66,7 @@ struct leon2_bus {
 	struct drvmgr_map_entry		*maps_down;	/* Memory map down-stream */
 };
 
-extern struct leon2_core drv_mgr_leon2_std_cores[];
+extern struct leon2_core leon2_std_cores[];
 
 /* Data structure drivers can access */
 struct leon2_amba_dev_info {
@@ -85,7 +85,7 @@ struct leon2_amba_drv_info {
  *  bus_config   -   What cores, their location and irqs
  *  resources    -   Driver configuration for the cores specified bus_config
  */
-int drv_mgr_leon2_init(
+int leon2_root_register(
 	struct leon2_bus *bus_config,
 	struct drvmgr_bus_res *resources);
 

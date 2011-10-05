@@ -30,7 +30,7 @@ struct leon2_core leon2_amba_custom_cores[] __attribute__((weak)) =
 /* Configure LEON2 Root bus driver */
 struct leon2_bus leon2_bus_config __attribute__((weak)) =
 {
-        &drv_mgr_leon2_std_cores[0],   /* The standard cores, defined by driver */
+        &leon2_std_cores[0], /* The standard cores, defined by driver */
         &leon2_amba_custom_cores[0],   /* custom cores, defined by us */
         DRVMGR_TRANSLATE_ONE2ONE,
 	DRVMGR_TRANSLATE_ONE2ONE,
@@ -61,6 +61,6 @@ void bsp_predriver_hook(void)
   BSP_shared_interrupt_init();
 
 #ifdef RTEMS_DRVMGR_STARTUP
-  drv_mgr_leon2_init(&leon2_bus_config, &leon2_amba_res);
+  leon2_root_register(&leon2_bus_config, &leon2_amba_res);
 #endif
 }
