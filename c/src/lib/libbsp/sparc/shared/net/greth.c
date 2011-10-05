@@ -1237,6 +1237,16 @@ int greth_register_io(rtems_device_major_number *m);
 int greth_device_init(struct greth_softc *sc);
 int network_interface_add(struct rtems_bsdnet_ifconfig *interface);
 
+#ifdef GRETH_INFO_AVAIL
+static int greth_info(
+	struct drvmgr_dev *dev,
+	void (*print_line)(void *p, char *str),
+	void *p, int argc, char *argv[]);
+#define GRETH_INFO_FUNC greth_info
+#else
+#define GRETH_INFO_FUNC NULL
+#endif
+
 int greth_init2(struct drvmgr_dev *dev);
 int greth_init3(struct drvmgr_dev *dev);
 
@@ -1250,7 +1260,7 @@ struct drvmgr_drv_ops greth_ops =
 			NULL
 		},
 	.remove = NULL,
-	.info = NULL
+	.info = GRETH_INFO_FUNC,
 };
 
 struct amba_dev_id greth_ids[] = 
@@ -1373,3 +1383,25 @@ int greth_device_init(struct greth_softc *sc)
 
     return 0;
 }
+
+#ifdef GRETH_INFO_AVAIL
+static int greth_info(
+	struct drvmgr_dev *dev,
+	void (*print_line)(void *p, char *str),
+	void *p, int argc, char *argv[])
+{
+	struct greth_softc *sc;
+	char buf[64];
+
+	if (dev->priv == NULL)
+		return -DRVMGR_EINVAL;
+	sc = dev->priv;
+
+	sprintf(buf, "IFACE NAME:  %s", sc->devName);
+	print_line(p, buf);
+	sprintf(buf, "GBIT MAC:    %s", sc->gbit_mac ? "YES" : "NO");
+	print_line(p, buf);
+
+	return DRVMGR_OK;
+}
+#endif

@@ -215,6 +215,7 @@ extern void bsp_watchdog_stop(int watchdog);
 #define GPTIMER_INFO_AVAIL            /* GPTIMER Timer driver */
 #define GRTC_RMAP_INFO_AVAIL          /* GRTC over SpaceWire/RMAP driver */
 #define AMBAPPBUS_INFO_AVAIL          /* AMBAPP Bus driver */
+#define GRETH_INFO_AVAIL              /* GRETH Ethernet driver */
 
 #ifdef __cplusplus
 }
