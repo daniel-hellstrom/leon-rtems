@@ -122,7 +122,7 @@ void ambapp_grlib_register(void)
 	drvmgr_drv_register(&ambapp_bus_drv_grlib);
 }
 
-int drv_mgr_grlib_init(struct grlib_config *config)
+int ambapp_grlib_root_register(struct grlib_config *config)
 {
 
 	/* Save the configuration for later */

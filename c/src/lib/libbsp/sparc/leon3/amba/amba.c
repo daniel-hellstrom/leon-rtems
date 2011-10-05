@@ -178,7 +178,7 @@ void amba_initialize(void)
 #else
 
   /* Register Root bus, Use GRLIB AMBA PnP bus as root bus for LEON3 */
-  drv_mgr_grlib_init(&grlib_bus_config);
+  ambapp_grlib_root_register(&grlib_bus_config);
 #endif
 
   /* find UARTS */

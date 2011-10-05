@@ -21,11 +21,12 @@ extern "C" {
 #endif
 
 struct grlib_config {
-	struct ambapp_bus		*abus;
+	struct ambapp_bus	*abus;
 	struct drvmgr_bus_res	*resources;
 };
 
-int drv_mgr_grlib_init(struct grlib_config *config);
+/* Register GRLIB AMBA PnP Bus as root bus at driver manager */
+extern int ambapp_grlib_root_register(struct grlib_config *config);
 
 #ifdef __cplusplus
 }
