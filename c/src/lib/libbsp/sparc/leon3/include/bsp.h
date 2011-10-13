@@ -104,6 +104,9 @@ void BSP_fatal_return( void );
 
 void bsp_spurious_initialize( void );
 
+/* Allocate 8-byte aligned non-freeable pre-malloc memory */
+void *bsp_early_malloc(int size);
+
 #ifdef __cplusplus
 }
 #endif

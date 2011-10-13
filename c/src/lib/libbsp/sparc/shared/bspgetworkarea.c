@@ -23,6 +23,9 @@
 extern uint32_t rdb_start;
 extern int _end;
 
+/* Must be aligned to 8, _end is aligned to 8 */
+unsigned int early_mem = (unsigned int)&_end;
+
 /*
  *  This method returns the base address and size of the area which
  *  is to be allocated between the RTEMS Workspace and the C Program
@@ -38,8 +41,11 @@ void bsp_get_work_area(
   /* must be identical to STACK_SIZE in start.S */
   #define STACK_SIZE (16 * 1024)
 
-  *work_area_start       = &_end;
-  *work_area_size       = (void *)rdb_start - (void *)&_end - STACK_SIZE;
+  /* Early dynamic memory allocator is placed just above _end  */
+  *work_area_start = (void *)early_mem;
+  *work_area_size  = (void *)rdb_start - (void *)early_mem - STACK_SIZE;
+  early_mem = ~0; /* Signal bsp_early_malloc not to be used anymore */
+
   *heap_start = BSP_BOOTCARD_HEAP_USES_WORK_AREA;
   *heap_size = BSP_BOOTCARD_HEAP_SIZE_DEFAULT;
 
