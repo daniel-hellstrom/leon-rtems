@@ -22,6 +22,7 @@
 /* Tells us where to put the workspace in case remote debugger is present.  */
 extern uint32_t rdb_start;
 extern int _end;
+extern unsigned int early_mem;
 
 /*
  *  This method returns the base address and size of the area which
@@ -38,8 +39,15 @@ void bsp_get_work_area(
   /* must be identical to STACK_SIZE in start.S */
   #define STACK_SIZE (16 * 1024)
 
+#ifdef LEON3
+  /* LEON3 has an early dynamic memory allocator placed just above _end  */
+  *work_area_start = (uintptr_t)early_mem;
+  *work_area_size  = (void *)rdb_start - (void *)early_mem - STACK_SIZE;
+  early_mem = ~0; /* Signal bsp_early_malloc not to be used anymore */
+#else
   *work_area_start       = &_end;
   *work_area_size       = (void *)rdb_start - (void *)&_end - STACK_SIZE;
+#endif
   *heap_start = BSP_BOOTCARD_HEAP_USES_WORK_AREA;
   *heap_size = BSP_BOOTCARD_HEAP_SIZE_DEFAULT;
 

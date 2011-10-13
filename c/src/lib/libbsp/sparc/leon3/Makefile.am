@@ -45,7 +45,8 @@ libbsp_a_SOURCES += ../../shared/bspclean.c ../../shared/bsplibc.c \
     ../../sparc/shared/bsppretaskinghook.c \
     ../../sparc/shared/bspgetworkarea.c ../../shared/sbrk.c startup/setvec.c \
     \
-    startup/spurious.c startup/bspidle.S startup/watchdog.c
+    startup/spurious.c startup/bspidle.S startup/watchdog.c \
+    startup/early_malloc.c
 # gnatsupp
 libbsp_a_SOURCES += gnatsupp/gnatsupp.c ../../sparc/shared/gnatcommon.c
 # console
