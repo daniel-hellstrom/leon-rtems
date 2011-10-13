@@ -68,18 +68,6 @@ extern void leon3_ext_irq_init(void);
 /* Pointers to Interrupt Controller configuration registers */
 volatile LEON3_IrqCtrl_Regs_Map *LEON3_IrqCtrl_Regs;
 
-/* Index of CPU, in an AMP system CPU-index may be non-zero */
-int LEON3_Cpu_Index = 0;
-
-/* ASM-function used to get the CPU-Index on LEON3 CPUs */
-unsigned int getasr17(void);
-
-asm(" .text  \n"
-    "getasr17:   \n"
-    "retl \n"
-    "mov %asr17, %o0\n"
-);
-
 extern rtems_configuration_table Configuration;
 extern int scan_uarts(void);
 
@@ -104,15 +92,6 @@ void amba_initialize(void)
 {
   int i, icsel;
   struct ambapp_dev *adev;
-  unsigned int tmp;
-
-  /* Get the LEON3 CPU index, normally 0, but for MP systems we do 
-   * _not_ assume that this is CPU0. One may run another OS on CPU0
-   * and RTEMS on this CPU, and AMP system with mixed operating
-   * systems
-   */
-  tmp = getasr17();
-  LEON3_Cpu_Index = (tmp >> 28) & 3;
 
   /* Scan AMBA Plug&Play information, assuming malloc() works.
    * The routine builds a PnP tree into ambapp_plb.root in RAM, so after this
