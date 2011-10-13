@@ -20,10 +20,22 @@
 #include <string.h>
 
 #include <ambapp.h>
+#include <bsp.h>
 
 #define AMBA_CONF_AREA 0xff000
 #define AMBA_AHB_SLAVE_CONF_AREA (1 << 11)
 #define AMBA_APB_SLAVES 16
+
+/* LEON3 BSP calls AMBA initialization before malloc() works,
+ * but the BSP provides a early-malloc routine that can be used. On the
+ * LEON2 BSP malloc() can be used since it is never called so early in
+ * boot process.
+ */
+#ifdef LEON3
+#define EARLY_MALLOC bsp_early_malloc
+#else
+#define EARLY_MALLOC malloc
+#endif
 
 /* Allocate */
 struct ambapp_dev *ambapp_alloc_dev_struct(int dev_type)
@@ -37,7 +49,7 @@ struct ambapp_dev *ambapp_alloc_dev_struct(int dev_type)
 		/* AHB */
 		size += sizeof(struct ambapp_ahb_info);
 	}
-	dev = malloc(size);
+	dev = (struct ambapp_dev *)EARLY_MALLOC(size);
 	if ( dev == NULL )
 		return NULL;
 	memset(dev, 0 , size);
