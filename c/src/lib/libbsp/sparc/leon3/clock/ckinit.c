@@ -51,7 +51,6 @@
 
 volatile LEON3_Timer_Regs_Map *LEON3_Timer_Regs = 0;
 static int clkirq;
-extern struct ambapp_dev_hdr *ambapp_root;
 extern int find_matching_adev(struct ambapp_dev *dev, int index, int maxdepth, void *arg);
 
 #define CLOCK_VECTOR LEON_TRAP_TYPE( clkirq )
