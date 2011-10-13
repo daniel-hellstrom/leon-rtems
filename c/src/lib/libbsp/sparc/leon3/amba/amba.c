@@ -69,7 +69,7 @@ extern void leon3_ext_irq_init(void);
 volatile LEON3_IrqCtrl_Regs_Map *LEON3_IrqCtrl_Regs;
 
 /* AMBA PP find routines */
-int find_matching_adev(struct ambapp_dev *dev, int index, int maxdepth, void *arg)
+int find_matching_adev(struct ambapp_dev *dev, int index, void *arg)
 {
 	*(struct ambapp_dev **)arg = dev;
 	return 1; /* Satisfied with first matching device, stop search */
@@ -99,7 +99,7 @@ void amba_initialize(void)
 
   /* Find LEON3 Interrupt controller */
   i = ambapp_for_each(ambapp_plb.root, (OPTIONS_ALL|OPTIONS_APB_SLVS), 
-              VENDOR_GAISLER, GAISLER_IRQMP, 10, find_matching_adev, &adev);
+              VENDOR_GAISLER, GAISLER_IRQMP, find_matching_adev, &adev);
   if ( i <= 0 ) {
     /* PANIC IRQ controller not found!
      *
@@ -141,7 +141,7 @@ void amba_initialize(void)
 
   /* find GP Timer */
   i = ambapp_for_each(ambapp_plb.root, (OPTIONS_ALL|OPTIONS_APB_SLVS), 
-              VENDOR_GAISLER, GAISLER_GPTIMER, 10, find_matching_adev, &adev);
+              VENDOR_GAISLER, GAISLER_GPTIMER, find_matching_adev, &adev);
   if ( i > 0 ){
     LEON3_Timer_Regs = (volatile LEON3_Timer_Regs_Map *)
                         ((struct ambapp_apb_info *)adev->devinfo)->start;

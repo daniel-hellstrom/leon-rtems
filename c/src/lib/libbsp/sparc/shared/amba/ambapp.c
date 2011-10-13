@@ -347,15 +347,11 @@ static int ambapp_for_each_apb(
 	unsigned int options,
 	int vendor,
 	int device,
-	int maxdepth,
 	ambapp_func_t func,
 	void *arg)
 {
 	int index;
 	struct ambapp_dev *apbslv;
-
-	if ( maxdepth < 0 )
-		return 0;
 
 	if ( dev->children && (dev->children->dev_type == DEV_APB_SLV) ) {
 		/* Found a APB Bridge */
@@ -364,7 +360,7 @@ static int ambapp_for_each_apb(
 		while(apbslv){
 			if ( ambapp_dev_match_options(apbslv, options,
 			                              vendor, device) == 1 ) {
-				if ( func(apbslv, index, maxdepth, arg) == 1 )
+				if ( func(apbslv, index, arg) == 1 )
 					return 1; /* Signalled stopped */
 			}
 			index++;
@@ -373,23 +369,19 @@ static int ambapp_for_each_apb(
 	}
 	return 0;
 }
-			
+
 /* Traverse the prescanned device information */
 int ambapp_for_each(
 	struct ambapp_dev *root,
 	unsigned int options,
 	int vendor,
 	int device,
-	int maxdepth,
 	ambapp_func_t func,
 	void *arg)
 {
 	struct ambapp_dev *dev;
 	int ahb_slave = 0;
 	int index;
-
-	if ( maxdepth < 0 )
-		return 0;
 
 	/* Start at device 'root' and process downwards.
 	 *
@@ -417,7 +409,7 @@ int ambapp_for_each(
 			if ( ambapp_dev_match_options(dev, options, vendor,
 			                              device) == 1 ) {
 				/* Correct device and vendor ID */
-				if ( func(dev, index, maxdepth, arg) == 1 )
+				if ( func(dev, index, arg) == 1 )
 					return 1; /* Signalled stopped */
 			}
 
@@ -427,7 +419,7 @@ int ambapp_for_each(
 				 * Slaves in that case
 				 */
 				if ( ambapp_for_each_apb(dev, options, vendor,
-				                         device, (maxdepth-1),
+				                         device,
 				                         func, arg) == 1 )
 					return 1; /* Signalled stopped */
 			}
@@ -439,8 +431,7 @@ int ambapp_for_each(
 					if ( ambapp_for_each(dev->children,
 					                     options, vendor,
 					                     device, 
-					                     (maxdepth-1), func,
-					                     arg) == 1 )
+					                     func, arg) == 1 )
 						return 1;
 				}
 			}
@@ -458,7 +449,7 @@ int ambapp_for_each(
 			 * that case
 			 */
 			if ( ambapp_for_each_apb(dev, options, vendor, device,
-			                         (maxdepth-1), func, arg)==1 )
+			                         func, arg)==1 )
 				return 1; /* Signalled stopped */
 			dev = dev->next;
 		}
@@ -473,7 +464,7 @@ int ambapp_for_each(
 				/* Found AHB Bridge, recurse */
 				if ( ambapp_for_each(dev->children, options,
 				                     vendor, device,
-				                     (maxdepth-1),func,arg)==1 )
+				                     func,arg) == 1 )
 					return 1;
 			}
 			dev = dev->next;
@@ -505,6 +496,17 @@ struct ambapp_dev *ambapp_find_parent(struct ambapp_dev *dev)
 		dev = dev->prev;
 	}
 	return NULL;
+}
+
+int ambapp_depth(struct ambapp_dev *dev)
+{
+	int depth = 0;
+
+	do {
+		dev = ambapp_find_parent(dev);
+		depth++;
+	} while (dev);
+	return depth - 1;
 }
 
 /* Calculate AHB Bus frequency of

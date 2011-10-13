@@ -118,7 +118,7 @@ struct ambapp_bus {
  *  0 - continue
  *  1 - stop scanning
  */
-typedef int (*ambapp_func_t)(struct ambapp_dev *dev, int index, int maxdepth, void *arg);
+typedef int (*ambapp_func_t)(struct ambapp_dev *dev, int index, void *arg);
 
 #define DEV_IS_FREE(dev) (dev->owner == NULL)
 #define DEV_IS_ALLOCATED(dev) (dev->owner != NULL)
@@ -198,16 +198,6 @@ extern int ambapp_scan(
 	ambapp_memcpy_t memfunc,
 	struct ambapp_mmap *mmaps
 	);
-#if 0
-extern int ambapp_scan(
-	unsigned int ioarea, 
-	struct ambapp_dev *parent,
-	struct ambapp_mmap *mmaps,
-	void *(*memfunc)(void *dest, const void *src, int n),
-	struct ambapp_dev **root,
-	void *internal
-	);
-#endif
 
 /* Initialize the frequency of all AHB Buses from knowing the frequency of one
  * particular APB/AHB Device.
@@ -235,7 +225,6 @@ extern int ambapp_for_each(
 	unsigned int options,
 	int vendor,
 	int device,
-	int maxdepth,
 	ambapp_func_t func,
 	void *arg);
 
@@ -305,6 +294,9 @@ extern int ambapp_find_ahbslvs(
 
 /* Find AHB/APB Bridge or AHB/AHB Bridge Parent */
 extern struct ambapp_dev *ambapp_find_parent(struct ambapp_dev *dev);
+
+/* Returns bus depth (number of sub buses) of device from root bus */
+extern int ambapp_depth(struct ambapp_dev *dev);
 
 #ifdef __cplusplus
 }

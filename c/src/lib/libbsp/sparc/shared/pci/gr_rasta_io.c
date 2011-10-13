@@ -228,7 +228,7 @@ void gr_rasta_io_isr (void *arg)
 }
 
 /* AMBA PP find routines */
-int gr_rasta_io_dev_find(struct ambapp_dev *dev, int index, int maxdepth, void *arg)
+int gr_rasta_io_dev_find(struct ambapp_dev *dev, int index, void *arg)
 {
 	/* Found IRQ/GRPCI controller, stop */
 	*(struct ambapp_dev **)arg = dev;
@@ -306,7 +306,7 @@ int gr_rasta_io_hw_init(struct gr_rasta_io_priv *priv)
 
 	/* Find GRPCI controller */
 	tmp = NULL;
-	status = ambapp_for_each(priv->abus.root, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER, GAISLER_PCIFBRG, 10, gr_rasta_io_dev_find, &tmp);
+	status = ambapp_for_each(priv->abus.root, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER, GAISLER_PCIFBRG, gr_rasta_io_dev_find, &tmp);
 	if ( (status != 1) || !tmp ) {
 		return -3;
 	}
@@ -321,7 +321,7 @@ int gr_rasta_io_hw_init(struct gr_rasta_io_priv *priv)
 
 	/* Find IRQ controller, Clear all current IRQs */
 	tmp = NULL;
-	status = ambapp_for_each(priv->abus.root, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER, GAISLER_IRQMP, 10, gr_rasta_io_dev_find, &tmp);
+	status = ambapp_for_each(priv->abus.root, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER, GAISLER_IRQMP, gr_rasta_io_dev_find, &tmp);
 	if ( (status != 1) || !tmp ) {
 		return -4;
 	}
@@ -347,7 +347,7 @@ int gr_rasta_io_hw_init(struct gr_rasta_io_priv *priv)
 
 	/* Find GRPCI controller AHB Slave interface */
 	tmp = NULL;
-	status = ambapp_for_each(priv->abus.root, (OPTIONS_ALL|OPTIONS_AHB_SLVS), VENDOR_GAISLER, GAISLER_PCIFBRG, 10, gr_rasta_io_dev_find, &tmp);
+	status = ambapp_for_each(priv->abus.root, (OPTIONS_ALL|OPTIONS_AHB_SLVS), VENDOR_GAISLER, GAISLER_PCIFBRG, gr_rasta_io_dev_find, &tmp);
 	if ( (status != 1) || !tmp ) {
 		return -5;
 	}

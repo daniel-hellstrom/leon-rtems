@@ -51,7 +51,7 @@
 
 volatile LEON3_Timer_Regs_Map *LEON3_Timer_Regs = 0;
 static int clkirq;
-extern int find_matching_adev(struct ambapp_dev *dev, int index, int maxdepth, void *arg);
+extern int find_matching_adev(struct ambapp_dev *dev, int index, void *arg);
 
 #define CLOCK_VECTOR LEON_TRAP_TYPE( clkirq )
 
@@ -75,7 +75,7 @@ extern int find_matching_adev(struct ambapp_dev *dev, int index, int maxdepth, v
     \
     /* Find LEON3 GP Timer */ \
     cnt = ambapp_for_each(ambapp_plb.root, (OPTIONS_ALL|OPTIONS_APB_SLVS), \
-              VENDOR_GAISLER, GAISLER_GPTIMER, 10, find_matching_adev, &adev); \
+              VENDOR_GAISLER, GAISLER_GPTIMER, find_matching_adev, &adev); \
     if ( cnt > 0 ){ \
       /* Found APB GPTIMER Timer */ \
       LEON3_Timer_Regs = (volatile LEON3_Timer_Regs_Map *) \

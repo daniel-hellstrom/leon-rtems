@@ -21,12 +21,11 @@ extern char *ambapp_vendor_id2str(int vendor);
 
 struct ambapp_dev_print_arg {
 	int show_depth;
-	int maxdepth;
 };
 
 static char *unknown = "unknown";
 
-int ambapp_dev_print(struct ambapp_dev *dev, int index, int maxdepth, void *arg)
+int ambapp_dev_print(struct ambapp_dev *dev, int index, void *arg)
 {
 	char *dev_str, *ven_str, *type_str;
 	struct ambapp_dev_print_arg *p = arg;
@@ -35,7 +34,7 @@ int ambapp_dev_print(struct ambapp_dev *dev, int index, int maxdepth, void *arg)
 	unsigned int basereg;
 
 	if ( p->show_depth ) {
-		for(i=0; i<(p->maxdepth - maxdepth)*2; i+=2){
+		for(i=0; i<ambapp_depth(dev)*2; i+=2){
 			dp[i] = ' ';
 			dp[i+1] = ' ';
 		}
@@ -71,8 +70,7 @@ void ambapp_print(struct ambapp_bus *abus, int show_depth)
 {
 	struct ambapp_dev_print_arg arg;
 	arg.show_depth = show_depth;
-	arg.maxdepth = 10;
-	ambapp_for_each(abus->root, 
+	ambapp_for_each(abus->root,
 			(OPTIONS_ALL_DEVS|OPTIONS_ALL|OPTIONS_DEPTH_FIRST), -1,
-			-1, 10, ambapp_dev_print, &arg);
+			-1, ambapp_dev_print, &arg);
 }

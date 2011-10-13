@@ -9,7 +9,7 @@ struct ambapp_dev_find_match_arg {
 };
 
 /* AMBA PP find routines */
-int ambapp_dev_find_match(struct ambapp_dev *dev, int index, int maxdepth, void *arg)
+int ambapp_dev_find_match(struct ambapp_dev *dev, int index, void *arg)
 {
 	struct ambapp_dev_find_match_arg *p = arg;
 
@@ -42,7 +42,8 @@ int ambapp_find_apbslvs_next(struct ambapp_bus *abus, int vendor, int device, st
 	arg.type = DEV_APB_SLV; /* APB */
 	arg.dev = dev;
 
-	ambapp_for_each(abus->root, (OPTIONS_ALL|OPTIONS_APB_SLVS), vendor, device, 10, ambapp_dev_find_match, &arg);
+	ambapp_for_each(abus->root, (OPTIONS_ALL|OPTIONS_APB_SLVS), vendor,
+			device, ambapp_dev_find_match, &arg);
 
 	return maxno - arg.count;
 }
@@ -72,7 +73,7 @@ int ambapp_find_ahbslvs_next(struct ambapp_bus *abus, int vendor, int device, st
 	arg.dev = dev;
 
 	ambapp_for_each(abus->root, (OPTIONS_ALL|OPTIONS_AHB_SLVS), vendor,
-			device, 10, ambapp_dev_find_match, &arg);
+			device, ambapp_dev_find_match, &arg);
 
 	return maxno - arg.count;
 }
