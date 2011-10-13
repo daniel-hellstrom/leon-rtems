@@ -76,12 +76,20 @@ void bsp_start( void )
    */
   LEON3_Cpu_Index = (get_asr17() >> 28) & 3;
 
+  /* Scan AMBA Plug&Play and parse it into a RAM description (ambapp_plb),
+   * find GPTIMER for bus frequency, find IRQ Controller and initialize
+   * interrupt support
+   */
+  amba_initialize();
+
   /* find UARTS */
 #warning FIX UART INITIALIZATION /* We need printk() even though console driver is not present */
 }
 
-
 void bsp_predriver_hook( void )
 {
-  amba_initialize();
+  /* Initialize shared interrupt handling, must be done after extended 
+   * interrupt controller has been registered.
+   */
+  BSP_shared_interrupt_init();
 }

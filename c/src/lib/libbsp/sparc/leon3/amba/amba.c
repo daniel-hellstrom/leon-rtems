@@ -127,11 +127,6 @@ void amba_initialize(void)
   /* Init Extended IRQ controller if available */
   leon3_ext_irq_init();
 
-  /* Initialize shared interrupt handling, must be done after extended 
-   * interrupt controller has been registered.
-   */
-  BSP_shared_interrupt_init();
-
   /* If we are running without Driver Manager at startup, we must still
    * assure that Timer and Console UART is working. So we can not
    * depend on the DrvMgr capable Timer and Console UART drivers,
