@@ -68,9 +68,6 @@ extern void leon3_ext_irq_init(void);
 /* Pointers to Interrupt Controller configuration registers */
 volatile LEON3_IrqCtrl_Regs_Map *LEON3_IrqCtrl_Regs;
 
-extern rtems_configuration_table Configuration;
-extern int scan_uarts(void);
-
 /* AMBA PP find routines */
 int find_matching_adev(struct ambapp_dev *dev, int index, int maxdepth, void *arg)
 {
@@ -159,7 +156,4 @@ void amba_initialize(void)
   /* Register Root bus, Use GRLIB AMBA PnP bus as root bus for LEON3 */
   ambapp_grlib_root_register(&grlib_bus_config);
 #endif
-
-  /* find UARTS */
-#warning FIX UART INITIALIZATION /* We need printk() even though console driver is not present */
 }
