@@ -70,7 +70,7 @@ void ambapp_print(struct ambapp_bus *abus, int show_depth)
 {
 	struct ambapp_dev_print_arg arg;
 	arg.show_depth = show_depth;
-	ambapp_for_each(abus->root,
+	ambapp_for_each(abus,
 			(OPTIONS_ALL_DEVS|OPTIONS_ALL|OPTIONS_DEPTH_FIRST), -1,
 			-1, ambapp_dev_print, &arg);
 }

@@ -74,7 +74,7 @@ extern int find_matching_adev(struct ambapp_dev *dev, int index, void *arg);
 		struct ambapp_dev *adev; \
     \
     /* Find LEON3 GP Timer */ \
-    cnt = ambapp_for_each(ambapp_plb.root, (OPTIONS_ALL|OPTIONS_APB_SLVS), \
+    cnt = ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), \
               VENDOR_GAISLER, GAISLER_GPTIMER, find_matching_adev, &adev); \
     if ( cnt > 0 ){ \
       /* Found APB GPTIMER Timer */ \

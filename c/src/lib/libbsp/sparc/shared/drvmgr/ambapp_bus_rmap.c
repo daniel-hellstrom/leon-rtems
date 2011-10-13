@@ -262,7 +262,7 @@ int ambapp_rmap_init1(struct drvmgr_dev *dev)
 
 	/* Find IRQ controller */
 	tmp = NULL;
-	status = ambapp_for_each(priv->abus.root, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER, GAISLER_IRQMP, ambapp_rmap_dev_find, &tmp);
+	status = ambapp_for_each(&priv->abus, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER, GAISLER_IRQMP, ambapp_rmap_dev_find, &tmp);
 	if ( (status != 1) || !tmp ) {
 		/* Silent error if not IRQ controller is found and IRQ support
 		 * is disabled

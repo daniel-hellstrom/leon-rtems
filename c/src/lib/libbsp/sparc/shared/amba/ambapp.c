@@ -371,7 +371,7 @@ static int ambapp_for_each_apb(
 }
 
 /* Traverse the prescanned device information */
-int ambapp_for_each(
+static int ambapp_for_each_dev(
 	struct ambapp_dev *root,
 	unsigned int options,
 	int vendor,
@@ -428,7 +428,7 @@ int ambapp_for_each(
 				if ( dev->children &&
 				     (dev->children->dev_type != DEV_APB_SLV)) {
 					/* Found AHB Bridge, recurse */
-					if ( ambapp_for_each(dev->children,
+					if ( ambapp_for_each_dev(dev->children,
 					                     options, vendor,
 					                     device, 
 					                     func, arg) == 1 )
@@ -462,7 +462,7 @@ int ambapp_for_each(
 			if ( dev->children &&
 			     (dev->children->dev_type != DEV_APB_SLV) ) {
 				/* Found AHB Bridge, recurse */
-				if ( ambapp_for_each(dev->children, options,
+				if ( ambapp_for_each_dev(dev->children, options,
 				                     vendor, device,
 				                     func,arg) == 1 )
 					return 1;
@@ -472,6 +472,18 @@ int ambapp_for_each(
 	}
 
 	return 0;
+}
+
+int ambapp_for_each(
+	struct ambapp_bus *abus,
+	unsigned int options,
+	int vendor,
+	int device,
+	ambapp_func_t func,
+	void *arg)
+{
+	return ambapp_for_each_dev(abus->root, options, vendor, device, func,
+				   arg);
 }
 
 int ambapp_alloc_dev(struct ambapp_dev *dev, void *owner)

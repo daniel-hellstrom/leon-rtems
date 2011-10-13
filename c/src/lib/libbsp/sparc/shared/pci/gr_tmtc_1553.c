@@ -264,7 +264,7 @@ int gr_tmtc_1553_hw_init(struct gr_tmtc_1553_priv *priv)
 
 	/* Find IRQ controller */
 	tmp = NULL;
-	status = ambapp_for_each(priv->abus.root, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER, GAISLER_IRQMP, gr_tmtc_1553_dev_find, &tmp);
+	status = ambapp_for_each(&priv->abus, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER, GAISLER_IRQMP, gr_tmtc_1553_dev_find, &tmp);
 	if ( (status != 1) || !tmp ) {
 		return -4;
 	}

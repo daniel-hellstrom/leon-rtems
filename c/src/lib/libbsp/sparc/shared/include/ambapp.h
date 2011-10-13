@@ -221,7 +221,7 @@ extern unsigned int ambapp_freq_get(
  *  1 - stopped by user function returning a one
  */
 extern int ambapp_for_each(
-	struct ambapp_dev *root,
+	struct ambapp_bus *abus,
 	unsigned int options,
 	int vendor,
 	int device,

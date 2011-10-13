@@ -621,7 +621,7 @@ int ambapp_dev_register(struct ambapp_dev *dev, int index, void *arg)
 		p->ahb_mst = dev;
 
 		/* Find AHB Slave and APB slave for this Core */
-		ambapp_for_each(p->abus->root, (OPTIONS_AHB_SLVS|OPTIONS_APB_SLVS|OPTIONS_FREE), dev->vendor, dev->device, ambapp_dev_register, p);
+		ambapp_for_each(p->abus, (OPTIONS_AHB_SLVS|OPTIONS_APB_SLVS|OPTIONS_FREE), dev->vendor, dev->device, ambapp_dev_register, p);
 
 		ambapp_core_register(p->ahb_mst, p->ahb_slv, p->apb_slv, p);
 		p->ahb_mst = p->ahb_slv = p->apb_slv = NULL;
@@ -641,7 +641,7 @@ int ambapp_dev_register(struct ambapp_dev *dev, int index, void *arg)
 			return 0;
 		} else {
 			/* Find APB Slave interface for this Core */
-			ambapp_for_each(p->abus->root, (OPTIONS_APB_SLVS|OPTIONS_FREE), dev->vendor, dev->device, ambapp_dev_register, p);
+			ambapp_for_each(p->abus, (OPTIONS_APB_SLVS|OPTIONS_FREE), dev->vendor, dev->device, ambapp_dev_register, p);
 
 			ambapp_core_register(p->ahb_mst, p->ahb_slv, p->apb_slv, p);
 			p->ahb_mst = p->ahb_slv = p->apb_slv = NULL;
@@ -687,7 +687,7 @@ int ambapp_ids_register(struct drvmgr_bus *bus)
 	/* Combine the AHB MST, AHB SLV and APB SLV interfaces of a core. A core has often more than
 	 * one interface. A core can not have more than one interface of the same type.
 	 */
-	ambapp_for_each(abus->root, (OPTIONS_ALL_DEVS|OPTIONS_FREE), -1, -1, ambapp_dev_register, &arg);
+	ambapp_for_each(abus, (OPTIONS_ALL_DEVS|OPTIONS_FREE), -1, -1, ambapp_dev_register, &arg);
 
 #ifdef DEBUG
 	ambapp_print(abus->root, 1);

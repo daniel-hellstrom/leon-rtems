@@ -98,7 +98,7 @@ void amba_initialize(void)
   ambapp_scan(&ambapp_plb, LEON3_IO_AREA, NULL, NULL);
 
   /* Find LEON3 Interrupt controller */
-  i = ambapp_for_each(ambapp_plb.root, (OPTIONS_ALL|OPTIONS_APB_SLVS), 
+  i = ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), 
               VENDOR_GAISLER, GAISLER_IRQMP, find_matching_adev, &adev);
   if ( i <= 0 ) {
     /* PANIC IRQ controller not found!
@@ -140,7 +140,7 @@ void amba_initialize(void)
 #ifndef RTEMS_DRVMGR_STARTUP
 
   /* find GP Timer */
-  i = ambapp_for_each(ambapp_plb.root, (OPTIONS_ALL|OPTIONS_APB_SLVS), 
+  i = ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), 
               VENDOR_GAISLER, GAISLER_GPTIMER, find_matching_adev, &adev);
   if ( i > 0 ){
     LEON3_Timer_Regs = (volatile LEON3_Timer_Regs_Map *)
