@@ -47,7 +47,7 @@ int rtems_leon_open_eth_driver_attach(
       return 0;
     }
   }
-  eth_irq = dev.irq + 0x10; /* Calculate vector number from IRQ number */
+  eth_irq = dev.irq; /* Calculate vector number from IRQ number */
   base_addr = dev.start[0];
 
   {
@@ -56,15 +56,15 @@ int rtems_leon_open_eth_driver_attach(
     *(volatile int *) base_addr = 0x800;
     *(volatile int *) base_addr = 0;
     leon_open_eth_configuration.base_address = base_addr;
-    leon_open_eth_configuration.vector = eth_irq;
+    leon_open_eth_configuration.vector = eth_irq + 0x10;
     leon_open_eth_configuration.txd_count = TDA_COUNT;
     leon_open_eth_configuration.rxd_count = RDA_COUNT;
     /* enable 100 MHz operation only if cpu frequency >= 50 MHz */
     if (LEON3_Timer_Regs->scaler_reload >= 49) 
       leon_open_eth_configuration.en100MHz = 1;
     if (rtems_open_eth_driver_attach( config, &leon_open_eth_configuration )) {
-      LEON_Clear_interrupt(leon_open_eth_configuration.vector);
-      LEON_Unmask_interrupt(leon_open_eth_configuration.vector);
+      LEON_Clear_interrupt(eth_irq);
+      LEON_Unmask_interrupt(eth_irq);
     }
   }
   return 0;
