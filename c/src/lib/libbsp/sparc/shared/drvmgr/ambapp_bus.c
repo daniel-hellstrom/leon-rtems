@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <drvmgr/drvmgr.h>
 #include <drvmgr/ambapp_bus.h>
@@ -36,8 +37,6 @@
 /*#define DEBUG 1*/
 #define DBG(args...)
 /*#define DBG(args...) printk(args)*/
-
-char *ambapp_device_id2str(int vendor, int id);
 
 struct grlib_gptimer_regs {
 	volatile unsigned int scaler_value;   /* common timer registers */
@@ -523,6 +522,8 @@ void ambapp_core_register(
 	struct amba_dev_info *pnpinfo;
 	unsigned short device;
 	unsigned char vendor;
+	int namelen;
+	char buf[64];
 
 	if ( ahb_mst ) {
 		device = ahb_mst->device;
@@ -540,16 +541,25 @@ void ambapp_core_register(
 
 	DBG("CORE REGISTER DEV [%x:%x] MST: 0x%x, SLV: 0x%x, APB: 0x%x\n", vendor, device, (unsigned int)ahb_mst, (unsigned int)ahb_slv, (unsigned int)apb_slv);
 
-	/* Allocate a device */
-	drvmgr_alloc_dev(&newdev, sizeof(struct amba_dev_info));
+	/* Get unique device name from AMBA data base by combining VENDOR and
+	 * DEVICE short names
+	 */
+	namelen = ambapp_vendev_id2str(vendor, device, buf);
+
+	/* Allocate a device */		
+	drvmgr_alloc_dev(&newdev, sizeof(struct amba_dev_info) + namelen);
 	pnpinfo = (struct amba_dev_info *)(newdev + 1);
-	newdev->next = NULL;
 	newdev->parent = arg->bus; /* Ourselfs */
 	newdev->minor_drv = 0;
 	newdev->minor_bus = 0;
 	newdev->priv = NULL;
 	newdev->drv = NULL;
-	newdev->name = ambapp_device_id2str(vendor, device);
+	if (namelen > 0) {
+		newdev->name = (char *)(pnpinfo + 1);
+		strcpy(newdev->name, buf);
+	} else {
+		newdev->name = NULL;
+	}
 	newdev->next_in_drv = NULL;
 	newdev->bus = NULL;
 

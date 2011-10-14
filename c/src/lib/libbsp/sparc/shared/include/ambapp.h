@@ -245,6 +245,17 @@ extern struct ambapp_dev *ambapp_find_parent(struct ambapp_dev *dev);
 /* Returns bus depth (number of sub AHB buses) of device from root bus */
 extern int ambapp_depth(struct ambapp_dev *dev);
 
+/* Get Device Name from AMBA PnP name database */
+extern char *ambapp_device_id2str(int vendor, int id);
+
+/* Get Vendor Name from AMBA PnP name database */
+extern char *ambapp_vendor_id2str(int vendor);
+
+/* Set together VENDOR_DEVICE Name from AMBA PnP name database. Return length
+ * of C-string stored in buf not including string termination '\0'.
+ */
+extern int ambapp_vendev_id2str(int vendor, int id, char *buf);
+
 /* Help functions for backwards compability */
 
 extern int ambapp_find_apbslv(

@@ -59,7 +59,7 @@ int ambapp_dev_print(struct ambapp_dev *dev, int index, void *arg)
 		basereg = ((struct ambapp_ahb_info *)dev->devinfo)->start[0];
 		type_str = "ahb";
 	}
-	printf("%s |-> 0x%x:0x%x:0x%x: %s %s, %s: 0x%x, 0x%x (OWNER: 0x%x)\n",
+	printf("%s |-> 0x%x:0x%x:0x%x: %s_%s, %s: 0x%x, 0x%x (OWNER: 0x%x)\n",
 		dp, index, dev->vendor, dev->device, ven_str, dev_str, type_str,
 		basereg, (unsigned int)dev, (unsigned int)dev->owner);
 
