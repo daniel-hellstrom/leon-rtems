@@ -43,6 +43,7 @@ struct apbuart_priv {
   volatile LEON3_UART_Regs_Map *regs;
   int irq;
   void *cookie;
+  unsigned int freq_hz;
 #if CONSOLE_USE_INTERRUPTS
   volatile int sending;
   char *buf;
@@ -214,24 +215,6 @@ ssize_t console_write_polled (int minor, const char *buf, size_t len)
   return nwrite;
 }
 
-unsigned int console_get_sys_freq(void)
-{
-  unsigned int freq_hz;
-  struct ambapp_apb_info gptimer;
-  LEON3_Timer_Regs_Map *tregs;
-
-  /* LEON3: find timer address via AMBA Plug&Play info */	
-  if ( ambapp_find_apbslv(&ambapp_plb, VENDOR_GAISLER, GAISLER_GPTIMER, &gptimer) == 1 ){
-    tregs = (LEON3_Timer_Regs_Map *)gptimer.start;
-    freq_hz = (tregs->scaler_reload+1)*1000*1000;
-  } else {
-    freq_hz = 40000000; /* Default to 40MHz */
-    printk("CONSOLE: Failed to detect system frequency\n\r");
-  }
-
-  return freq_hz;
-}
-
 int console_set_attributes(int minor, const struct termios *t)
 {
   unsigned int core_clk_hz;
@@ -312,21 +295,36 @@ int console_set_attributes(int minor, const struct termios *t)
     case B230400: baud = 230400;  break;
     case B460800: baud = 460800;  break;
   }
-  
+
   if ( baud > 0 ){
-    /* Get APBUART core frequency, it is assumed that it is the same
-     * as system frequency 
-     */
-    core_clk_hz = console_get_sys_freq();
-    
     /* Calculate Baud rate generator "scaler" number */
-    scaler = (((core_clk_hz*10)/(baud*8))-5)/10;
-    
+    scaler = (((uart->freq_hz * 10)/(baud * 8)) - 5) / 10;
+
     /* Set new baud rate by setting scaler */
     uart->regs->scaler = scaler;
   }
-  
+
   return 0;
+}
+
+/* AMBA PP find routine. Extract APBUART information into data structure. */
+int find_matching_apbuart(struct ambapp_dev *dev, int index, void *arg)
+{
+  struct ambapp_common_info *apb = (struct ambapp_common_info *)dev->devinfo;
+
+  /* Extract needed information of one APBUART */
+  apbuarts[uarts].regs = (volatile LEON3_UART_Regs_Map *)apb->start;
+  apbuarts[uarts].irq = apb->irq;
+  /* Get APBUART core frequency, it is assumed that it is the same
+   * as Bus frequency where the UART is situated
+   */
+  apbuarts[uarts].freq_hz = ambapp_freq_get(&ambapp_plb, dev);
+  uarts++;
+
+  if (uarts >= CONFIGURE_NUMBER_OF_TERMIOS_PORTS)
+    return 1; /* Satisfied number of UARTs, stop search */
+  else
+    return 0; /* Continue searching for more UARTs */
 }
 
 /*
@@ -336,9 +334,7 @@ int console_set_attributes(int minor, const struct termios *t)
 
 int scan_uarts(void)
 {
-  int i;
   struct ambapp_apb_info apbuart;
-  int found;
 
   if ( isinit != 0 )
     return uarts;
@@ -346,19 +342,9 @@ int scan_uarts(void)
   memset(apbuarts, 0, sizeof(apbuarts));
   uarts = 0;
 
-  for (i=0; i<CONFIGURE_NUMBER_OF_TERMIOS_PORTS; i++){
-    found = ambapp_find_apbslv_next(
-      &ambapp_plb, VENDOR_GAISLER, GAISLER_APBUART, &apbuart,
-      i + LEON3_UART_INDEX);
-    if ( found != 1 ) {
-      /* No more APBUART found */
-      break;
-    }
-
-    uarts++;
-    apbuarts[i].regs = (volatile LEON3_UART_Regs_Map *)apbuart.start;
-    apbuarts[i].irq = apbuart.irq;
-  }
+  /* Find APBUART cores */
+  ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER,
+                  GAISLER_APBUART, find_matching_apbuart, NULL);
 
   isinit = 1;
 
