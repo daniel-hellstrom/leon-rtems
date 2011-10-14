@@ -109,7 +109,7 @@ struct ambapp_mmap {
 /* Complete AMBA PnP information */
 struct ambapp_bus {
 	struct ambapp_dev	*root;			/* AHB/APB Device Tree*/
-	struct ambapp_mmap	*mmaps;			/* Memory MAP */
+	struct ambapp_mmap	*mmaps;			/* Memory MAP Array */
 	struct ambapp_ahb_bus	ahbs[AHB_BUS_MAX];	/* AHB Buses */
 };
 
@@ -228,11 +228,22 @@ extern int ambapp_for_each(
 	ambapp_func_t func,
 	void *arg);
 
+/* Print short information about devices on the AMBA bus onto the console */
 extern void ambapp_print(struct ambapp_bus *abus, int show_depth);
 
+/* Mark a device taken (allocate), Owner field is set with owner Data. Returns
+ * -1 if device has already been allocated.
+ */
 extern int ambapp_alloc_dev(struct ambapp_dev *dev, void *owner);
 
+/* Owner field is cleared, which indicates that device is not allocated */
 extern void ambapp_free_dev(struct ambapp_dev *dev);
+
+/* Find AHB/APB Bridge or AHB/AHB Bridge Parent */
+extern struct ambapp_dev *ambapp_find_parent(struct ambapp_dev *dev);
+
+/* Returns bus depth (number of sub AHB buses) of device from root bus */
+extern int ambapp_depth(struct ambapp_dev *dev);
 
 /* Help functions for backwards compability */
 
@@ -291,12 +302,6 @@ extern int ambapp_find_ahbslvs(
 	int device,
 	struct ambapp_ahb_info *dev,
 	int maxno);
-
-/* Find AHB/APB Bridge or AHB/AHB Bridge Parent */
-extern struct ambapp_dev *ambapp_find_parent(struct ambapp_dev *dev);
-
-/* Returns bus depth (number of sub buses) of device from root bus */
-extern int ambapp_depth(struct ambapp_dev *dev);
 
 #ifdef __cplusplus
 }
