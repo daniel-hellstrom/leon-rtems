@@ -801,9 +801,6 @@ extern int drvmgr_for_each_dev(
 	int (*func)(struct drvmgr_dev *dev, void *arg),
 	void *arg);
 
-/*! Print all drivers */
-extern void drvmgr_print_drvs(int show_devs);
-
 /* Print all devices */
 #define PRINT_DEVS_FAILED	0x01	/* Failed during initialization */
 #define PRINT_DEVS_ASSIGNED	0x02	/* Driver assigned */
