@@ -647,7 +647,7 @@ int at697pci_init2(struct drvmgr_dev *dev)
 			/* Set PIO as input pin */
 			regs->PIO_Direction &= ~(1 << pio);
 			/* Set Low Level sensitivity */
-			regs->PIO_Interrupt |= (0x87<< (ioport *8));
+			regs->PIO_Interrupt |= ((0x80 | pio) << (ioport * 8));
 		}
 	}
 
