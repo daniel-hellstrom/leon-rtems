@@ -13,31 +13,90 @@
 #include <drvmgr/drvmgr_list.h>
 #include "drvmgr_internal.h"
 
-int drvmgr_for_each_dev(
-	struct drvmgr_list *devlist,
-	unsigned int state_set_mask,
-	unsigned int state_clr_mask,
+/* Traverse device tree breadth-first. Supports up to 31 buses */
+static int drvmgr_for_each_dev_breadth(
 	int (*func)(struct drvmgr_dev *dev, void *arg),
 	void *arg
 	)
 {
+	int ret = 0, i, pos;
+	struct drvmgr_bus *bus, *buses[32];
 	struct drvmgr_dev *dev;
-	int ret = 0;
 
-	DRVMGR_LOCK_READ();
+	pos = 0;
+	memset(buses[0], 0, sizeof(buses));
+	buses[pos++] = drv_mgr.root_dev.bus; 	/* Get root bus */
 
-	/* Get First Device */
-	dev = DEV_LIST_HEAD(devlist);
-	while (dev) {
-		if (((state_set_mask != 0) && ((dev->state & state_set_mask) == state_set_mask)) ||
-		    ((state_clr_mask != 0) && ((dev->state & state_clr_mask) == 0)) ||
-		    ((state_set_mask == 0) && (state_clr_mask == 0))) {
+	for (i = 0, bus = buses[0]; buses[i]; i++, bus = buses[i]) {
+		dev = bus->children;
+		while (dev) {
 			ret = func(dev, arg);
 			if (ret != 0)
 				break;
+			if (dev->bus && pos < 31)
+				buses[pos++] = bus;
+
+			dev = dev->next_in_bus;
 		}
-		dev = dev->next;
 	}
+
+	return ret;
+}
+
+/* Traverse device tree depth-first. */
+static int drvmgr_for_each_dev_depth(
+	int (*func)(struct drvmgr_dev *dev, void *arg),
+	void *arg
+	)
+{
+	int ret = 0;
+	struct drvmgr_dev *dev;
+
+	/* Get first device */
+	dev = drv_mgr.root_dev.bus->children;
+
+	while (dev) {
+		ret = func(dev, arg);
+		if (ret != 0)
+			break;
+		if (dev->bus && dev->bus->children) {
+			dev = dev->bus->children;
+		} else {
+next_dev:
+			if (dev->next_in_bus == NULL) {
+				/* Step up one level... back to parent bus */
+				dev = dev->parent->dev;
+				if (dev == &drv_mgr.root_dev)
+					break;
+				goto next_dev;
+			} else {
+				dev = dev->next_in_bus;
+			}
+		}
+	}
+
+	return ret;
+}
+
+/* Traverse device tree depth-first or breadth-first */
+int drvmgr_for_each_dev(
+	int (*func)(struct drvmgr_dev *dev, void *arg),
+	void *arg,
+	int options
+	)
+{
+	int ret;
+
+	DRVMGR_LOCK_READ();
+
+	/* Get Root Device */
+	if (drv_mgr.root_dev.bus->children != NULL) {
+		if (options & DRVMGR_FED_BF)
+			ret = drvmgr_for_each_dev_breadth(func, arg);
+		else
+			ret = drvmgr_for_each_dev_depth(func, arg);
+	} else
+		ret = 0;
 
 	DRVMGR_UNLOCK();
 

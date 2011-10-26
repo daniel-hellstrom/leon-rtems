@@ -484,6 +484,25 @@ static inline struct drvmgr_drv *drvmgr_get_drv(struct drvmgr_dev *dev)
 		return NULL;
 }
 
+/*! Calls func() for every device found in the device tree, regardless of
+ * device state or if a driver is assigned. With the options argument the user
+ * can decide to do either a depth-first or a breadth-first search.
+ *
+ * If the function func() returns a non-zero value then for_each_dev will
+ * return imediatly with the same return value as func() returned.
+ *
+ * \param func       Function called on each device
+ * \param arg        Custom function argument
+ * \param options    Search Options, see DRVMGR_FED_*
+ *
+ */
+#define DRVMGR_FED_BF 1		/* Breadth-first search */
+#define DRVMGR_FED_DF 0		/* Depth first search */
+extern int drvmgr_for_each_dev(
+	int (*func)(struct drvmgr_dev *dev, void *arg),
+	void *arg,
+	int options);
+
 /*! Get Device pointer from Driver and Driver minor number
  *
  * \param drv         Driver the device is united with.
@@ -794,7 +813,7 @@ extern void drvmgr_rw_memset(
  * \param func               Function called on each
  *
  */
-extern int drvmgr_for_each_dev(
+extern int drvmgr_for_each_listdev(
 	struct drvmgr_list *devlist,
 	unsigned int state_set_mask,
 	unsigned int state_clr_mask,

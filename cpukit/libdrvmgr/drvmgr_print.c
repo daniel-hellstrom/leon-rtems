@@ -63,7 +63,7 @@ void drvmgr_print_devs(unsigned int options)
 	/* Print Drivers */
 	if (options & PRINT_DEVS_ASSIGNED) {
 		parg = " --- DEVICES ASSIGNED TO DRIVER ---\n";
-		drvmgr_for_each_dev(&mgr->devices[DRVMGR_LEVEL_MAX],
+		drvmgr_for_each_listdev(&mgr->devices[DRVMGR_LEVEL_MAX],
 				DEV_STATE_UNITED, 0, print_dev_found, &parg);
 		if (parg != NULL)
 			printf("\n NO DEVICES WERE ASSIGNED A DRIVER\n");
@@ -71,7 +71,7 @@ void drvmgr_print_devs(unsigned int options)
 
 	if (options & PRINT_DEVS_UNASSIGNED) {
 		parg = "\n --- DEVICES WITHOUT DRIVER ---\n";
-		drvmgr_for_each_dev(&mgr->devices_inactive, 0,
+		drvmgr_for_each_listdev(&mgr->devices_inactive, 0,
 			DEV_STATE_UNITED, print_dev_found, &parg);
 		if (parg != NULL)
 			printf("\n NO DEVICES WERE WITHOUT DRIVER\n");
@@ -79,7 +79,7 @@ void drvmgr_print_devs(unsigned int options)
 
 	if (options & PRINT_DEVS_FAILED) {
 		parg = "\n --- DEVICES FAILED TO INITIALIZE ---\n";
-		drvmgr_for_each_dev(&mgr->devices_inactive,
+		drvmgr_for_each_listdev(&mgr->devices_inactive,
 			DEV_STATE_INIT_FAILED, 0, print_dev_found, &parg);
 		if (parg != NULL)
 			printf("\n NO DEVICES FAILED TO INITIALIZE\n");
@@ -87,7 +87,7 @@ void drvmgr_print_devs(unsigned int options)
 
 	if (options & PRINT_DEVS_IGNORED) {
 		parg = "\n --- DEVICES IGNORED ---\n";
-		drvmgr_for_each_dev(&mgr->devices_inactive,
+		drvmgr_for_each_listdev(&mgr->devices_inactive,
 			DEV_STATE_IGNORED, 0, print_dev_found, &parg);
 		if (parg != NULL)
 			printf("\n NO DEVICES WERE IGNORED\n");
