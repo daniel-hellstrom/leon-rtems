@@ -137,9 +137,9 @@ int drvmgr_translate(
 
 	if (upstream) {
 		from = dev->parent;
-		to = drv_mgr.root_dev->bus;
+		to = drv_mgr.root_dev.bus;
 	} else {
-		from = drv_mgr.root_dev->bus;
+		from = drv_mgr.root_dev.bus;
 		to = dev->parent;
 	}
 

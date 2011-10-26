@@ -104,7 +104,7 @@ void drvmgr_print_topo()
 	/* Print Bus topology */
 	printf(" --- BUS TOPOLOGY ---\n");
 	DRVMGR_LOCK_READ();
-	dev = mgr->root_dev;
+	dev = &mgr->root_dev;
 	drvmgr_dev_print(dev, "", 1);
 	DRVMGR_UNLOCK();
 	printf("\n\n");
@@ -433,7 +433,7 @@ void drvmgr_info_devs(unsigned int options)
 	struct drvmgr_dev *dev;
 
 	/* Print device information of all devices and their child devices */
-	dev = mgr->root_dev;
+	dev = &mgr->root_dev;
 	drvmgr_info_devs_on_bus(dev->bus, options);
 	printf("\n\n");
 }

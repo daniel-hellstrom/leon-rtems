@@ -19,8 +19,8 @@ struct rtems_driver_manager {
 	rtems_id		lock;
 
 	/* The first device - The root device and it's driver */
-	struct drvmgr_dev	*root_dev;
 	struct drvmgr_drv	*root_drv;
+	struct drvmgr_dev	root_dev;
 
 	/*!< Linked list of all registered drivers */
 	struct drvmgr_list	drivers;

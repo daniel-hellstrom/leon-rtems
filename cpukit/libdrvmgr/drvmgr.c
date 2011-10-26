@@ -31,8 +31,8 @@ struct rtems_driver_manager drv_mgr = {
 	.level =		0,
 	.initializing_objs =	0,
 	.lock =                 0,
+	.root_dev =		{0},
 	.root_drv =		NULL,
-	.root_dev =		NULL,
 
 	.drivers =	LIST_INITIALIZER(struct drvmgr_drv, next),
 
@@ -320,22 +320,16 @@ inactivate_out:
 int drvmgr_root_drv_register(struct drvmgr_drv *drv)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
-	struct drvmgr_dev *root;
+	struct drvmgr_dev *root = &mgr->root_dev;
 
 	if (mgr->root_drv) {
 		/* Only possible to register root device once */
 		return DRVMGR_FAIL;
 	}
 
-	/* Create root device for root bus */
-	drvmgr_alloc_dev(&root, 0);
-	if (root == NULL)
-		return DRVMGR_FAIL;
-
 	/* Set root device driver */
 	drv->next = NULL;
 	mgr->root_drv = drv;
-	mgr->root_dev = root;
 
 	/* Init root device non-NULL fields */
 	root->minor_drv = -1;
