@@ -183,7 +183,7 @@ union drvmgr_key_value {
 struct drvmgr_key {
 	char			*key_name;	/* Name of key */
 	int			key_type;	/* How to interpret key_value */
-	union drvmgr_key_value	key_value;	/* The value or pointer to the value */
+	union drvmgr_key_value	key_value;	/* The value or pointer to value */
 };
 
 /*! Driver resource entry, Driver resources for a certain device instance,
@@ -235,9 +235,9 @@ struct drvmgr_bus {
 	struct drvmgr_map_entry	*maps_down;	/*!< Map Translation, array of address spaces downstreams to Hardware */
 
 	/* Bus status */
-	int			level;
-	int			state;
-	int			error;
+	int			level;		/*!< Initialization Level of Bus */
+	int			state;		/*!< Init State of Bus, BUS_STATE_* */
+	int			error;		/*!< Return code from bus->ops->initN() */
 };
 
 /* States of a bus */
@@ -265,15 +265,15 @@ struct drvmgr_dev {
 
 	struct drvmgr_drv	*drv;		/*!< The driver owning this device */
 	struct drvmgr_bus	*parent;	/*!< Bus that this device resides on */
-	short			minor_drv;	/*!< Device number on driver (often minor in filesystem) */
+	short			minor_drv;	/*!< Device number within driver */
 	short			minor_bus;	/*!< Device number on bus (for device separation) */
 	char			*name;		/*!< Name of Device Hardware */
 	void			*priv;		/*!< Pointer to driver private device structure */
 	void			*businfo;	/*!< Host bus specific information */
-	struct drvmgr_bus	*bus;		/*!< Pointer to bus, set only if this is a bus */
+	struct drvmgr_bus	*bus;		/*!< Pointer to bus, set only if this is a bridge */
 
 	/* Device Status */
-	unsigned int		state;		/*!< State of this device, see DEV_STATE_* */
+	unsigned int		state;		/*!< State of device, see DEV_STATE_* */
 	int			level;		/*!< Init Level */
 	int			error;		/*!< Error state returned by driver */
 };
@@ -286,7 +286,7 @@ struct drvmgr_drv_ops {
 };
 #define DRV_OPS_NUM (sizeof(struct drvmgr_drv_ops)/sizeof(void (*)(void)))
 
-/*! Information about a driver used during registration */
+/*! Device driver description */
 struct drvmgr_drv {
 	int			obj_type;	/*!< DRVMGR_OBJ_DRV */
 	struct drvmgr_drv	*next;		/*!< Next Driver */
@@ -447,8 +447,8 @@ extern union drvmgr_key_value *drvmgr_key_val_get(
 	char *key_name,
 	int key_type);
 
-/*! Get key value from the bus resources matching [device[drv_id, minor_bus],
- *  key name, key type] if no matching key NULL is returned.
+/*! Get key value from the bus resources matching [device, key name, key type]
+ *  if no matching key is found NULL is returned.
  *
  * This is typically used by device drivers to find a particular device
  * resource.
@@ -674,7 +674,7 @@ extern int drvmgr_func_call(void *obj, int funcid, void *a, void *b, void *c, vo
 #define DRVMGR_FUNCID_NONE 0
 #define DRVMGR_FUNCID_END DRVMGR_FUNCID(DRVMGR_FUNCID_NONE, 0)
 
-/* Major Function ID */
+/* Major Function ID. Most significant 12-bits. */
 enum {
 	FUNCID_NONE             = 0x000,
 	FUNCID_RW               = 0x001, /* Read/Write functions */

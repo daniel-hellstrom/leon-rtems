@@ -1,3 +1,14 @@
+/*  Find driver by driver-ID
+ *
+ *  COPYRIGHT (c) 2011
+ *  Aeroflex Gaisler AB
+ *
+ *  The license and distribution terms for this file may be
+ *  found in the file LICENSE in this distribution or at
+ *  http://www.rtems.com/license/LICENSE.
+ *
+ */
+
 #include <drvmgr/drvmgr.h>
 #include "drvmgr_internal.h"
 

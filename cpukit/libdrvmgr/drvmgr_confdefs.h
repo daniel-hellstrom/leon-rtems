@@ -47,6 +47,18 @@ extern void grcan_register_drv(void);
 #define DRIVER_AMBAPP_GAISLER_OCCAN_REG {occan_register_drv}
 extern void occan_register_drv(void);
 
+#define DRIVER_AMBAPP_GAISLER_GR1553B_REG {gr1553_register}
+extern void gr1553_register(void);
+
+#define DRIVER_AMBAPP_GAISLER_GR1553BC_REG {gr1553bc_register}
+extern void gr1553bc_register(void);
+
+#define DRIVER_AMBAPP_GAISLER_GR1553BM_REG {gr1553bm_register}
+extern void gr1553bm_register(void);
+
+#define DRIVER_AMBAPP_GAISLER_GR1553RT_REG {gr1553rt_register}
+extern void gr1553rt_register(void);
+
 #define DRIVER_AMBAPP_GAISLER_B1553BRM_REG {b1553brm_register_drv}
 extern void b1553brm_register_drv(void);
 
@@ -71,9 +83,6 @@ extern void grpci_register_drv(void);
 #define DRIVER_AMBAPP_GAISLER_GRPCI2_REG {grpci2_register_drv}
 extern void grpci2_register_drv(void);
 
-#define DRIVER_AMBAPP_GAISLER_PCITRACE_REG {pcitrace_register_drv}
-extern void pcitrace_register_drv(void);
-
 #define DRIVER_AMBAPP_GAISLER_SPICTRL_REG {spictrl_register_drv}
 extern void spictrl_register_drv(void);
 
@@ -89,18 +98,6 @@ extern void grpwm_register_drv(void);
 #define DRIVER_AMBAPP_GAISLER_GRADCDAC_REG {gradcdac_register_drv}
 extern void gradcdac_register_drv(void);
 
-#define DRIVER_AMBAPP_GAISLER_GR1553B_REG {gr1553_register}
-extern void gr1553_register(void);
-
-#define DRIVER_AMBAPP_GAISLER_GR1553BC_REG {gr1553bc_register}
-extern void gr1553bc_register(void);
-
-#define DRIVER_AMBAPP_GAISLER_GR1553BM_REG {gr1553bm_register}
-extern void gr1553bm_register(void);
-
-#define DRIVER_AMBAPP_GAISLER_GR1553RT_REG {gr1553rt_register}
-extern void gr1553rt_register(void);
-
 #define DRIVER_AMBAPP_GAISLER_SPWCUC_REG {spwcuc_register}
 extern void spwcuc_register(void);
 
@@ -112,6 +109,12 @@ extern void router_register_drv(void);
 
 #define DRIVER_AMBAPP_GAISLER_AHBSTAT_REG {ahbstat_register_drv}
 extern void ahbstat_register_drv(void);
+
+#define DRIVER_AMBAPP_GAISLER_GRAES_REG {graes_register_drv}
+extern void graes_register_drv(void);
+
+#define DRIVER_AMBAPP_GAISLER_GRPWRX_REG {grpwrx_register_drv}
+extern void grpwrx_register_drv(void);
 
 
 /*** LEON2 AMBA Hard coded bus Drivers ***/
@@ -156,14 +159,6 @@ extern void grtc_rmap_register_drv(void);
 #define DRIVER_RMAP_AMBAPP_GRTM {grtm_rmap_register_drv}
 extern void grtm_rmap_register_drv(void);
 
-/*** AES drivers ***/
-#define DRIVER_AMBAPP_GAISLER_GRAES_REG {graes_register_drv}
-extern void graes_register_drv(void);
-
-/*** GRPWRX drivers ***/
-#define DRIVER_AMBAPP_GAISLER_GRPWRX_REG {grpwrx_register_drv}
-extern void grpwrx_register_drv(void);
-
 /* CONFIGURE DRIVER MANAGER */
 struct drvmgr_drv_reg_func drvmgr_drivers[] = {
 	/*** AMBA Plug & Play Drivers ***/
@@ -184,6 +179,18 @@ struct drvmgr_drv_reg_func drvmgr_drivers[] = {
 #endif
 #ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_OCCAN
 	DRIVER_AMBAPP_GAISLER_OCCAN_REG,
+#endif
+#ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553B
+	DRIVER_AMBAPP_GAISLER_GR1553B_REG,
+#endif
+#ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553BC
+	DRIVER_AMBAPP_GAISLER_GR1553BC_REG,
+#endif
+#ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553BM
+	DRIVER_AMBAPP_GAISLER_GR1553BM_REG,
+#endif
+#ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553RT
+	DRIVER_AMBAPP_GAISLER_GR1553RT_REG,
 #endif
 #ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_B1553BRM
 	DRIVER_AMBAPP_GAISLER_B1553BRM_REG,
@@ -209,9 +216,6 @@ struct drvmgr_drv_reg_func drvmgr_drivers[] = {
 #ifdef CONFIGURE_DRIVER_AMBAPP_MCTRL
 	DRIVER_AMBAPP_MCTRL_REG,
 #endif
-#ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_PCITRACE
-	DRIVER_AMBAPP_GAISLER_PCITRACE_REG,
-#endif
 #ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_SPICTRL
 	DRIVER_AMBAPP_GAISLER_SPICTRL_REG,
 #endif
@@ -227,18 +231,6 @@ struct drvmgr_drv_reg_func drvmgr_drivers[] = {
 #ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GRADCDAC
 	DRIVER_AMBAPP_GAISLER_GRADCDAC_REG,
 #endif
-#ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553B
-	DRIVER_AMBAPP_GAISLER_GR1553B_REG,
-#endif
-#ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553BC
-	DRIVER_AMBAPP_GAISLER_GR1553BC_REG,
-#endif
-#ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553BM
-	DRIVER_AMBAPP_GAISLER_GR1553BM_REG,
-#endif
-#ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553RT
-	DRIVER_AMBAPP_GAISLER_GR1553RT_REG,
-#endif
 #ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_SPWCUC
 	DRIVER_AMBAPP_GAISLER_SPWCUC_REG,
 #endif
@@ -251,6 +243,13 @@ struct drvmgr_drv_reg_func drvmgr_drivers[] = {
 #ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_AHBSTAT
 	DRIVER_AMBAPP_GAISLER_AHBSTAT_REG,
 #endif
+#ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GRAES
+	DRIVER_AMBAPP_GAISLER_GRAES_REG,
+#endif
+#ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GRPWRX
+	DRIVER_AMBAPP_GAISLER_GRPWRX_REG,
+#endif
+
 
 	/*** LEON2 AMBA Drivers ***/
 #ifdef CONFIGURE_DRIVER_LEON2_AT697PCI
@@ -294,16 +293,6 @@ struct drvmgr_drv_reg_func drvmgr_drivers[] = {
 #endif
 #ifdef CONFIGURE_DRIVER_RMAP_AMBAPP_GRTM
 	DRIVER_RMAP_AMBAPP_GRTM,
-#endif
-
-	/* AES AMBA Plug&Play driver */
-#ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GRAES
-	DRIVER_AMBAPP_GAISLER_GRAES_REG,
-#endif
-
-	/* GRPWRX AMBA Plug&Play driver */
-#ifdef CONFIGURE_DRIVER_AMBAPP_GAISLER_GRPWRX
-	DRIVER_AMBAPP_GAISLER_GRPWRX_REG,
 #endif
 
 
