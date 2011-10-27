@@ -351,7 +351,7 @@ int gr_rasta_spw_router_hw_init(struct gr_rasta_spw_router_priv *priv)
 	priv->bus_maps_up[0].name = "AMBA GRPCI2 Window";
 	priv->bus_maps_up[0].size = ahb->mask[0]; /* AMBA->PCI Window on GR-RASTA-SPW-ROUTER board */
 	priv->bus_maps_up[0].from_adr = ahb->start[0];
-	priv->bus_maps_up[0].to_adr = priv->ahbmst2pci_map & 0xf0000000;
+	priv->bus_maps_up[0].to_adr = priv->ahbmst2pci_map & ~(ahb->mask[0]-1);
 	priv->bus_maps_up[1].size = 0;
 
 	/* Find GRPCI2 controller APB Slave interface */
@@ -365,8 +365,8 @@ int gr_rasta_spw_router_hw_init(struct gr_rasta_spw_router_priv *priv)
 
 	/* Set AHB to PCI mapping for all AMBA AHB masters */
 	for(i = 0; i < 16; i++) {
-		priv->grpci2->ahbtopcimemmap[i] = 
-					priv->ahbmst2pci_map & 0xf0000000;
+		priv->grpci2->ahbtopcimemmap[i] = priv->ahbmst2pci_map &
+							~(ahb->mask[0]-1);
 	}
 
 	/* Make sure dirq(0) sampling is enabled */
