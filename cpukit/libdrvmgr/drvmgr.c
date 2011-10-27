@@ -350,6 +350,14 @@ int drvmgr_drv_register(struct drvmgr_drv *drv)
 {
 	struct rtems_driver_manager *mgr = &drv_mgr;
 
+	/* All drivers must have been registered before start of init, 
+	 * because the manager does not scan all existing devices to find
+	 * suitable hardware for this driver, and it is not protected with
+	 * a lock therefore.
+	 */
+	if (mgr->level > 0)
+		return -1;
+
 	drv->obj_type = DRVMGR_OBJ_DRV;
 
 	/* Put driver into list of registered drivers */
