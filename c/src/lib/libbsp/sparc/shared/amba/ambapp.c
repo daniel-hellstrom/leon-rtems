@@ -349,9 +349,10 @@ static int ambapp_for_each_apb(
 	ambapp_func_t func,
 	void *arg)
 {
-	int index;
+	int index, ret;
 	struct ambapp_dev *apbslv;
 
+	ret = 0;
 	if ( dev->children && (dev->children->dev_type == DEV_APB_SLV) ) {
 		/* Found a APB Bridge */
 		index = 0;
@@ -359,14 +360,16 @@ static int ambapp_for_each_apb(
 		while(apbslv){
 			if ( ambapp_dev_match_options(apbslv, options,
 			                              vendor, device) == 1 ) {
-				if ( func(apbslv, index, arg) == 1 )
-					return 1; /* Signalled stopped */
+				ret = func(apbslv, index, arg);
+				if (ret != 0)
+					break; /* Signalled stopped */
 			}
 			index++;
 			apbslv = apbslv->next;
 		}
 	}
-	return 0;
+
+	return ret;
 }
 
 /* Traverse the prescanned device information */
@@ -380,7 +383,7 @@ static int ambapp_for_each_dev(
 {
 	struct ambapp_dev *dev;
 	int ahb_slave = 0;
-	int index;
+	int index, ret;
 
 	/* Start at device 'root' and process downwards.
 	 *
@@ -408,8 +411,9 @@ static int ambapp_for_each_dev(
 			if ( ambapp_dev_match_options(dev, options, vendor,
 			                              device) == 1 ) {
 				/* Correct device and vendor ID */
-				if ( func(dev, index, arg) == 1 )
-					return 1; /* Signalled stopped */
+				ret = func(dev, index, arg);
+				if ( ret != 0 )
+					return ret; /* Signalled stopped */
 			}
 
 			if ( (options & OPTIONS_DEPTH_FIRST) &&
@@ -417,21 +421,21 @@ static int ambapp_for_each_dev(
 				/* Check is APB bridge, and process all APB
 				 * Slaves in that case
 				 */
-				if ( ambapp_for_each_apb(dev, options, vendor,
-				                         device,
-				                         func, arg) == 1 )
-					return 1; /* Signalled stopped */
+				ret = ambapp_for_each_apb(dev, options, vendor,
+				                         device, func, arg);
+				if ( ret != 0 )
+					return ret; /* Signalled stopped */
 			}
 
 			if ( options & OPTIONS_DEPTH_FIRST ) {
 				if ( dev->children &&
 				     (dev->children->dev_type != DEV_APB_SLV)) {
 					/* Found AHB Bridge, recurse */
-					if ( ambapp_for_each_dev(dev->children,
+					ret = ambapp_for_each_dev(dev->children,
 					                     options, vendor,
-					                     device, 
-					                     func, arg) == 1 )
-						return 1;
+					                     device, func, arg);
+					if ( ret != 0 )
+						return ret;
 				}
 			}
 
@@ -447,9 +451,10 @@ static int ambapp_for_each_dev(
 			/* Check is APB bridge, and process all APB Slaves in
 			 * that case
 			 */
-			if ( ambapp_for_each_apb(dev, options, vendor, device,
-			                         func, arg)==1 )
-				return 1; /* Signalled stopped */
+			ret = ambapp_for_each_apb(dev, options, vendor, device,
+			                          func, arg);
+			if ( ret != 0 )
+				return ret; /* Signalled stopped */
 			dev = dev->next;
 		}
 	}
@@ -461,10 +466,11 @@ static int ambapp_for_each_dev(
 			if ( dev->children &&
 			     (dev->children->dev_type != DEV_APB_SLV) ) {
 				/* Found AHB Bridge, recurse */
-				if ( ambapp_for_each_dev(dev->children, options,
-				                     vendor, device,
-				                     func,arg) == 1 )
-					return 1;
+				ret = ambapp_for_each_dev(dev->children,
+				                          options, vendor,
+							  device, func, arg);
+				if ( ret != 0 )
+					return ret;
 			}
 			dev = dev->next;
 		}

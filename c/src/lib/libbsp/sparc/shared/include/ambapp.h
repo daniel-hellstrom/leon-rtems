@@ -133,7 +133,7 @@ typedef int (*ambapp_func_t)(struct ambapp_dev *dev, int index, void *arg);
 #define OPTIONS_ALLOCATED	0x00000020
 #define OPTIONS_ALL		(OPTIONS_FREE|OPTIONS_ALLOCATED)
 
-/* Depth first search, Defualt is breth first search. */
+/* Depth first search, Defualt is breath first search. */
 #define OPTIONS_DEPTH_FIRST	0x00000100
 
 #define DEV_AHB_NONE 0
@@ -199,16 +199,15 @@ extern int ambapp_scan(
 	struct ambapp_mmap *mmaps
 	);
 
-/* Initialize the frequency of all AHB Buses from knowing the frequency of one
- * particular APB/AHB Device.
+/* Initialize the frequency [Hz] of all AHB Buses from knowing the frequency
+ * of one particular APB/AHB Device.
  */
 extern void ambapp_freq_init(
 	struct ambapp_bus *abus,
 	struct ambapp_dev *dev,
 	unsigned int freq);
 
-/* Assign a AMBA Bus a frequency but reporting the frequency of a
- * particular AHB/APB device */
+/* Returns the frequency [Hz] of a AHB/APB device */
 extern unsigned int ambapp_freq_get(
 	struct ambapp_bus *abus,
 	struct ambapp_dev *dev);
@@ -216,9 +215,28 @@ extern unsigned int ambapp_freq_get(
 /* Iterates through all AMBA devices previously found, it calls func 
  * once for every device that match the search arguments.
  *
+ * SEARCH OPTIONS
+ * All search options must be fulfilled, type of devices searched (options)
+ * and AMBA Plug&Play ID [VENDOR,DEVICE], before func() is called. The options
+ * can be use to search only for AMBA APB or AHB Slaves or AHB Masters for
+ * example. Note that when VENDOR=-1 or DEVICE=-1 it will match any vendor or
+ * device ID, this means setting both VENDOR and DEVICE to -1 will result in
+ * calling all devices matches the options argument.
+ *
+ * \param abus     AMBAPP Bus to search
+ * \param options  Search options, see OPTIONS_* above
+ * \param vendor   AMBAPP VENDOR ID to search for
+ * \param device   AMBAPP DEVICE ID to search for
+ * \param func     Function called for every device matching search options
+ * \param arg      Optional argument passed on to func
+ *
+ * func return value affects the search, returning a non-zero value will
+ * stop the search and ambapp_for_each will return immediately returning the
+ * same non-zero value.
+ *
  * Return Values
  *  0 - all devices was scanned
- *  1 - stopped by user function returning a one
+ *  non-zero - stopped by user function returning the non-zero value
  */
 extern int ambapp_for_each(
 	struct ambapp_bus *abus,
