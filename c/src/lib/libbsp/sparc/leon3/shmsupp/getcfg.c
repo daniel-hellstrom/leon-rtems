@@ -79,8 +79,8 @@ extern rtems_mpci_entry Shm_Send_packet(
 /* Let user override this configuration by declaring this a weak variable */
 shm_config_table BSP_shm_cfgtbl __attribute__((weak)) =
 {
-	0x40000000,
-	0x00001000,
+  0x40000000,
+  0x00001000,
 };
 
 void Shm_Get_configuration(
@@ -92,10 +92,6 @@ void Shm_Get_configuration(
   int i;
   unsigned int tmp;
 
-#if 0
-  BSP_shm_cfgtbl.base         = 0x40000000;
-  BSP_shm_cfgtbl.length       = 0x00010000;
-#endif
   BSP_shm_cfgtbl.format       = SHM_BIG;
 
   /*
