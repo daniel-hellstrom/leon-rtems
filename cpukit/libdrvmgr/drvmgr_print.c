@@ -21,25 +21,6 @@
 
 typedef void (*fun_ptr)(void);
 
-void drvmgr_dev_print(struct drvmgr_dev *dev, char *prefix, int print_bus)
-{
-	struct drvmgr_dev *busdev;
-	char bus_prefix[16];
-
-	printf(" %s|-> DEV  0x%x  %s\n", prefix, (unsigned int)dev,
-		dev->name ? dev->name :  "NO_NAME");
-	if ((print_bus == 0) || !dev->bus)
-		return;
-	/* This device provides a bus, print the bus */
-	strcpy(bus_prefix, prefix);
-	strcat(bus_prefix, "  ");
-	busdev = dev->bus->children;
-	while (busdev) {
-		drvmgr_dev_print(busdev, bus_prefix, print_bus);
-		busdev = busdev->next_in_bus;
-	}
-}
-
 static int print_dev_found(struct drvmgr_dev *dev, void *arg)
 {
 	char **pparg = arg;
@@ -96,17 +77,26 @@ void drvmgr_print_devs(unsigned int options)
 	printf("\n\n");
 }
 
-void drvmgr_print_topo()
+int drvmgr_topo_func(struct drvmgr_dev *dev, void *arg)
 {
-	struct rtems_driver_manager *mgr = &drv_mgr;
-	struct drvmgr_dev *dev;
+	char prefix[32];
+	int depth = dev->parent->depth;
 
+	if (depth > 30)
+		return 0; /* depth more than 30 not supported */
+	memset(prefix, ' ', depth + 1);
+	prefix[depth + 1] = '\0';
+
+	printf(" %s|-> DEV  0x%x  %s\n", prefix, (unsigned int)dev,
+		dev->name ? dev->name :  "NO_NAME");
+	return 0;
+}
+
+void drvmgr_print_topo(void)
+{
 	/* Print Bus topology */
 	printf(" --- BUS TOPOLOGY ---\n");
-	DRVMGR_LOCK_READ();
-	dev = &mgr->root_dev;
-	drvmgr_dev_print(dev, "", 1);
-	DRVMGR_UNLOCK();
+	drvmgr_for_each_dev(drvmgr_topo_func, NULL, DRVMGR_FED_DF);
 	printf("\n\n");
 }
 
