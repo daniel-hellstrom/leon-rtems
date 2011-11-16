@@ -103,7 +103,7 @@ void console_dev_init(struct console_priv *con, int minor)
 void console_dev_register(struct console_dev *dev)
 {
 	int i, minor = 0;
-	struct console_priv *con;
+	struct console_priv *con = NULL;
 
 	if ( (dev->flags & CONSOLE_FLAG_SYSCON) && !cons[0].dev ) {
 		con = &cons[0];
