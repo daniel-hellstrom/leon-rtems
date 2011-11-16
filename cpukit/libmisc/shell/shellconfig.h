@@ -439,10 +439,12 @@ extern rtems_shell_alias_t *rtems_shell_Initial_aliases[];
       &rtems_shell_DRVMGR_Command,
     #endif
 
-    #if (defined(CONFIGURE_SHELL_COMMANDS_ALL) && \
-         !defined(CONFIGURE_SHELL_NO_COMMAND_PCI)) || \
-        defined(CONFIGURE_SHELL_COMMAND_PCI)
-      &rtems_shell_PCI_Command,
+    #if defined(RTEMS_PCI_CONFIG_LIB)
+      #if (defined(CONFIGURE_SHELL_COMMANDS_ALL) && \
+           !defined(CONFIGURE_SHELL_NO_COMMAND_PCI)) || \
+          defined(CONFIGURE_SHELL_COMMAND_PCI)
+        &rtems_shell_PCI_Command,
+      #endif
     #endif
 
     /*
