@@ -162,6 +162,7 @@ rtems_task Test_task(
 
   if ( Multiprocessing_configuration.node == 2 ) {
     /* Flush events */
+    rtems_task_wake_after( 100 );
     puts( "Flushing RTEMS_EVENT_16" );
     (void) rtems_event_receive(RTEMS_EVENT_16, RTEMS_NO_WAIT, 0, &event_out);
 
