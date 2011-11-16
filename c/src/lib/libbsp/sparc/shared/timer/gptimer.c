@@ -212,9 +212,19 @@ int gptimer_init1(struct drvmgr_dev *dev)
 
 	/* Let user spelect a range of timers to be used. In AMP systems
 	 * it is sometimes neccessary to leave timers for other CPU instances.
+	 *
+	 * The default operation in AMP is to shared the timers within the
+	 * first GPTIMER core as below. This can of course be overrided by
+	 * driver resources.
 	 */
 	timer_cnt = timer_hw_cnt;
 	timer_start = 0;
+#if defined(RTEMS_MULTIPROCESSING) && defined(LEON3)
+	if ((dev->minor_drv == 0) && drvmgr_on_rootbus(dev)) {
+		timer_cnt = 1;
+		timer_start = LEON3_Cpu_Index;
+	}
+#endif
 	value = drvmgr_dev_key_get(dev, "timerStart", KEY_TYPE_INT);
 	if ( value) {
 		timer_start = value->i;
