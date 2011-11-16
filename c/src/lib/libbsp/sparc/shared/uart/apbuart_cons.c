@@ -59,9 +59,9 @@ struct apbuart_priv {
 /* TERMIOS Layer Callback functions */
 void apbuart_get_attributes(struct console_dev *condev, struct termios *t);
 int apbuart_set_attributes(int minor, const struct termios *t);
-int apbuart_write_polled(int minor, const char *buf, int len);
+ssize_t apbuart_write_polled(int minor, const char *buf, size_t len);
 int apbuart_pollRead(int minor);
-int apbuart_write_intr(int minor, const char *buf, int len);
+ssize_t apbuart_write_intr(int minor, const char *buf, size_t len);
 int apbuart_pollRead_task(int minor);
 int apbuart_firstOpen(int major, int minor, void *arg);
 int apbuart_lastClose(int major, int minor, void *arg);
@@ -171,6 +171,22 @@ int apbuart_init1(struct drvmgr_dev *dev)
 	union drvmgr_key_value *value;
 	char prefix[32];
 	unsigned int db;
+	static int first_uart = 1;
+
+	/* The default operation in AMP is to use APBUART[0] for CPU[0],
+	 * APBUART[1] for CPU[1] and so on. The remaining UARTs is not used
+	 * since we don't know how many CPU-cores there are. Note this only
+	 * affects the on-chip amba bus (the root bus). The user can override
+	 * the default resource sharing by defining driver resources for the
+	 * APBUART devices on each AMP OS instance.
+	 */
+#if defined(RTEMS_MULTIPROCESSING) && defined(LEON3)
+	if (drvmgr_on_rootbus(dev) && dev->minor_drv != LEON3_Cpu_Index &&
+	    drvmgr_keys_get(dev, NULL) != 0) {
+		/* User hasn't configured on-chip APBUART, leave it untouched */
+		return DRVMGR_EBUSY;
+	}
+#endif
 
 	DBG("APBUART[%d] on bus %s\n", dev->minor_drv, dev->parent->dev->name);
 	/* Private data was allocated and zeroed by driver manager */
@@ -199,10 +215,12 @@ int apbuart_init1(struct drvmgr_dev *dev)
 	 * this behaviour by setting the syscon option to 0, same goes for
 	 * printk() debug console (dbgcon=0).
 	 */
-	if ( drvmgr_on_rootbus(dev) && (dev->minor_drv == 0) )
+	if ( drvmgr_on_rootbus(dev) && first_uart ) {
 		priv->condev.flags = CONSOLE_FLAG_SYSCON | CONSOLE_FLAG_DBGCON;
-	else
+		first_uart = 0;
+	} else {
 		priv->condev.flags = 0;
+	}
 
 	value = drvmgr_dev_key_get(priv->dev, "syscon", KEY_TYPE_INT);
 	if ( value ) {
@@ -580,7 +598,7 @@ void apbuart_get_attributes(struct console_dev *condev, struct termios *t)
 	t->c_cflag |= baud->num;
 }
 
-int apbuart_write_polled(int minor, const char *buf, int len)
+ssize_t apbuart_write_polled(int minor, const char *buf, size_t len)
 {
 	int nwrite = 0;
 	struct apbuart_priv *uart = (struct apbuart_priv *)minor;
@@ -592,7 +610,7 @@ int apbuart_write_polled(int minor, const char *buf, int len)
 	return nwrite;
 }
 
-int apbuart_write_intr(int minor, const char *buf, int len)
+ssize_t apbuart_write_intr(int minor, const char *buf, size_t len)
 {
 	struct apbuart_priv *uart = (struct apbuart_priv *)minor;
 	unsigned int oldLevel;
