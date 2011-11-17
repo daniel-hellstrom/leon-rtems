@@ -217,7 +217,6 @@ ssize_t console_write_polled (int minor, const char *buf, size_t len)
 
 int console_set_attributes(int minor, const struct termios *t)
 {
-  unsigned int core_clk_hz;
   unsigned int scaler;
   unsigned int ctrl;
   int baud;
@@ -310,7 +309,7 @@ int console_set_attributes(int minor, const struct termios *t)
 /* AMBA PP find routine. Extract APBUART information into data structure. */
 int find_matching_apbuart(struct ambapp_dev *dev, int index, void *arg)
 {
-  struct ambapp_common_info *apb = (struct ambapp_common_info *)dev->devinfo;
+  struct ambapp_apb_info *apb = (struct ambapp_common_info *)dev->devinfo;
 
   /* Extract needed information of one APBUART */
   apbuarts[uarts].regs = (volatile LEON3_UART_Regs_Map *)apb->start;
@@ -334,8 +333,6 @@ int find_matching_apbuart(struct ambapp_dev *dev, int index, void *arg)
 
 int scan_uarts(void)
 {
-  struct ambapp_apb_info apbuart;
-
   if ( isinit != 0 )
     return uarts;
 
