@@ -1,0 +1,7 @@
+include_HEADERS += ../../sparc/shared/include/satcan.h ../../sparc/shared/include/canmux.h
+noinst_PROGRAMS += satcan.rel
+satcan_rel_SOURCES = ../../sparc/shared/can/satcan.c ../../sparc/shared/can/canmux.c
+satcan_rel_CPPFLAGS = $(AM_CPPFLAGS)
+satcan_rel_LDFLAGS = $(RTEMS_RELLDFLAGS)
+
+libbsp_a_LIBADD += satcan.rel

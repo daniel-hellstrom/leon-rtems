@@ -23,6 +23,16 @@
 #include <bsp.h>
 #include <bspopts.h>
 
+/* The LEON3 BSP Timer driver can rely on the Driver Manager if the
+ * DrvMgr is initialized during startup. Otherwise the classic driver
+ * must be used.
+ *
+ * The DrvMgr Clock driver is located in the shared/timer directory
+ */
+#ifndef RTEMS_DRVMGR_STARTUP
+
+#include <ambapp.h>
+
 #if SIMSPARC_FAST_IDLE==1
 #define CLOCK_DRIVER_USE_FAST_IDLE
 #endif
@@ -41,6 +51,8 @@
 
 volatile LEON3_Timer_Regs_Map *LEON3_Timer_Regs = 0;
 static int clkirq;
+extern struct ambapp_dev_hdr *ambapp_root;
+extern int find_matching_adev(struct ambapp_dev *dev, int index, int maxdepth, void *arg);
 
 #define CLOCK_VECTOR LEON_TRAP_TYPE( clkirq )
 
@@ -54,20 +66,22 @@ static int clkirq;
       } \
     } while(0)
 #else
-  #define Adjust_clkirq_for_node()
+  #define Adjust_clkirq_for_node() do { clkirq += LEON3_CLOCK_INDEX; } while(0)
 #endif
 
 #define Clock_driver_support_find_timer() \
   do { \
     int cnt; \
-    amba_apb_device dev; \
+		struct ambapp_dev *adev; \
     \
     /* Find LEON3 GP Timer */ \
-    cnt = amba_find_apbslv(&amba_conf,VENDOR_GAISLER,GAISLER_GPTIMER,&dev); \
+    cnt = ambapp_for_each(ambapp_plb.root, (OPTIONS_ALL|OPTIONS_APB_SLVS), \
+              VENDOR_GAISLER, GAISLER_GPTIMER, 10, find_matching_adev, &adev); \
     if ( cnt > 0 ){ \
       /* Found APB GPTIMER Timer */ \
-      LEON3_Timer_Regs = (volatile LEON3_Timer_Regs_Map *) dev.start; \
-      clkirq = (LEON3_Timer_Regs->status & 0xfc) >> 3; \
+      LEON3_Timer_Regs = (volatile LEON3_Timer_Regs_Map *) \
+			  ((struct ambapp_apb_info *)adev->devinfo)->start; \
+      clkirq = (LEON3_Timer_Regs->status & 0xf8) >> 3; \
       \
       Adjust_clkirq_for_node(); \
     } \
@@ -102,7 +116,7 @@ uint32_t bsp_clock_nanoseconds_since_last_tick(void)
   if ( !LEON3_Timer_Regs )
     return 0;
 
-  clicks = LEON3_Timer_Regs->timer[0].value;
+  clicks = LEON3_Timer_Regs->timer[LEON3_CLOCK_INDEX].value;
 
   if ( LEON_Is_interrupt_pending( clkirq ) ) {
     clicks = LEON3_Timer_Regs->timer[0].value;
@@ -118,3 +132,5 @@ uint32_t bsp_clock_nanoseconds_since_last_tick(void)
         bsp_clock_nanoseconds_since_last_tick
 
 #include "../../../shared/clockdrv_shell.h"
+
+#endif

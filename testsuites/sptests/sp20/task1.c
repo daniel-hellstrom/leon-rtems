@@ -26,7 +26,8 @@
 #define TA6_ITERATIONS 10
 #define TA6_PERIOD_FACTOR 10
 
-uint32_t      Periods[7]    = { 0,   2,   2,   2,   2, 100, 0 };
+/*uint32_t      Periods[7]    = { 0,   2,   2,   2,   2, 100, 0 };*/
+uint32_t      Periods[7]    = { 0,   20,   20,   20,   20, 1000, 0 };
 uint32_t      Iterations[7] = { 0,  50,  50,  50,  50,   1, TA6_ITERATIONS };
 rtems_task_priority Priorities[7] = { 0,   1,   1,   3,   4,   5, 1 };
 
@@ -69,7 +70,7 @@ rtems_task Task_1_through_6(
     case 4:
       while ( FOREVER ) {
         status = rtems_rate_monotonic_period( rmid, Periods[ argument ] );
-        directive_failed( status, "rtems_rate_monotonic_period" );
+        directive_failed( status, "rtems_rate_monotonic_period 0 of TAN" );
 
         Count.count[ argument ]++;
       }

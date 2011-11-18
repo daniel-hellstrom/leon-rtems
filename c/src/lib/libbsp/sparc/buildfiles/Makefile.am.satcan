@@ -1,0 +1,2 @@
+EXTRA_DIST += shared/can/satcan.c
+EXTRA_DIST += shared/include/satcan.h

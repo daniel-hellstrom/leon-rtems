@@ -1,8 +1,8 @@
 /*
  *  Macros used for grcan controller
  *
- *  COPYRIGHT (c) 2007.
- *  Gaisler Research
+ *  COPYRIGHT (c) 2008.
+ *  Aeroflex Gaisler.
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
@@ -12,8 +12,6 @@
 
 #ifndef __GRCAN_H__
 #define __GRCAN_H__
-
-#include <ambapp.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -181,20 +179,8 @@ typedef struct {
 #define GRCAN_IOC_SET_SFILTER    40  /* Set Sync Messages RX/TX filters, NULL disables the IRQ completely */
 #define GRCAN_IOC_GET_STATUS     41  /* Get status register of GRCAN core */
 
-struct grcan_device_info {
-  unsigned int base_address;
-  int irq;
-};
 
-/* Use hard coded addresses and IRQs to find hardware */
-int grcan_register_abs(struct grcan_device_info *devices, int dev_cnt);
-
-/* Use prescanned AMBA Plug&Play information to find all GRFIFO cores */
-int grcan_register(amba_confarea_type *abus);
-#if 0
-void grcan_register(unsigned int baseaddr, unsigned int ram_base);
-void grcan_interrupt_handler(rtems_vector_number v);
-#endif
+void grcan_register_drv(void);
 
 #ifdef __cplusplus
 }

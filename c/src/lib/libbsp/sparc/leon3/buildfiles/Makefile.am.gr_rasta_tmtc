@@ -1,0 +1,8 @@
+# PCI TARGET GR-RASTA-TMTC
+include_HEADERS += ../../sparc/shared/include/gr_rasta_tmtc.h
+noinst_PROGRAMS += gr_rasta_tmtc.rel
+gr_rasta_tmtc_rel_SOURCES =  ../../sparc/shared/pci/gr_rasta_tmtc.c
+gr_rasta_tmtc_rel_CPPFLAGS = $(AM_CPPFLAGS)
+gr_rasta_tmtc_rel_LDFLAGS = $(RTEMS_RELLDFLAGS)
+
+libbsp_a_LIBADD += gr_rasta_tmtc.rel

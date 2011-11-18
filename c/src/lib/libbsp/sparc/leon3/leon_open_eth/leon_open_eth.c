@@ -33,28 +33,23 @@ int rtems_leon_open_eth_driver_attach(
 {
   int device_found = 0;
   int i;
-  unsigned int conf, iobar;
   unsigned int base_addr = 0; /* avoid warnings */
   unsigned int eth_irq = 0;   /* avoid warnings */
+  struct ambapp_ahb_info dev;
 
 
   /* Scan for MAC AHB slave interface */
-  for (i = 0; i < amba_conf.ahbslv.devnr; i++)
-  {
-    conf = amba_get_confword(amba_conf.ahbslv, i, 0);
-    if (((amba_vendor(conf) == VENDOR_OPENCORES) && (amba_device(conf) == OPENCORES_ETHMAC)) ||
-        ((amba_vendor(conf) == VENDOR_GAISLER) && (amba_device(conf) == GAISLER_ETHAHB)))
-    {
-      iobar = amba_ahb_get_membar(amba_conf.ahbslv, i, 0);
-      base_addr = amba_iobar_start(LEON3_IO_AREA, iobar);
-      eth_irq = amba_irq(conf) + 0x10;
-      device_found = 1;
-      break;
+  i = ambapp_find_ahbslv(&ambapp_plb, VENDOR_OPENCORES, OPENCORES_ETHMAC, &dev);
+  if ( i != 1 ) {
+    i = ambapp_find_ahbslv(&ambapp_plb, VENDOR_GAISLER, GAISLER_ETHAHB, &dev);
+    if ( i != 1 ) {
+      /* No Core found */
+      return 0;
     }
   }
+  eth_irq = dev.irq + 0x10; /* Calculate vector number from IRQ number */
+  base_addr = dev.start[0];
 
-
-  if (device_found)
   {
     /* clear control register and reset NIC */
     *(volatile int *) base_addr = 0;
@@ -65,7 +60,8 @@ int rtems_leon_open_eth_driver_attach(
     leon_open_eth_configuration.txd_count = TDA_COUNT;
     leon_open_eth_configuration.rxd_count = RDA_COUNT;
     /* enable 100 MHz operation only if cpu frequency >= 50 MHz */
-    if (LEON3_Timer_Regs->scaler_reload >= 49) leon_open_eth_configuration.en100MHz = 1;
+    if (LEON3_Timer_Regs->scaler_reload >= 49) 
+      leon_open_eth_configuration.en100MHz = 1;
     if (rtems_open_eth_driver_attach( config, &leon_open_eth_configuration )) {
       LEON_Clear_interrupt(leon_open_eth_configuration.vector);
       LEON_Unmask_interrupt(leon_open_eth_configuration.vector);

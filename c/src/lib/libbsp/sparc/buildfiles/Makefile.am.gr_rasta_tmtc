@@ -1,0 +1,2 @@
+EXTRA_DIST += shared/pci/gr_rasta_tmtc.c
+EXTRA_DIST += shared/include/gr_rasta_tmtc.h

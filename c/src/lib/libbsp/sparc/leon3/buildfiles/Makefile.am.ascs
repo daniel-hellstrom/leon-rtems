@@ -1,0 +1,7 @@
+include_HEADERS += ../../sparc/shared/include/grascs.h
+noinst_PROGRAMS += ascs.rel
+ascs_rel_SOURCES = ../../sparc/shared/ascs/grascs.c
+ascs_rel_CPPFLAGS = $(AM_CPPFLAGS)
+ascs_rel_LDFLAGS = $(RTEMS_RELLDFLAGS)
+
+libbsp_a_LIBADD += ascs.rel

@@ -29,14 +29,23 @@ void console_outbyte_polled(
   unsigned char ch
 )
 {
+send:
   if ( port == 0 ) {
     while ( (LEON_REG.UART_Status_1 & LEON_REG_UART_STATUS_THE) == 0 );
       LEON_REG.UART_Channel_1 = (unsigned int) ch;
+      if ( ch == '\n' ) {
+        ch = '\r';
+        goto send;
+      }
       return;
     }
 
     while ( (LEON_REG.UART_Status_2 & LEON_REG_UART_STATUS_THE) == 0 );
     LEON_REG.UART_Channel_2 = (unsigned int) ch;
+    if ( ch == '\n' ) {
+      ch = '\r';
+      goto send;
+    }
 }
 
 /*

@@ -18,6 +18,7 @@ top_srcdir=`dirname $0`
 verbose="";
 quiet="false"
 mode="generate"
+root=.
 
 usage()
 {
@@ -89,6 +90,15 @@ case $1 in
 -r|--re|--rec|--reco|--recon|--reconf)
   mode="autoreconf";
   shift;;
+-s|--sp|--spa|--spar|--sparc)
+  root=./c/src/lib/libbsp/sparc
+  shift;;
+--cpukit)
+  root=./cpukit
+  shift;;
+--max)
+  maxdepth="--maxdepth 1"
+  shift;;
 -*) echo "unknown option $1" ;
   usage ;;
 *) echo "invalid parameter $1" ;
@@ -98,7 +108,7 @@ done
 
 case $mode in
 preinstall)
-  confs=`find . -name Makefile.am -exec grep -l 'include .*/preinstall\.am' {} \;`
+  confs=`find $root -name Makefile.am -exec grep -l 'include .*/preinstall\.am' {} \;`
   for i in $confs; do
     dir=$(dirname $i);
     test "$quite" = "true" || echo "Generating $dir/preinstall.am"
@@ -138,7 +148,7 @@ generate)
     ;;
   esac
 
-  confs=`find . \( -name 'configure.in' -o -name 'configure.ac' \) -print`
+  confs=`find $root \( -name 'configure.in' -o -name 'configure.ac' \) -print`
   for i in $confs; do
   dir=`dirname $i`;
   configure=`basename $i`;
@@ -170,7 +180,7 @@ autoreconf)
     exit 1
   fi
 
-  confs=`find . -name 'configure.ac' -print`
+  confs=`find . -name 'configure.ac' -print $maxdepth`
   for i in $confs; do
   dir=`dirname $i`;
   configure=`basename $i`;

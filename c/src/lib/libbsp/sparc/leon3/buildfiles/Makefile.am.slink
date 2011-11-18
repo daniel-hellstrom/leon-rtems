@@ -1,0 +1,7 @@
+include_HEADERS += ../../sparc/shared/include/grslink.h
+noinst_PROGRAMS += slink.rel
+slink_rel_SOURCES = ../../sparc/shared/slink/grslink.c
+slink_rel_CPPFLAGS = $(AM_CPPFLAGS)
+slink_rel_LDFLAGS = $(RTEMS_RELLDFLAGS)
+
+libbsp_a_LIBADD += slink.rel

@@ -1,499 +1,599 @@
 /*
- *  AMBA Plag & Play Bus Driver
+ *  AMBA Plug & Play routines
  *
- *  This driver hook performs bus scanning.
- *
- *  COPYRIGHT (c) 2004.
- *  Gaisler Research
+ *  COPYRIGHT (c) 2009.
+ *  Aeroflex Gaisler.
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
  *  http://www.rtems.com/license/LICENSE.
  *
- *  $Id$
+ *  $Id: ambapp.c,v 1.2 2009/11/29 15:33:27 ralf Exp $
+ *
+ *
+ *  2008-12-01, Daniel Hellstrom <daniel@gaisler.com>
+ *    Created
  */
 
-#include <bsp.h>
-#include <rtems/bspIo.h>
+#include <string.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <ambapp.h>
 
-#define amba_insert_device(tab, address) \
-{ \
-  if (*(address)) \
-  { \
-    (tab)->addr[(tab)->devnr] = (address); \
-    (tab)->devnr ++; \
-  } \
-} while(0)
+#define AMBA_CONF_AREA 0xff000
+#define AMBA_AHB_SLAVE_CONF_AREA (1 << 11)
+#define AMBA_APB_SLAVES 16
 
-#define amba_insert_apb_device(tab, address, apbmst) \
-{ \
-  if (*(address)) \
-  { \
-    (tab)->addr[(tab)->devnr] = (address); \
-		(tab)->apbmst[(tab)->devnr] = (apbmst); \
-    (tab)->devnr ++; \
-  } \
-} while(0)
+/* Allocate */
+struct ambapp_dev *ambapp_alloc_dev_struct(int dev_type)
+{
+	int size = sizeof(struct ambapp_dev);
+	struct ambapp_dev *dev;
 
-static unsigned int
-addr_from (struct amba_mmap *mmaps, unsigned int address)
+	if ( dev_type == DEV_APB_SLV ) {
+		size += sizeof(struct ambapp_apb_info);
+	} else {
+		/* AHB */
+		size += sizeof(struct ambapp_ahb_info);
+	}
+	dev = malloc(size);
+	if ( dev == NULL )
+		return NULL;
+	memset(dev, 0 , size);
+	dev->dev_type = dev_type;
+	return dev;
+}
+
+unsigned int
+ambapp_addr_from (struct ambapp_mmap *mmaps, unsigned int address)
 {
   /* no translation? */
   if (!mmaps)
     return address;
 
   while (mmaps->size) {
-    if ((address >= mmaps->remote_amba_adr)
-        && (address <= (mmaps->remote_amba_adr + (mmaps->size - 1)))) {
-      return (address - mmaps->remote_amba_adr) + mmaps->cpu_adr;
+    if ((address >= mmaps->remote_adr)
+        && (address <= (mmaps->remote_adr + (mmaps->size - 1)))) {
+      return (address - mmaps->remote_adr) + mmaps->local_adr;
     }
     mmaps++;
   }
   return 1;
 }
 
-
-void
-amba_scan (amba_confarea_type * amba_conf, unsigned int ioarea,
-           struct amba_mmap *mmaps)
+void ambapp_ahb_dev_init(
+	unsigned int ioarea,
+	struct ambapp_mmap *mmaps,
+	struct ambapp_pnp_ahb *ahb,
+	struct ambapp_dev *dev,
+	int ahbidx
+	)
 {
-  unsigned int *cfg_area;       /* address to configuration area */
-  unsigned int mbar, conf, custom;
-  int i, j;
-  unsigned int apbmst;
-  int maxloops = amba_conf->notroot ? 16 : 64; /* scan first bus for 64 devices, rest for 16 devices */
+	int bar;
+	struct ambapp_ahb_info *ahb_info;
+	unsigned int addr, mask, mbar;
 
-  amba_conf->ahbmst.devnr = 0;
-  amba_conf->ahbslv.devnr = 0;
-  amba_conf->apbslv.devnr = 0;
-  cfg_area = (unsigned int *) (ioarea | AMBA_CONF_AREA);
-  amba_conf->ioarea = ioarea;
-  amba_conf->mmaps = mmaps;
+	/* Setup device struct */
+	dev->vendor = ambapp_pnp_vendor(ahb->id);
+	dev->device = ambapp_pnp_device(ahb->id);
+	ahb_info = (struct ambapp_ahb_info *)dev->devinfo;
+	ahb_info->ver = ambapp_pnp_ver(ahb->id);
+	ahb_info->irq = ambapp_pnp_irq(ahb->id);
+	ahb_info->ahbidx = ahbidx;
+	ahb_info->custom[0] = (unsigned int)ahb->custom[0];
+	ahb_info->custom[1] = (unsigned int)ahb->custom[1];
+	ahb_info->custom[2] = (unsigned int)ahb->custom[2];
 
-  for (i = 0; i < maxloops; i++) {
-    amba_insert_device (&amba_conf->ahbmst, cfg_area);
-    cfg_area += AMBA_AHB_CONF_WORDS;
-  }
-
-  cfg_area =
-    (unsigned int *) (ioarea | AMBA_CONF_AREA | AMBA_AHB_SLAVE_CONF_AREA);
-  for (i = 0; i < maxloops; i++) {
-    amba_insert_device (&amba_conf->ahbslv, cfg_area);
-    cfg_area += AMBA_AHB_CONF_WORDS;
-  }
-
-  for (i = 0; i < amba_conf->ahbslv.devnr; i++){
-    conf = amba_get_confword(amba_conf->ahbslv, i, 0);
-    mbar = amba_ahb_get_membar(amba_conf->ahbslv, i, 0);
-    if ( (amba_vendor(conf) == VENDOR_GAISLER) && (amba_device(conf) == GAISLER_AHB2AHB) ){
-      /* Found AHB->AHB bus bridge, scan it if more free amba_confarea_type:s available
-       * Custom config 1 contain ioarea.
-       */
-      custom = amba_ahb_get_custom(amba_conf->ahbslv,i,1);
-
-      if ( amba_ver(conf) && amba_conf->next ){
-        amba_conf->next->notroot = 1;
-        amba_scan(amba_conf->next,custom,mmaps);
-      }
-    }else if ((amba_vendor(conf) == VENDOR_GAISLER) && (amba_device(conf) == GAISLER_APBMST))
-    {
-      apbmst = amba_membar_start(mbar);
-			if ( (apbmst=addr_from(mmaps,apbmst)) == 1 )
-				continue; /* no available memory translation available, will not be able to access
-				           * Plug&Play information for this AHB/APB bridge. Skip it.
-				           */
-			cfg_area = (unsigned int *)( apbmst | AMBA_CONF_AREA);
-      for (j=0; (amba_conf->apbslv.devnr<AMBA_APB_SLAVES) && (j<AMBA_APB_SLAVES); j++){
-        amba_insert_apb_device(&amba_conf->apbslv, cfg_area, apbmst);
-        cfg_area += AMBA_APB_CONF_WORDS;
-      }
-    }
-  }
-}
-
-void
-amba_print_dev(int devno, unsigned int conf){
-	int irq = amba_irq(conf);
-	if ( irq > 0 ){
-		printk("%x.%x.%x: irq %d\n",devno,amba_vendor(conf),amba_device(conf),irq);
-	}else{
-		printk("%x.%x.%x: no irq\n",devno,amba_vendor(conf),amba_device(conf));
-	}
-}
-
-void
-amba_apb_print_dev(int devno, unsigned int conf, unsigned int address){
-	int irq = amba_irq(conf);
-	if ( irq > 0 ){
-		printk("%x.%x.%x: irq %d, apb: 0x%lx\n",devno,amba_vendor(conf),amba_device(conf),irq,address);
-	}else{
-		printk("%x.%x.%x: no irq, apb: 0x%lx\n",devno,amba_vendor(conf),amba_device(conf),address);
-	}
-}
-
-/* Print AMBA Plug&Play info on terminal */
-void
-amba_print_conf (amba_confarea_type * amba_conf)
-{
-	int i,base=0;
-	unsigned int conf, iobar, address;
-	unsigned int apbmst;
-
-	/* print all ahb masters */
-	printk("--- AMBA AHB Masters ---\n");
-	for(i=0; i<amba_conf->ahbmst.devnr; i++){
-		conf = amba_get_confword(amba_conf->ahbmst, i, 0);
-		amba_print_dev(i,conf);
-	}
-
-	/* print all ahb slaves */
-	printk("--- AMBA AHB Slaves ---\n");
-	for(i=0; i<amba_conf->ahbslv.devnr; i++){
-		conf = amba_get_confword(amba_conf->ahbslv, i, 0);
-		amba_print_dev(i,conf);
-	}
-
-	/* print all apb slaves */
-	apbmst = 0;
-	for(i=0; i<amba_conf->apbslv.devnr; i++){
-		if ( apbmst != amba_conf->apbslv.apbmst[i] ){
-			apbmst = amba_conf->apbslv.apbmst[i];
-			printk("--- AMBA APB Slaves on 0x%x ---\n",apbmst);
-			base=i;
+	/* Memory BARs */
+	for (bar=0; bar<4; bar++) {
+		mbar = ahb->mbar[bar];
+		if ( mbar == 0 ) {
+			addr = 0;
+			mask = 0;
+		} else {
+			addr = ambapp_pnp_start(mbar);
+			if ( ambapp_pnp_mbar_type(mbar) == AMBA_TYPE_AHBIO ) {
+				/* AHB I/O area is releative IO_AREA */
+				addr = AMBA_TYPE_AHBIO_ADDR(addr, ioarea);
+				mask = (((unsigned int)
+					(ambapp_pnp_mbar_mask((~mbar))<<8) |
+					0xff)) + 1;
+			} else {
+				/* AHB memory area, absolute address */
+				addr = ambapp_addr_from(mmaps, addr);
+				mask = (~((unsigned int)
+					(ambapp_pnp_mbar_mask(mbar)<<20))) + 1;
+			}
 		}
-		conf = amba_get_confword(amba_conf->apbslv, i, 0);
-    iobar = amba_apb_get_membar(amba_conf->apbslv, i);
-    address = amba_iobar_start(amba_conf->apbslv.apbmst[i], iobar);
-		amba_apb_print_dev(i-base,conf,address);
+		ahb_info->start[bar] = addr;
+		ahb_info->mask[bar] = mask;
+		ahb_info->type[bar] = ambapp_pnp_mbar_type(mbar);
+	}
+}
+
+void ambapp_apb_dev_init(
+	unsigned int base,
+	struct ambapp_mmap *mmaps,
+	struct ambapp_pnp_apb *apb,
+	struct ambapp_dev *dev,
+	int ahbidx
+	)
+{
+	struct ambapp_apb_info *apb_info;
+
+	/* Setup device struct */
+	dev->vendor = ambapp_pnp_vendor(apb->id);
+	dev->device = ambapp_pnp_device(apb->id);
+	apb_info = (struct ambapp_apb_info *)dev->devinfo;
+	apb_info->ver = ambapp_pnp_ver(apb->id);
+	apb_info->irq = ambapp_pnp_irq(apb->id);
+	apb_info->ahbidx = ahbidx;
+	apb_info->start = ambapp_pnp_apb_start(apb->iobar, base);
+	apb_info->mask = ambapp_pnp_apb_mask(apb->iobar);
+}
+
+int ambapp_add_ahbbus(
+	struct ambapp_bus *abus,
+	unsigned int ioarea
+	)
+{
+	int i;
+	for (i=0; i<AHB_BUS_MAX; i++) {
+		if ( abus->ahbs[i].ioarea == 0 ) {
+			abus->ahbs[i].ioarea = ioarea;
+			return i;
+		} else if ( abus->ahbs[i].ioarea == ioarea ) {
+			/* Bus already added */
+			return -1;
+		}
+	}
+	return -1;
+}
+
+/* Internal AMBA Scanning Function */
+static int ambapp_scan2(
+	struct ambapp_bus *abus,
+	unsigned int ioarea,
+	ambapp_memcpy_t memfunc,
+	struct ambapp_dev *parent,
+	struct ambapp_dev **root
+	)
+{
+	struct ambapp_pnp_ahb *ahb, ahb_buf;
+	struct ambapp_pnp_apb *apb, apb_buf;
+	struct ambapp_dev *dev, *prev, *prevapb, *apbdev;
+	struct ambapp_ahb_info *ahb_info;
+	int maxloops = 64;
+	unsigned int apbbase, bridge_adr;
+	int i, j, ahbidx;
+
+	*root = NULL;
+
+	if ( parent ) {
+		/* scan first bus for 64 devices, rest for 16 devices */
+		maxloops = 16;
 	}
 
-}
-/**** APB Slaves ****/
+	ahbidx = ambapp_add_ahbbus(abus, ioarea);
+	if ( ahbidx < 0 ) {
+		/* Bus already scanned, stop */
+		return 0;
+	}
 
-/* Return number of APB Slave devices which has given vendor and device */
-int
-amba_get_number_apbslv_devices (amba_confarea_type * amba_conf, int vendor,
-                                int device)
-{
-  unsigned int conf;
-  int cnt, i;
+	prev = parent;
 
-  for (cnt = i = 0; i < amba_conf->apbslv.devnr; i++) {
-    conf = amba_get_confword (amba_conf->apbslv, i, 0);
-    if ((amba_vendor (conf) == vendor) && (amba_device (conf) == device))
-      cnt++;
-  }
-  return cnt;
-}
+	/* AHB MASTERS */
+	ahb = (struct ambapp_pnp_ahb *) (ioarea | AMBA_CONF_AREA);
+	for (i = 0; i < maxloops; i++, ahb++) {
+		memfunc(&ahb_buf, ahb, sizeof(struct ambapp_pnp_ahb), abus);
+		if ( ahb_buf.id == 0 )
+			continue;
 
-/* Get First APB Slave device of this vendor&device id */
-int
-amba_find_apbslv (amba_confarea_type * amba_conf, int vendor, int device,
-                  amba_apb_device * dev)
-{
-  unsigned int conf, iobar;
-  int i;
+		/* An AHB device present here */
+		dev = ambapp_alloc_dev_struct(DEV_AHB_MST);
+		if ( !dev )
+			return -1;
 
-  for (i = 0; i < amba_conf->apbslv.devnr; i++) {
-    conf = amba_get_confword (amba_conf->apbslv, i, 0);
-    if ((amba_vendor (conf) == vendor) && (amba_device (conf) == device)) {
-      iobar = amba_apb_get_membar (amba_conf->apbslv, i);
-      dev->start = amba_iobar_start (amba_conf->apbslv.apbmst[i], iobar);
-      dev->irq = amba_irq (conf);
-      return 1;
-    }
-  }
-  return 0;
-}
+		ambapp_ahb_dev_init(ioarea, abus->mmaps, &ahb_buf, dev, ahbidx);
 
-/* Get APB Slave device of this vendor&device id. (setting nr to 0 is eqivalent to calling amba_find_apbslv() ) */
-int
-amba_find_next_apbslv (amba_confarea_type * amba_conf, int vendor, int device,
-                       amba_apb_device * dev, int index)
-{
-  unsigned int conf, iobar;
-  int cnt, i;
+		if ( *root == NULL) 
+			*root = dev;
 
-  for (cnt = i = 0; i < amba_conf->apbslv.devnr; i++) {
-    conf = amba_get_confword (amba_conf->apbslv, i, 0);
-    if ((amba_vendor (conf) == vendor) && (amba_device (conf) == device)) {
-      if (cnt == index) {
-        /* found device */
-        iobar = amba_apb_get_membar (amba_conf->apbslv, i);
-        dev->start = amba_iobar_start (amba_conf->apbslv.apbmst[i], iobar);
-        dev->irq = amba_irq (conf);
-        return 1;
-      }
-      cnt++;
-    }
-  }
-  return 0;
-}
+		if ( prev != parent )
+			prev->next = dev;
+		dev->prev = prev;
+		prev = dev;
+	}
 
-/* Get first nr APB Slave devices, put them into dev (which is an array of nr length) */
-int
-amba_find_apbslvs (amba_confarea_type * amba_conf, int vendor, int device,
-                   amba_apb_device * devs, int maxno)
-{
-  unsigned int conf, iobar;
-  int cnt, i;
+	/* AHB SLAVES */
+	ahb = (struct ambapp_pnp_ahb *)
+		(ioarea | AMBA_CONF_AREA | AMBA_AHB_SLAVE_CONF_AREA);
+	for (i = 0; i < maxloops; i++, ahb++) {
+		memfunc(&ahb_buf, ahb, sizeof(struct ambapp_pnp_ahb), abus);
+		if ( ahb_buf.id == 0 )
+			continue;
 
-  for (cnt = i = 0; (i < amba_conf->apbslv.devnr) && (cnt < maxno); i++) {
-    conf = amba_get_confword (amba_conf->apbslv, i, 0);
-    if ((amba_vendor (conf) == vendor) && (amba_device (conf) == device)) {
-      /* found device */
-      iobar = amba_apb_get_membar (amba_conf->apbslv, i);
-      devs[cnt].start = amba_iobar_start (amba_conf->apbslv.apbmst[i], iobar);
-      devs[cnt].irq = amba_irq (conf);
-      cnt++;
-    }
-  }
-  return cnt;
-}
+		/* An AHB device present here */
+		dev = ambapp_alloc_dev_struct(DEV_AHB_SLV);
+		if ( !dev )
+			return -1;
 
-/***** AHB SLAVES *****/
+		ambapp_ahb_dev_init(ioarea, abus->mmaps, &ahb_buf, dev, ahbidx);
 
-/* Return number of AHB Slave devices which has given vendor and device */
-int
-amba_get_number_ahbslv_devices (amba_confarea_type * amba_conf, int vendor,
-                                int device)
-{
-  unsigned int conf;
-  int cnt, i;
+		if ( *root == NULL)
+			*root = dev;
 
-  for (cnt = i = 0; i < amba_conf->ahbslv.devnr; i++) {
-    conf = amba_get_confword (amba_conf->ahbslv, i, 0);
-    if ((amba_vendor (conf) == vendor) && (amba_device (conf) == device))
-      cnt++;
-  }
-  return cnt;
-}
+		if ( prev != parent )
+			prev->next = dev;
+		dev->prev = prev;
+		prev = dev;
 
-/* Get First AHB Slave device of this vendor&device id */
-int
-amba_find_ahbslv (amba_confarea_type * amba_conf, int vendor, int device,
-                  amba_ahb_device * dev)
-{
-  unsigned int conf, mbar, addr;
-  int j, i;
+		ahb_info = (struct ambapp_ahb_info *)dev->devinfo;
 
-  for (i = 0; i < amba_conf->ahbslv.devnr; i++) {
-    conf = amba_get_confword (amba_conf->ahbslv, i, 0);
-    if ((amba_vendor (conf) == vendor) && (amba_device (conf) == device)) {
-      for (j = 0; j < 4; j++) {
-        mbar = amba_ahb_get_membar (amba_conf->ahbslv, i, j);
-        addr = amba_membar_start (mbar);
-        if (amba_membar_type (mbar) == AMBA_TYPE_AHBIO) {
-          addr = AMBA_TYPE_AHBIO_ADDR (addr, amba_conf->ioarea);
-        } else {                /* convert address if needed */
-          if ((addr = addr_from (amba_conf->mmaps, addr)) == 1) {
-            addr = 0;           /* no available memory translation available, will not be able to access
-                                 * Plug&Play information for this AHB address. Skip it.
-                                 */
-          }
-        }
-        dev->start[j] = addr;
-      }
-      dev->irq = amba_irq (conf);
-      dev->ver = amba_ver (conf);
-      return 1;
-    }
-  }
-  return 0;
+		/* Is it a AHB/AHB Bridge ? */
+		if ( ((dev->device == GAISLER_AHB2AHB) &&
+		     (dev->vendor == VENDOR_GAISLER) && (ahb_info->ver>0)) ||
+		     ((dev->device == GAISLER_L2CACHE) &&
+		     (dev->vendor == VENDOR_GAISLER)) ||
+		     ((dev->device == GAISLER_GRIOMMU) &&
+		     (dev->vendor == VENDOR_GAISLER))
+		   ) {
+			/* AHB/AHB Bridge Found, recurse down the
+			 * Bridge
+			 */
+			if (ahb_info->custom[1] != 0) {
+				bridge_adr = ambapp_addr_from(abus->mmaps,
+							ahb_info->custom[1]);
+				/* Scan next bus if not already scanned */
+				if (ambapp_scan2(abus, bridge_adr, memfunc, dev,
+						&dev->children) )
+					return -1;
+			}
+		} else if ( (dev->device == GAISLER_APBMST) &&
+		            (dev->vendor == VENDOR_GAISLER) ) {
+			/* AHB/APB Bridge Found, add the APB devices to this
+			 * AHB Slave's children
+			 */
+			prevapb = dev;
+			apbbase = ahb_info->start[0];
+
+			/* APB SLAVES */
+			apb = (struct ambapp_pnp_apb *)
+				(apbbase | AMBA_CONF_AREA);
+			for (j=0; j<AMBA_APB_SLAVES; j++, apb++) {
+				memfunc(&apb_buf, apb, sizeof(*apb), abus);
+				if ( apb_buf.id == 0 )
+					continue;
+
+				apbdev = ambapp_alloc_dev_struct(DEV_APB_SLV);
+				if ( !dev )
+					return -1;
+
+				ambapp_apb_dev_init(apbbase, abus->mmaps, 								&apb_buf, apbdev, ahbidx);
+
+				if ( prevapb != dev )
+					prevapb->next = apbdev;
+				else
+					dev->children = apbdev;
+				apbdev->prev = prevapb;
+				prevapb = apbdev;
+			}
+		}
+	}
+
+	/* Remember first AHB MST/SLV device on bus and Parent Bridge */
+	abus->ahbs[ahbidx].dev = *root;
+	abus->ahbs[ahbidx].bridge = parent;
+
+	return 0;
 }
 
-/* Get AHB Slave device of this vendor&device id. (setting nr to 0 is eqivalent to calling amba_find_ahbslv() ) */
-int
-amba_find_next_ahbslv (amba_confarea_type * amba_conf, int vendor, int device,
-                       amba_ahb_device * dev, int index)
+/* Build AMBA Plug & Play device graph 
+ * 
+ * The root device is stored into '*root'.
+ */
+int ambapp_scan(
+	struct ambapp_bus *abus,
+	unsigned int ioarea,
+	ambapp_memcpy_t memfunc,
+	struct ambapp_mmap *mmaps
+	)
 {
-  unsigned int conf, mbar, addr;
-  int i, j, cnt;
+	memset(abus, 0, sizeof(*abus));
+	abus->mmaps = mmaps;
 
-  for (cnt = i = 0; i < amba_conf->ahbslv.devnr; i++) {
-    conf = amba_get_confword (amba_conf->ahbslv, i, 0);
-    if ((amba_vendor (conf) == vendor) && (amba_device (conf) == device)) {
-      if (cnt == index) {
-        for (j = 0; j < 4; j++) {
-          mbar = amba_ahb_get_membar (amba_conf->ahbslv, i, j);
-          addr = amba_membar_start (mbar);
-          if (amba_membar_type (mbar) == AMBA_TYPE_AHBIO) {
-            addr = AMBA_TYPE_AHBIO_ADDR (addr, amba_conf->ioarea);
-          } else {
-            /* convert address if needed */
-            if ((addr = addr_from (amba_conf->mmaps, addr)) == 1) {
-              addr = 0;         /* no available memory translation available, will not be able to access
-                                 * Plug&Play information for this AHB address. Skip it.
-                                 */
-            }
-          }
-          dev->start[j] = addr;
-        }
-        dev->irq = amba_irq (conf);
-        dev->ver = amba_ver (conf);
-        return 1;
-      }
-      cnt++;
-    }
-  }
-  return 0;
+	/* Default to memcpy() */
+	if ( !memfunc )
+		memfunc = (ambapp_memcpy_t)memcpy;
+
+	return ambapp_scan2(abus, ioarea, memfunc, NULL, &abus->root);
 }
 
-/* Get first nr AHB Slave devices, put them into dev (which is an array of nr length) */
-int
-amba_find_ahbslvs (amba_confarea_type * amba_conf, int vendor, int device,
-                   amba_ahb_device * devs, int maxno)
+       
+/* Match search options againt device */
+int ambapp_dev_match_options(struct ambapp_dev *dev, unsigned int options, int vendor, int device)
 {
-  unsigned int conf, mbar, addr;
-  int i, j, cnt;
-
-  for (cnt = i = 0; (i < amba_conf->ahbslv.devnr) && (maxno < cnt); i++) {
-    conf = amba_get_confword (amba_conf->ahbslv, i, 0);
-    if ((amba_vendor (conf) == vendor) && (amba_device (conf) == device)) {
-      for (j = 0; j < 4; j++) {
-        mbar = amba_ahb_get_membar (amba_conf->ahbslv, i, j);
-        addr = amba_membar_start (mbar);
-        if (amba_membar_type (mbar) == AMBA_TYPE_AHBIO) {
-          addr = AMBA_TYPE_AHBIO_ADDR (addr, amba_conf->ioarea);
-        } else {
-          /* convert address if needed */
-          if ((addr = addr_from (amba_conf->mmaps, addr)) == 1) {
-            addr = 0;           /* no available memory translation available, will not be able to access
-                                 * Plug&Play information for this AHB address. Skip it.
-                                 */
-          }
-        }
-        devs[cnt].start[j] = addr;
-      }
-      devs[cnt].irq = amba_irq (conf);
-      devs[cnt].ver = amba_ver (conf);
-      cnt++;
-    }
-  }
-  return cnt;
+	if (	(((options & (OPTIONS_ALL_DEVS)) == OPTIONS_ALL_DEVS) ||		/* Match TYPE */
+		 ((options & OPTIONS_AHB_MSTS) && (dev->dev_type == DEV_AHB_MST)) || 
+		 ((options & OPTIONS_AHB_SLVS) && (dev->dev_type == DEV_AHB_SLV)) || 
+		 ((options & OPTIONS_APB_SLVS) && (dev->dev_type == DEV_APB_SLV))) &&
+		((vendor == -1) || (vendor == dev->vendor)) && 				/* Match ID */
+		((device == -1)  || (device == dev->device)) &&
+		(((options & OPTIONS_ALL) == OPTIONS_ALL) || 				/* Match Allocated State */
+		 ((options & OPTIONS_FREE) && DEV_IS_FREE(dev)) || 
+		 ((options & OPTIONS_ALLOCATED) && DEV_IS_ALLOCATED(dev)))
+		) {
+		return 1;
+	}
+	return 0;
 }
 
-
-/***** AHB Masters *****/
-
-/* Return number of AHB Slave devices which has given vendor and device */
-int
-amba_get_number_ahbmst_devices (amba_confarea_type * amba_conf, int vendor,
-                                int device)
+/* If device is an APB bridge all devices on the APB bridge is processed */
+static int ambapp_for_each_apb(
+	struct ambapp_dev *dev,
+	unsigned int options,
+	int vendor,
+	int device,
+	int maxdepth,
+	ambapp_func_t func,
+	void *arg)
 {
-  unsigned int conf;
-  int cnt, i;
+	int index;
+	struct ambapp_dev *apbslv;
 
-  for (cnt = i = 0; i < amba_conf->ahbmst.devnr; i++) {
-    conf = amba_get_confword (amba_conf->ahbmst, i, 0);
-    if ((amba_vendor (conf) == vendor) && (amba_device (conf) == device))
-      cnt++;
-  }
-  return cnt;
+	if ( maxdepth < 0 )
+		return 0;
+
+	if ( dev->children && (dev->children->dev_type == DEV_APB_SLV) ) {
+		/* Found a APB Bridge */
+		index = 0;
+		apbslv = dev->children;
+		while(apbslv){
+			if ( ambapp_dev_match_options(apbslv, options,
+			                              vendor, device) == 1 ) {
+				if ( func(apbslv, index, maxdepth, arg) == 1 )
+					return 1; /* Signalled stopped */
+			}
+			index++;
+			apbslv = apbslv->next;
+		}
+	}
+	return 0;
+}
+			
+/* Traverse the prescanned device information */
+int ambapp_for_each(
+	struct ambapp_dev *root,
+	unsigned int options,
+	int vendor,
+	int device,
+	int maxdepth,
+	ambapp_func_t func,
+	void *arg)
+{
+	struct ambapp_dev *dev;
+	int ahb_slave = 0;
+	int index;
+
+	if ( maxdepth < 0 )
+		return 0;
+
+	/* Start at device 'root' and process downwards.
+	 *
+	 * Breadth first search, search order
+	 * 1. AHB MSTS
+	 * 2. AHB SLVS
+	 * 3. APB SLVS on primary bus
+	 * 4. AHB/AHB secondary... -> step to 1.
+	 */
+
+	/* AHB MST / AHB SLV */
+	if (options & (OPTIONS_AHB_MSTS|OPTIONS_AHB_SLVS|OPTIONS_DEPTH_FIRST)) {
+		index = 0;
+		dev = root;
+		while ( dev ) {
+			if ( (dev->dev_type == DEV_AHB_SLV) && !ahb_slave) {
+				/* First AHB Slave */
+				ahb_slave = 1;
+				index = 0;
+			}
+
+			/* Conditions must be fullfilled for function to be
+			 * called 
+			 */
+			if ( ambapp_dev_match_options(dev, options, vendor,
+			                              device) == 1 ) {
+				/* Correct device and vendor ID */
+				if ( func(dev, index, maxdepth, arg) == 1 )
+					return 1; /* Signalled stopped */
+			}
+
+			if ( (options & OPTIONS_DEPTH_FIRST) &&
+			     (options & OPTIONS_APB_SLVS) ) {
+				/* Check is APB bridge, and process all APB
+				 * Slaves in that case
+				 */
+				if ( ambapp_for_each_apb(dev, options, vendor,
+				                         device, (maxdepth-1),
+				                         func, arg) == 1 )
+					return 1; /* Signalled stopped */
+			}
+
+			if ( options & OPTIONS_DEPTH_FIRST ) {
+				if ( dev->children &&
+				     (dev->children->dev_type != DEV_APB_SLV)) {
+					/* Found AHB Bridge, recurse */
+					if ( ambapp_for_each(dev->children,
+					                     options, vendor,
+					                     device, 
+					                     (maxdepth-1), func,
+					                     arg) == 1 )
+						return 1;
+				}
+			}
+
+			index++;
+			dev = dev->next;
+		}
+	}
+
+	/* Find APB Bridges */
+	if ((options & OPTIONS_APB_SLVS) && !(options & OPTIONS_DEPTH_FIRST)) {
+		dev = root;
+		while( dev ) {
+			/* Check is APB bridge, and process all APB Slaves in
+			 * that case
+			 */
+			if ( ambapp_for_each_apb(dev, options, vendor, device,
+			                         (maxdepth-1), func, arg)==1 )
+				return 1; /* Signalled stopped */
+			dev = dev->next;
+		}
+	}
+
+	/* Find AHB Bridges */
+	if ( !(options & OPTIONS_DEPTH_FIRST) ) {
+		dev = root;
+		while( dev ) {
+			if ( dev->children &&
+			     (dev->children->dev_type != DEV_APB_SLV) ) {
+				/* Found AHB Bridge, recurse */
+				if ( ambapp_for_each(dev->children, options,
+				                     vendor, device,
+				                     (maxdepth-1),func,arg)==1 )
+					return 1;
+			}
+			dev = dev->next;
+		}
+	}
+
+	return 0;
 }
 
-/* Get First AHB Slave device of this vendor&device id */
-int
-amba_find_ahbmst (amba_confarea_type * amba_conf, int vendor, int device,
-                  amba_ahb_device * dev)
+int ambapp_alloc_dev(struct ambapp_dev *dev, void *owner)
 {
-  unsigned int conf, mbar, addr;
-  int j, i;
-
-  for (i = 0; i < amba_conf->ahbmst.devnr; i++) {
-    conf = amba_get_confword (amba_conf->ahbslv, i, 0);
-    if ((amba_vendor (conf) == vendor) && (amba_device (conf) == device)) {
-      for (j = 0; j < 4; j++) {
-        mbar = amba_ahb_get_membar (amba_conf->ahbmst, i, j);
-        addr = amba_membar_start (mbar);
-        if (amba_membar_type (mbar) == AMBA_TYPE_AHBIO) {
-          addr = AMBA_TYPE_AHBIO_ADDR (addr, amba_conf->ioarea);
-        } else {
-          /* convert address if needed */
-          if ((addr = addr_from (amba_conf->mmaps, addr)) == 1) {
-            addr = 0;           /* no available memory translation available, will not be able to access
-                                 * Plug&Play information for this AHB address. Skip it.
-                                 */
-          }
-        }
-        dev->start[j] = addr;
-      }
-      dev->irq = amba_irq (conf);
-      dev->ver = amba_ver (conf);
-      return 1;
-    }
-  }
-  return 0;
+	if ( dev->owner )
+		return -1;
+	dev->owner = owner;
+	return 0;
 }
 
-/* Get AHB Slave device of this vendor&device id. (setting nr to 0 is eqivalent to calling amba_find_ahbslv() ) */
-int
-amba_find_next_ahbmst (amba_confarea_type * amba_conf, int vendor, int device,
-                       amba_ahb_device * dev, int index)
+void ambapp_free_dev(struct ambapp_dev *dev)
 {
-  unsigned int conf, mbar, addr;
-  int i, j, cnt;
-
-  for (cnt = i = 0; i < amba_conf->ahbmst.devnr; i++) {
-    conf = amba_get_confword (amba_conf->ahbmst, i, 0);
-    if ((amba_vendor (conf) == vendor) && (amba_device (conf) == device)) {
-      if (cnt == index) {
-        for (j = 0; j < 4; j++) {
-          mbar = amba_ahb_get_membar (amba_conf->ahbmst, i, j);
-          addr = amba_membar_start (mbar);
-          if (amba_membar_type (mbar) == AMBA_TYPE_AHBIO) {
-            addr = AMBA_TYPE_AHBIO_ADDR (addr, amba_conf->ioarea);
-          } else {
-            /* convert address if needed */
-            if ((addr = addr_from (amba_conf->mmaps, addr)) == 1) {
-              addr = 0;         /* no available memory translation available, will not be able to access
-                                 * Plug&Play information for this AHB address. Skip it.
-                                 */
-            }
-          }
-          dev->start[j] = addr;
-        }
-        dev->irq = amba_irq (conf);
-        dev->ver = amba_ver (conf);
-        return 1;
-      }
-      cnt++;
-    }
-  }
-  return 0;
+	dev->owner = NULL;
 }
 
-/* Get first nr AHB Slave devices, put them into dev (which is an array of nr length) */
-int
-amba_find_ahbmsts (amba_confarea_type * amba_conf, int vendor, int device,
-                   amba_ahb_device * devs, int maxno)
+struct ambapp_dev *ambapp_find_parent(struct ambapp_dev *dev)
 {
-  unsigned int conf, mbar, addr;
-  int i, j, cnt;
+	while( dev->prev ) {
+		if ( dev == dev->prev->children ) {
+			return dev->prev;
+		}
+		dev = dev->prev;
+	}
+	return NULL;
+}
 
-  for (cnt = i = 0; (i < amba_conf->ahbmst.devnr) && (maxno < cnt); i++) {
-    conf = amba_get_confword (amba_conf->ahbslv, i, 0);
-    if ((amba_vendor (conf) == vendor) && (amba_device (conf) == device)) {
-      for (j = 0; j < 4; j++) {
-        mbar = amba_ahb_get_membar (amba_conf->ahbmst, i, j);
-        addr = amba_membar_start (mbar);
-        if (amba_membar_type (mbar) == AMBA_TYPE_AHBIO) {
-          addr = AMBA_TYPE_AHBIO_ADDR (addr, amba_conf->ioarea);
-        } else {
-          /* convert address if needed */
-          if ((addr = addr_from (amba_conf->mmaps, addr)) == 1) {
-            addr = 0;           /* no available memory translation available, will not be able to access
-                                 * Plug&Play information for this AHB address. Skip it.
-                                 */
-          }
-        }
-        devs[cnt].start[j] = addr;
-      }
-      devs[cnt].irq = amba_irq (conf);
-      devs[cnt].ver = amba_ver (conf);
-      cnt++;
-    }
-  }
-  return cnt;
+/* Calculate AHB Bus frequency of
+ *   - Bus[0] (inverse=1), relative to the frequency of Bus[ahbidx]
+ *     NOTE: set freq_hz to frequency of Bus[ahbidx].
+ *   or
+ *   - Bus[ahbidx] (inverse=0), relative to the frequency of Bus[0]
+ *     NOTE: set freq_hz to frequency of Bus[0].
+ *
+ * If a unsupported bridge is found the invalid frequncy of 0Hz is
+ * returned.
+ */
+unsigned int ambapp_freq_calc(
+	struct ambapp_bus *abus,
+	int ahbidx,
+	unsigned int freq_hz,
+	int inverse)
+{
+	struct ambapp_ahb_info *ahb;
+	struct ambapp_dev *bridge;
+	unsigned char ffact;
+	int dir;
+
+	/* Found Bus0? */
+	bridge = abus->ahbs[ahbidx].bridge;
+	if ( !bridge )
+		return freq_hz;
+
+	/* Find this bus frequency relative to freq_hz */
+	if ( (bridge->vendor == VENDOR_GAISLER) && (
+	     (bridge->device == GAISLER_AHB2AHB) ||
+	     (bridge->device == GAISLER_L2CACHE)) ) {
+		ahb = (struct ambapp_ahb_info *)bridge->devinfo;
+		ffact = (ahb->custom[0] & AMBAPP_FLAG_FFACT) >> 4;
+		if ( ffact != 0 ) {
+			dir = ahb->custom[0] & AMBAPP_FLAG_FFACT_DIR;
+
+			/* Calculate frequency by dividing or
+			 * multiplying system frequency
+			 */
+			if ( (dir && !inverse) || (!dir && inverse) ) {
+				freq_hz = freq_hz * ffact;
+			} else {
+				freq_hz = freq_hz / ffact;
+			}
+		}
+		return ambapp_freq_calc(abus, ahb->ahbidx, freq_hz, inverse);
+	} else {
+		/* Unknown bridge, impossible to calc frequency */
+		return 0;
+	}
+}
+
+/* Find the frequency of all AHB Buses from knowing the frequency of one
+ * particular APB/AHB Device.
+ */
+void ambapp_freq_init(
+	struct ambapp_bus *abus,
+	struct ambapp_dev *dev,
+	unsigned int freq_hz)
+{
+	struct ambapp_common_info *info;
+	int i;
+
+	for (i=0; i<AHB_BUS_MAX; i++)
+		abus->ahbs[i].freq_hz = 0;
+
+	/* Register Frequency at the AHB bus that the device the user gave us
+	 * is located at.
+	 */
+	if ( dev ) {
+		info = (struct ambapp_common_info *)dev->devinfo;
+		abus->ahbs[info->ahbidx].freq_hz = freq_hz;
+
+		/* Find Frequency of Bus 0 */
+		abus->ahbs[0].freq_hz =
+			ambapp_freq_calc(abus, info->ahbidx, freq_hz, 1);
+	} else {
+		abus->ahbs[0].freq_hz = freq_hz;
+	}
+
+	/* Find Frequency of all except for Bus0 and the bus which frequency
+	 * was reported at
+	 */
+	for (i=1; i<AHB_BUS_MAX; i++) {
+		if ( abus->ahbs[i].ioarea == 0 ) {
+			break;
+		}
+		if ( abus->ahbs[i].freq_hz != 0 ) {
+			continue;
+		}
+		abus->ahbs[i].freq_hz =
+			ambapp_freq_calc(abus, i, abus->ahbs[0].freq_hz, 0);
+	}
+}
+
+/* Assign a AMBA Bus a frequency but reporting the frequency of a
+ * particular AHB/APB device */
+unsigned int ambapp_freq_get(struct ambapp_bus *abus, struct ambapp_dev *dev)
+{
+	struct ambapp_common_info *info = 
+		(struct ambapp_common_info *)dev->devinfo;
+	return abus->ahbs[info->ahbidx].freq_hz;
 }

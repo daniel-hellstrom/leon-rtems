@@ -1,0 +1,2 @@
+EXTRA_DIST += shared/slink/grslink.c
+EXTRA_DIST += shared/include/grslink.h

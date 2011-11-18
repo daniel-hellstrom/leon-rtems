@@ -41,11 +41,11 @@ extern void amba_initialize(void);
 static inline int set_snooping(void)
 {
   int tmp;
-  asm(" lda [%1] 2, %0 "
+  asm(" lda [%%g0] 2, %0 "
       : "=r"(tmp)
-      : "r"(0xC)
+      :
   );
-  return (tmp >> 27) & 1;
+  return (tmp >> 23) & 1;
 }
 
 /*

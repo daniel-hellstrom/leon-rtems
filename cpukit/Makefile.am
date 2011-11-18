@@ -10,6 +10,7 @@ include $(top_srcdir)/automake/multilib.am
 # librtemscpu
 SUBDIRS = . score rtems sapi posix itron
 SUBDIRS += libcsupport libblock libfs
+SUBDIRS += libdrvmgr
 SUBDIRS += libnetworking librpc
 SUBDIRS += libi2c
 SUBDIRS += libmisc
@@ -180,6 +181,12 @@ include_rtems_HEADERS += libmisc/untar/untar.h
 
 ## fsmount
 include_rtems_HEADERS += libmisc/fsmount/fsmount.h
+
+## Driver manager
+include_drvmgrdir = $(includedir)/drvmgr
+include_drvmgr_HEADERS = libdrvmgr/drvmgr.h
+include_drvmgr_HEADERS += libdrvmgr/drvmgr_confdefs.h
+include_drvmgr_HEADERS += libdrvmgr/drvmgr_list.h
 
 include $(srcdir)/preinstall.am
 include $(top_srcdir)/automake/subdirs.am

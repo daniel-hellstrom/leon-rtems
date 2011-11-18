@@ -1,7 +1,7 @@
 /*
  *  Driver interface for APBUART
  *
- *  COPYRIGHT (c) 2007.
+ *  COPYRIGHT (c) 2008.
  *  Gaisler Research
  *
  *  The license and distribution terms for this file may be
@@ -13,7 +13,7 @@
 #ifndef __APBUART_H__
 #define __APBUART_H__
 
-#include <ambapp.h>
+#include <drvmgr/drvmgr.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,6 +57,7 @@ typedef struct {
 #define APBUART_CTRL_EC 0x100
 #define APBUART_CTRL_TF 0x200
 #define APBUART_CTRL_RF 0x400
+#define APBUART_CTRL_DB 0x800
 
 #define APBUART_STATUS_DR 0x1
 #define APBUART_STATUS_TS 0x2
@@ -70,11 +71,8 @@ typedef struct {
 #define APBUART_STATUS_TF 0x200
 #define APBUART_STATUS_RF 0x400
 
-/* Register APBUART driver
- * bus =  pointer to AMBA bus description used to search for APBUART(s).
- *        (&amba_conf for LEON3), (LEON2: see amba_scan)
- */
-int apbuart_register (amba_confarea_type * bus);
+/* Register APBUART driver to the driver manager system */
+void apbuart_register_drv (void);
 
 #ifdef __cplusplus
 }

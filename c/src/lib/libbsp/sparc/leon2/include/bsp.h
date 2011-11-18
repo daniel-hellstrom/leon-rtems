@@ -94,6 +94,102 @@ void BSP_fatal_return( void );
 
 void bsp_spurious_initialize( void );
 
+/*** Shared system interrupt handling ***/
+
+/* Interrupt Service Routine (ISR) pointer */
+typedef void (*bsp_shared_isr)(int irq, void *arg);
+
+/* Initializes the Shared System Interrupt service */
+extern int BSP_shared_interrupt_init(void);
+
+/* Registers a shared IRQ handler, but does not enable it. Multiple
+ * interrupt handlers may use the same IRQ number, all enabled ISRs
+ * will be called when an interrupt on that line is fired.
+ *
+ * Arguments
+ *  irq       System IRQ number
+ *  isr       Function pointer to the ISR
+ *  arg       Second argument to function isr
+ */
+extern int BSP_shared_interrupt_register
+	(
+	int irq,
+	bsp_shared_isr isr,
+	void *arg
+	);
+
+/* Unregister previously registered shared IRQ handler.
+ *
+ * Arguments
+ *  irq       System IRQ number
+ *  isr       Function pointer to the ISR
+ *  arg       Second argument to function isr
+ */
+extern int BSP_shared_interrupt_unregister
+	(
+	int irq,
+	bsp_shared_isr isr,
+	void *arg
+	);
+
+/* Enable shared IRQ handler. This function will unmask the interrupt
+ * controller and mark this interrupt handler ready to handle interrupts. Note
+ * that since it is a shared interrupt handler service the interrupt may
+ * already be enabled, however no calls to this specific handler is made
+ * until it is enabled.
+ *
+ * Arguments
+ *  irq       System IRQ number
+ *  isr       Function pointer to the ISR
+ *  arg       Second argument to function isr
+ */
+
+extern int BSP_shared_interrupt_enable
+	(
+	int irq,
+	bsp_shared_isr isr,
+	void *arg
+	);
+
+/* Disable shared IRQ handler. This function will mask the interrupt
+ * controller and mark this interrupt handler not ready to receive interrupts.
+ * Note that since it is a shared interrupt handler service the interrupt may
+ * still be enabled, however no calls to this specific handler is made
+ * while it is disabled.
+ *
+ * Arguments
+ *  irq       System IRQ number
+ *  isr       Function pointer to the ISR
+ *  arg       Second argument to function isr
+ */
+extern int BSP_shared_interrupt_disable
+	(
+	int irq,
+	bsp_shared_isr isr,
+	void *arg
+	);
+
+/* Clear interrupt pending on IRQ controller, this is typically done on a 
+ * level triggered interrupt source such as PCI to avoid taking double IRQs.
+ * In such a case the interrupt source must be cleared first, before 
+ * acknowledging the IRQ with this function.
+ *
+ * Arguments
+ *  irq       System IRQ number
+ *  isr       Function pointer to the ISR
+ *  arg       Second argument to function isr
+ */
+extern int BSP_shared_interrupt_clear
+	(
+	int irq,
+	bsp_shared_isr isr,
+	void *arg
+	);
+
+extern void BSP_shared_interrupt_mask(int irq);
+
+extern void BSP_shared_interrupt_unmask(int irq);
+
 #ifdef __cplusplus
 }
 #endif

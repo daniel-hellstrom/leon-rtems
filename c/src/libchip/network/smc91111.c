@@ -1056,7 +1056,7 @@ int lan91cxx_hardware_init(struct lan91cxx_priv_data *cpd)
 
 	/* install interrupt vector */
 	db_printf("Install lan91cxx irqvector at %d\n", cpd->config.vector);
-	set_vector(lan91cxx_interrupt_handler, cpd->config.vector, 1);
+	set_vector(lan91cxx_interrupt_handler, cpd->config.vector, 2);
 
 	/* Reset chip */
 	put_reg(cpd, LAN91CXX_RCR, LAN91CXX_RCR_SOFT_RST);

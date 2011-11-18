@@ -3,6 +3,8 @@
  *	PCI defines and function prototypes
  *	Copyright 1994, Drew Eckhardt
  *	Copyright 1997, 1998 Martin Mares <mj@atrey.karlin.mff.cuni.cz>
+ *  Copyright 2009, Aeroflex Gaisler
+ *  Copyright 2010, Aeroflex Gaisler
  *
  *	For more information, please consult the following manuals (look at
  *	http://www.pcisig.com/ for how to get them):
@@ -47,7 +49,7 @@ extern "C" {
 #define  PCI_STATUS_FAST_BACK	0x80	/* Accept fast-back to back */
 #define  PCI_STATUS_PARITY	0x100	/* Detected parity error */
 #define  PCI_STATUS_DEVSEL_MASK	0x600	/* DEVSEL timing */
-#define  PCI_STATUS_DEVSEL_FAST	0x000
+#define  PCI_STATUS_DEVSEL_FAST	0x000	
 #define  PCI_STATUS_DEVSEL_MEDIUM 0x200
 #define  PCI_STATUS_DEVSEL_SLOW 0x400
 #define  PCI_STATUS_SIG_TARGET_ABORT 0x800 /* Set on target abort */
@@ -76,8 +78,8 @@ extern "C" {
 
 /*
  * Base addresses specify locations in memory or I/O space.
- * Decoded size can be determined by writing a value of
- * 0xffffffff to the register, and reading it back.  Only
+ * Decoded size can be determined by writing a value of 
+ * 0xffffffff to the register, and reading it back.  Only 
  * 1 bits are decoded.
  */
 #define PCI_BASE_ADDRESS_0	0x10	/* 32 bits */
@@ -101,12 +103,16 @@ extern "C" {
 /* Header type 0 (normal devices) */
 #define PCI_CARDBUS_CIS		0x28
 #define PCI_SUBSYSTEM_VENDOR_ID	0x2c
-#define PCI_SUBSYSTEM_ID	0x2e
+#define PCI_SUBSYSTEM_ID	0x2e  
 #define PCI_ROM_ADDRESS		0x30	/* Bits 31..11 are address, 10..1 reserved */
 #define  PCI_ROM_ADDRESS_ENABLE	0x01
 #define PCI_ROM_ADDRESS_MASK	(~0x7ffUL)
 
-/* 0x34-0x3b are reserved */
+/* 0x34 Capabilities Pointer (PCI 2.3) */
+#define PCI_CAP_PTR		0x34	/* 8 bits */
+
+/* 0x35-0x3b are reserved */
+
 #define PCI_INTERRUPT_LINE	0x3c	/* 8 bits */
 #define PCI_INTERRUPT_PIN	0x3d	/* 8 bits */
 #define PCI_MIN_GNT		0x3e	/* 8 bits */
@@ -271,6 +277,9 @@ extern "C" {
 #define PCI_CLASS_SERIAL_FIBER		0x0c04
 
 #define PCI_CLASS_OTHERS		0xff
+
+#define PCI_INVALID_VENDORDEVICEID    0xffffffff
+#define PCI_MULTI_FUNCTION            0x80
 
 /*
  * Vendor and card ID's: sort these numerically according to vendor
@@ -460,8 +469,8 @@ extern "C" {
 #define PCI_DEVICE_ID_PCTECH_SAMURAI_1	0x3010
 #define PCI_DEVICE_ID_PCTECH_SAMURAI_IDE 0x3020
 
-#define PCI_VENDOR_ID_DPT               0x1044
-#define PCI_DEVICE_ID_DPT               0xa400
+#define PCI_VENDOR_ID_DPT               0x1044   
+#define PCI_DEVICE_ID_DPT               0xa400  
 
 #define PCI_VENDOR_ID_OPTI		0x1045
 #define PCI_DEVICE_ID_OPTI_92C178	0xc178
@@ -1063,6 +1072,18 @@ extern "C" {
 #define PCI_DEVICE_ID_ARK_STINGARK	0xa099
 #define PCI_DEVICE_ID_ARK_2000MT	0xa0a1
 
+/* Gaisler PCI IDs */
+#define PCIID_VENDOR_GAISLER		0x1AC8
+#define PCIID_VENDOR_GAISLER_OLD	0x16E3
+
+/* Gaisler PCI Devices */
+#define PCIID_DEVICE_GR_RASTA_IO	0x0010	/* GR-RASTA-IO */
+#define PCIID_DEVICE_GR_RASTA_IO_OLD	0x0210	/* old GR-RASTA-IO ID*/
+#define PCIID_DEVICE_GR_RASTA_TMTC	0x0011	/* GR-RASTA-TMTC */
+#define PCIID_DEVICE_GR_RASTA_ADCDAC	0x0014	/* GR-RASTA-ADCDAC */
+#define PCIID_DEVICE_GR_701		0x0701	/* GR-701 */
+#define PCIID_DEVICE_GR_TMTC_1553       0x0198  /* GR-TMTC-1553 */
+
 /*
  * The PCI interface treats multi-function devices as independent
  * devices.  The slot/function address of each device is encoded
@@ -1092,7 +1113,10 @@ extern "C" {
 #define PCI_MAX_DEVICES			32
 #define PCI_MAX_FUNCTIONS		8
 
+typedef void (*pci_isr)(int irq, void *arg);
+
 typedef struct  {
+	/* Configuration Space Access and Setup Routines */
 	int (*read_config_byte)(unsigned char, unsigned char,  unsigned char,
 			       unsigned char, unsigned char *);
 	int (*read_config_word)(unsigned char, unsigned char,  unsigned char,
@@ -1105,63 +1129,169 @@ typedef struct  {
 			       unsigned char, unsigned short);
 	int (*write_config_dword)(unsigned char, unsigned char,  unsigned char,
 			       unsigned char, unsigned int);
+	unsigned char (*get_assigned_irq)(unsigned char, unsigned char,  unsigned char,
+			       unsigned char);
 } pci_config_access_functions;
 
 typedef struct {
   volatile unsigned char*	pci_config_addr;
   volatile unsigned char*	pci_config_data;
   const pci_config_access_functions*	pci_functions;
-} rtems_pci_config_t;
+} pci_config;
 
-extern rtems_pci_config_t BSP_pci_configuration;
+typedef struct {
+	/* PCI space */
+	unsigned int pci_mem_start;
+	unsigned int pci_mem_size;
+	/* PCI I/O space */
+	unsigned int pci_io_start;
+	unsigned int pci_io_size;
+} pci_mem_config;
+
+extern pci_config BSP_pci_configuration;
+extern pci_mem_config BSP_pci_mem_configuration;
 
 extern inline int
-pci_read_config_byte(unsigned char bus, unsigned char slot, unsigned char function,
+pci_read_config_byte(unsigned char bus, unsigned char slot, unsigned char function, 
 			 unsigned char where, unsigned char * val) {
 	return BSP_pci_configuration.pci_functions->read_config_byte(bus, slot, function, where, val);
 }
 
 extern inline int
-pci_read_config_word(unsigned char bus, unsigned char slot, unsigned char function,
+pci_read_config_word(unsigned char bus, unsigned char slot, unsigned char function, 
 			 unsigned char where, unsigned short * val) {
 	return BSP_pci_configuration.pci_functions->read_config_word(bus, slot, function, where, val);
 }
 
 extern inline int
-pci_read_config_dword(unsigned char bus, unsigned char slot, unsigned char function,
+pci_read_config_dword(unsigned char bus, unsigned char slot, unsigned char function, 
 			 unsigned char where, unsigned int * val) {
 	return BSP_pci_configuration.pci_functions->read_config_dword(bus, slot, function, where, val);
 }
 
 extern inline int
-pci_write_config_byte(unsigned char bus, unsigned char slot, unsigned char function,
+pci_write_config_byte(unsigned char bus, unsigned char slot, unsigned char function, 
 			 unsigned char where, unsigned char val) {
 	return BSP_pci_configuration.pci_functions->write_config_byte(bus, slot, function, where, val);
 }
 
 extern inline int
-pci_write_config_word(unsigned char bus, unsigned char slot, unsigned char function,
+pci_write_config_word(unsigned char bus, unsigned char slot, unsigned char function, 
 			 unsigned char where, unsigned short val) {
 	return BSP_pci_configuration.pci_functions->write_config_word(bus, slot, function, where, val);
 }
 
 extern inline int
-pci_write_config_dword(unsigned char bus, unsigned char slot, unsigned char function,
+pci_write_config_dword(unsigned char bus, unsigned char slot, unsigned char function, 
 			 unsigned char where, unsigned int val) {
 	return BSP_pci_configuration.pci_functions->write_config_dword(bus, slot, function, where, val);
+}
+
+extern inline int
+pci_get_assigned_irq(unsigned char bus, unsigned char slot, unsigned char function, 
+			 unsigned char irq_pin) {
+	return BSP_pci_configuration.pci_functions->get_assigned_irq(bus, slot, function, irq_pin);
+}
+
+/* Register shared PCI IRQ handler, but does not enable it. The system interrupt
+ * number is read from the PCI board's PCI configuration space header iline field.
+ * The iline field is initialized by the PCI subsystem during start up, the 
+ * ipin field is translated into a system IRQ and written to iline. The board's
+ * driver should use the iline field as the irq argument to this function.
+ *
+ * Arguments
+ *  irq       System IRQ number, normally taken from the PCI configuration area
+ *  isr       Function pointer to the ISR
+ *  arg       Second argument to function isr
+ */
+extern inline int pci_interrupt_register(int irq, pci_isr isr, void *arg) {
+	return BSP_shared_interrupt_register(irq, isr, arg);
+}
+
+/* Unregister previously registered shared PCI IRQ handler
+ *
+ * Arguments
+ *  irq       System IRQ number, normally taken from the PCI configuration area
+ *  isr       Function pointer to the ISR
+ *  arg       Second argument to function isr
+ */
+extern inline int pci_interrupt_unregister(int irq, pci_isr isr, void *arg) {
+	return BSP_shared_interrupt_unregister(irq, isr, arg);
+}
+
+/* Enable shared PCI IRQ handler. This function will unmask the interrupt
+ * controller and mark this interrupt handler ready to handle interrupts. Note
+ * that since it is a shared interrupt handler service the interrupt may
+ * already be enabled, however no calls to this specific handler is made
+ * until it is enabled.
+ *
+ * Arguments
+ *  irq       System IRQ number, normally taken from the PCI configuration area
+ *  isr       Function pointer to the ISR
+ *  arg       Second argument to function isr
+ */
+extern inline int pci_interrupt_enable(int irq, pci_isr isr, void *arg) {
+	return BSP_shared_interrupt_enable(irq, isr, arg);
+}
+
+/* Disable shared PCI IRQ handler. This function will mask the interrupt
+ * controller and mark this interrupt handler not ready to receive interrupts.
+ * Note that since it is a shared interrupt handler service the interrupt may
+ * still be enabled, however no calls to this specific handler is made
+ * while it is disabled.
+ *
+ * Arguments
+ *  irq       System IRQ number, normally taken from the PCI configuration area
+ *  isr       Function pointer to the ISR
+ *  arg       Second argument to function isr
+ */
+extern inline int pci_interrupt_disable(int irq, pci_isr isr, void *arg) {
+	return BSP_shared_interrupt_disable(irq, isr, arg);
+}
+
+/* Acknowledge the interrupt controller by writing to the interrupt controller, 
+ * but not the interrupt source. Note that since it is a shared interrupt handler
+ * service, clearing the interrupt source may affect other ISRs registered to 
+ * this IRQ.
+ *
+ * Arguments
+ *  irq       System IRQ number, normally taken from the PCI configuration area
+ *  isr       Function pointer to the ISR
+ *  arg       Second argument to function isr
+ */
+extern inline int pci_interrupt_clear(int irq, pci_isr isr, void *arg) {
+	return BSP_shared_interrupt_clear(irq, isr, arg);
 }
 
 /*
  * Return the number of PCI busses in the system
  */
-extern unsigned char BusCountPCI(void);
-extern int init_pci(void);
+extern unsigned char BusCountPCI();
+extern int init_pci();
 
+
+/* Register PCI driver to PCI system 
+ *
+ * Arguments
+ *  
+ * 
+ * Return values
+ *  0         Successfully installed PCI driver
+ *  -1        Failure to install driver (driver already installed)
+ */
+extern int pci_register_drv(
+	pci_config *pcidrv,
+	pci_mem_config *pcimemcfg,
+	void *custom
+	);
+
+/* Optional DMA Funcs */
 extern int dma_to_pci(unsigned int addr, unsigned int paddr, unsigned int len);
 extern int dma_from_pci(unsigned int addr, unsigned int paddr, unsigned int len);
 extern void pci_mem_enable(unsigned char bus, unsigned char slot, unsigned char function);
 extern void pci_master_enable(unsigned char bus, unsigned char slot, unsigned char function);
-
+extern void pci_mem_disable(unsigned char bus, unsigned char slot, unsigned char function);
+extern void pci_io_disable(unsigned char bus, unsigned char slot, unsigned char function);
 /* scan for a specific device */
 /* find a particular PCI device
  * (currently, only bus0 is scanned for device/fun0)

@@ -28,13 +28,14 @@
 #define LEON3_APBUARTS 8
 
 #include <ambapp.h>
+#include <grlib.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* The AMBA Plug&Play info of the bus that the LEON3 sits on */
-extern amba_confarea_type amba_conf;
+extern struct ambapp_bus ambapp_plb;
 
 #ifdef __cplusplus
 }

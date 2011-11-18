@@ -73,9 +73,17 @@ $(PROJECT_LIB)/linkcmds: startup/linkcmds $(PROJECT_LIB)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds
 PREINSTALL_FILES += $(PROJECT_LIB)/linkcmds
 
+$(PROJECT_LIB)/linkcmds_ngmp: startup/linkcmds_ngmp $(PROJECT_LIB)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds_ngmp
+PREINSTALL_FILES += $(PROJECT_LIB)/linkcmds_ngmp
+
 $(PROJECT_LIB)/linkcmds.base: ../shared/startup/linkcmds.base $(PROJECT_LIB)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.base
 PREINSTALL_FILES += $(PROJECT_LIB)/linkcmds.base
+
+$(PROJECT_INCLUDE)/cons.h: ../../sparc/shared/include/cons.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/cons.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/cons.h
 
 $(PROJECT_INCLUDE)/amba.h: include/amba.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/amba.h
@@ -85,25 +93,73 @@ $(PROJECT_INCLUDE)/ambapp.h: ../../sparc/shared/include/ambapp.h $(PROJECT_INCLU
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/ambapp.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/ambapp.h
 
+$(PROJECT_INCLUDE)/ambapp_ids.h: ../../sparc/shared/include/ambapp_ids.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/ambapp_ids.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/ambapp_ids.h
+
+$(PROJECT_INCLUDE)/grlib.h: ../../sparc/shared/include/grlib.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grlib.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/grlib.h
+
+$(PROJECT_INCLUDE)/tlib.h: ../../sparc/shared/include/tlib.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/tlib.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/tlib.h
+
 $(PROJECT_INCLUDE)/pci.h: ../../sparc/shared/include/pci.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/pci.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/pci.h
+
+$(PROJECT_INCLUDE)/grpci2.h: ../../sparc/shared/include/grpci2.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grpci2.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/grpci2.h
+
+$(PROJECT_INCLUDE)/gr_rasta_adcdac.h: ../../sparc/shared/include/gr_rasta_adcdac.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr_rasta_adcdac.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr_rasta_adcdac.h
+
+$(PROJECT_INCLUDE)/gr_rasta_io.h: ../../sparc/shared/include/gr_rasta_io.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr_rasta_io.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr_rasta_io.h
+
+$(PROJECT_INCLUDE)/gr_701.h: ../../sparc/shared/include/gr_701.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr_701.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr_701.h
+
+$(PROJECT_INCLUDE)/gr_tmtc_1553.h: ../../sparc/shared/include/gr_tmtc_1553.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr_tmtc_1553.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr_tmtc_1553.h
 
 $(PROJECT_INCLUDE)/b1553brm.h: ../../sparc/shared/include/b1553brm.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/b1553brm.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/b1553brm.h
 
-$(PROJECT_INCLUDE)/b1553brm_pci.h: ../../sparc/shared/include/b1553brm_pci.h $(PROJECT_INCLUDE)/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/b1553brm_pci.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/b1553brm_pci.h
+$(PROJECT_INCLUDE)/b1553rt.h: ../../sparc/shared/include/b1553rt.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/b1553rt.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/b1553rt.h
+
+$(PROJECT_INCLUDE)/gr1553b.h: ../../sparc/shared/include/gr1553b.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr1553b.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr1553b.h
+
+$(PROJECT_INCLUDE)/gr1553bc.h: ../../sparc/shared/include/gr1553bc.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr1553bc.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr1553bc.h
+
+$(PROJECT_INCLUDE)/gr1553bc_list.h: ../../sparc/shared/include/gr1553bc_list.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr1553bc_list.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr1553bc_list.h
+
+$(PROJECT_INCLUDE)/gr1553bm.h: ../../sparc/shared/include/gr1553bm.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr1553bm.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr1553bm.h
+
+$(PROJECT_INCLUDE)/gr1553rt.h: ../../sparc/shared/include/gr1553rt.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr1553rt.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr1553rt.h
 
 $(PROJECT_INCLUDE)/occan.h: ../../sparc/shared/include/occan.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/occan.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/occan.h
-
-$(PROJECT_INCLUDE)/occan_pci.h: ../../sparc/shared/include/occan_pci.h $(PROJECT_INCLUDE)/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/occan_pci.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/occan_pci.h
 
 $(PROJECT_INCLUDE)/grcan.h: ../../sparc/shared/include/grcan.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grcan.h
@@ -113,19 +169,110 @@ $(PROJECT_INCLUDE)/grspw.h: ../../sparc/shared/include/grspw.h $(PROJECT_INCLUDE
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grspw.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/grspw.h
 
-$(PROJECT_INCLUDE)/grspw_pci.h: ../../sparc/shared/include/grspw_pci.h $(PROJECT_INCLUDE)/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grspw_pci.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/grspw_pci.h
+$(PROJECT_INCLUDE)/grspw_router.h: ../../sparc/shared/include/grspw_router.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grspw_router.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/grspw_router.h
+
+$(PROJECT_INCLUDE)/rmap.h: ../../sparc/shared/include/rmap.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/rmap.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/rmap.h
+
+$(PROJECT_INCLUDE)/rmap_drv_grspw.h: ../../sparc/shared/include/rmap_drv_grspw.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/rmap_drv_grspw.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/rmap_drv_grspw.h
 
 $(PROJECT_INCLUDE)/apbuart.h: ../../sparc/shared/include/apbuart.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/apbuart.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/apbuart.h
 
-$(PROJECT_INCLUDE)/apbuart_pci.h: ../../sparc/shared/include/apbuart_pci.h $(PROJECT_INCLUDE)/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/apbuart_pci.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/apbuart_pci.h
-
 $(PROJECT_INCLUDE)/i2cmst.h: ../../sparc/shared/include/i2cmst.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/i2cmst.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/i2cmst.h
 
+$(PROJECT_INCLUDE)/spictrl.h: ../../sparc/shared/include/spictrl.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/spictrl.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/spictrl.h
+
+$(PROJECT_INCLUDE)/spwcuc.h: ../../sparc/shared/include/spwcuc.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/spwcuc.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/spwcuc.h
+
+$(PROJECT_INCLUDE)/grctm.h: ../../sparc/shared/include/grctm.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grctm.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/grctm.h
+
+$(PROJECT_INCLUDE)/grgpio.h: ../../sparc/shared/include/grgpio.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grgpio.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/grgpio.h
+
+$(PROJECT_INCLUDE)/gpiolib.h: ../../sparc/shared/include/gpiolib.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gpiolib.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/gpiolib.h
+
+$(PROJECT_INCLUDE)/graes.h: ../../sparc/shared/include/graes.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/graes.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/graes.h
+
+$(PROJECT_INCLUDE)/grpwrx.h: ../../sparc/shared/include/grpwrx.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grpwrx.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/grpwrx.h
+
+$(PROJECT_INCLUDE)/grpwm.h: ../../sparc/shared/include/grpwm.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grpwm.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/grpwm.h
+
+$(PROJECT_INCLUDE)/gradcdac.h: ../../sparc/shared/include/gradcdac.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gradcdac.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/gradcdac.h
+
+$(PROJECT_INCLUDE)/genirq.h: ../../sparc/shared/include/genirq.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/genirq.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/genirq.h
+
+$(PROJECT_INCLUDE)/drvmgr/$(dirstamp):
+	@$(MKDIR_P) $(PROJECT_INCLUDE)/drvmgr
+	@: > $(PROJECT_INCLUDE)/drvmgr/$(dirstamp)
+PREINSTALL_DIRS += $(PROJECT_INCLUDE)/drvmgr/$(dirstamp)
+
+$(PROJECT_INCLUDE)/drvmgr/ambapp_bus_grlib.h: ../../sparc/shared/include/drvmgr/ambapp_bus_grlib.h $(PROJECT_INCLUDE)/drvmgr/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/drvmgr/ambapp_bus_grlib.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/drvmgr/ambapp_bus_grlib.h
+
+$(PROJECT_INCLUDE)/drvmgr/ambapp_bus_rmap.h: ../../sparc/shared/include/drvmgr/ambapp_bus_rmap.h $(PROJECT_INCLUDE)/drvmgr/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/drvmgr/ambapp_bus_rmap.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/drvmgr/ambapp_bus_rmap.h
+
+$(PROJECT_INCLUDE)/drvmgr/ambapp_bus.h: ../../sparc/shared/include/drvmgr/ambapp_bus.h $(PROJECT_INCLUDE)/drvmgr/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/drvmgr/ambapp_bus.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/drvmgr/ambapp_bus.h
+
+$(PROJECT_INCLUDE)/drvmgr/pci_bus.h: ../../sparc/shared/include/drvmgr/pci_bus.h $(PROJECT_INCLUDE)/drvmgr/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/drvmgr/pci_bus.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/drvmgr/pci_bus.h
+
+$(PROJECT_INCLUDE)/drvmgr/spw_bus.h: ../../sparc/shared/include/drvmgr/spw_bus.h $(PROJECT_INCLUDE)/drvmgr/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/drvmgr/spw_bus.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/drvmgr/spw_bus.h
+
+$(PROJECT_INCLUDE)/drvmgr/spw_bus_ids.h: ../../sparc/shared/include/drvmgr/spw_bus_ids.h $(PROJECT_INCLUDE)/drvmgr/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/drvmgr/spw_bus_ids.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/drvmgr/spw_bus_ids.h
+
+if HAS_NETWORKING
+$(PROJECT_INCLUDE)/greth.h: ../../sparc/shared/include/greth.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/greth.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/greth.h
+endif
+if HAS_NETWORKING
+$(PROJECT_INCLUDE)/network_interface_add.h: ../../sparc/shared/include/network_interface_add.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/network_interface_add.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/network_interface_add.h
+endif
+
+# Additional drivers, if any
+include $(top_srcdir)/buildfiles/preinstall.am.tc
+include $(top_srcdir)/buildfiles/preinstall.am.tm
+include $(top_srcdir)/buildfiles/preinstall.am.gr_rasta_tmtc
+include $(top_srcdir)/buildfiles/preinstall.am.slink
+include $(top_srcdir)/buildfiles/preinstall.am.ascs
+include $(top_srcdir)/buildfiles/preinstall.am.satcan

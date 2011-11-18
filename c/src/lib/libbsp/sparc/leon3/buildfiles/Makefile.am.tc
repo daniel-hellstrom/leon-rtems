@@ -1,0 +1,8 @@
+include_HEADERS += ../../sparc/shared/include/grtc.h
+noinst_PROGRAMS += tc.rel
+tc_rel_SOURCES = ../../sparc/shared/tmtc/grtc.c
+tc_rel_SOURCES += ../../sparc/shared/tmtc/grtc_rmap.c
+tc_rel_CPPFLAGS = $(AM_CPPFLAGS)
+tc_rel_LDFLAGS = $(RTEMS_RELLDFLAGS)
+
+libbsp_a_LIBADD += tc.rel

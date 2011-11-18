@@ -1,0 +1,7 @@
+$(PROJECT_INCLUDE)/satcan.h: ../../sparc/shared/include/satcan.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/satcan.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/satcan.h
+
+$(PROJECT_INCLUDE)/canmux.h: ../../sparc/shared/include/canmux.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/canmux.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/canmux.h
