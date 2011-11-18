@@ -33,6 +33,13 @@
 #error LEON3 console driver does not support interrupt mode in multi processor systems
 #endif
 
+extern void apbuart_outbyte_polled(
+  ambapp_apb_uart *regs,
+  unsigned char ch,
+  int do_cr_on_newline,
+  int wait_sent);
+extern int apbuart_inbyte_nonblocking(ambapp_apb_uart *regs);
+
 /* Note that it is not possible to use the interrupt mode of the driver
  * together with the "old" APBUART and -u to GRMON. However the new
  * APBUART core (from 1.0.17-b2710) has the GRMON debug bit and can 
@@ -40,7 +47,7 @@
  */
 
 struct apbuart_priv {
-  volatile LEON3_UART_Regs_Map *regs;
+  ambapp_apb_uart *regs;
   int irq;
   void *cookie;
   unsigned int freq_hz;
@@ -51,7 +58,6 @@ struct apbuart_priv {
 };
 static struct apbuart_priv apbuarts[CONFIGURE_NUMBER_OF_TERMIOS_PORTS];
 static int uarts = 0;
-static int isinit = 0;
 
 /*
  *  Should we use a polled or interrupt drived console?
@@ -59,50 +65,9 @@ static int isinit = 0;
  *  NOTE: This is defined in the custom/leon.cfg file.
  */
 
-/*
- *  console_outbyte_polled
- *
- *  This routine transmits a character using polling.
- */
-
-void console_outbyte_polled(
-  struct apbuart_priv *uart,
-  unsigned char ch
-)
-{
-
-send:
-  while ( (uart->regs->status & LEON_REG_UART_STATUS_THE) == 0 );
-  uart->regs->data = (unsigned int) ch;
-
-  if ( ch == '\n' ){
-    ch = '\r';
-    goto send;
-  }
-}
-
-/*
- *  console_inbyte_nonblocking
- *
- *  This routine polls for a character.
- */
-
-int console_inbyte_nonblocking( struct apbuart_priv *uart )
-{
-
-  if (uart->regs->status & LEON_REG_UART_STATUS_ERR) {
-    uart->regs->status = ~LEON_REG_UART_STATUS_ERR;
-  }
-
-  if ((uart->regs->status & LEON_REG_UART_STATUS_DR) == 0)
-    return -1;
-
-  return (int) uart->regs->data;
-}
-
 int console_pollRead( int minor )
 {
-  return console_inbyte_nonblocking(&apbuarts[minor+LEON3_Cpu_Index]);
+  return apbuart_inbyte_nonblocking(apbuarts[minor+LEON3_Cpu_Index].regs);
 }
 
 #if CONSOLE_USE_INTERRUPTS
@@ -202,14 +167,14 @@ ssize_t console_write_polled (int minor, const char *buf, size_t len)
   struct apbuart_priv *uart;
 
   minor += LEON3_Cpu_Index;
-  
+
   if ( minor >= uarts )
     return -1;
-  
+
   uart = &apbuarts[minor];
 
   while (nwrite < len) {
-    console_outbyte_polled( uart, *buf++ );
+    apbuart_outbyte_polled( uart->regs, *buf++, 1, 0 );
     nwrite++;
   }
   return nwrite;
@@ -312,7 +277,7 @@ int find_matching_apbuart(struct ambapp_dev *dev, int index, void *arg)
   struct ambapp_apb_info *apb = (struct ambapp_common_info *)dev->devinfo;
 
   /* Extract needed information of one APBUART */
-  apbuarts[uarts].regs = (volatile LEON3_UART_Regs_Map *)apb->start;
+  apbuarts[uarts].regs = (ambapp_apb_uart *)apb->start;
   apbuarts[uarts].irq = apb->irq;
   /* Get APBUART core frequency, it is assumed that it is the same
    * as Bus frequency where the UART is situated
@@ -333,17 +298,13 @@ int find_matching_apbuart(struct ambapp_dev *dev, int index, void *arg)
 
 int scan_uarts(void)
 {
-  if ( isinit != 0 )
-    return uarts;
+  if (uarts == 0) {
+    memset(apbuarts, 0, sizeof(apbuarts));
 
-  memset(apbuarts, 0, sizeof(apbuarts));
-  uarts = 0;
-
-  /* Find APBUART cores */
-  ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER,
-                  GAISLER_APBUART, find_matching_apbuart, NULL);
-
-  isinit = 1;
+    /* Find APBUART cores */
+    ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER,
+                    GAISLER_APBUART, find_matching_apbuart, NULL);
+  }
 
   return uarts;
 }
@@ -512,51 +473,5 @@ rtems_device_driver console_control(
 {
   return rtems_termios_ioctl (arg);
 }
-
-/* putchar/getchar for printk */
-
-static void bsp_out_char(char c)
-{
-  struct apbuart_priv *uart;
-  
-  if ( uarts == 0 ){
-    return;
-  }
-  
-  if ( uarts <= LEON3_Cpu_Index ) {
-    uart = &apbuarts[0];
-  }else{
-    uart = &apbuarts[LEON3_Cpu_Index];
-  }
-  
-  console_outbyte_polled(uart, c);
-}
-
-/*
- *  To support printk
- */
-
-BSP_output_char_function_type BSP_output_char = bsp_out_char;
-
-static char bsp_in_char(void)
-{
-  struct apbuart_priv *uart;
-  int tmp;
-  
-  if ( uarts == 0 ){
-    return 0;
-  }
-  
-  if ( uarts <= LEON3_Cpu_Index ) {
-    uart = &apbuarts[0];
-  }else{
-    uart = &apbuarts[LEON3_Cpu_Index];
-  }
-
-  while ((tmp = console_inbyte_nonblocking(uart)) < 0);
-  return (char) tmp;
-}
-
-BSP_polling_getchar_function_type BSP_poll_char = bsp_in_char;
 
 #endif

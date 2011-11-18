@@ -51,6 +51,7 @@ libbsp_a_SOURCES += ../../shared/bspclean.c ../../shared/bsplibc.c \
 libbsp_a_SOURCES += gnatsupp/gnatsupp.c ../../sparc/shared/gnatcommon.c
 # console
 libbsp_a_SOURCES += console/console.c
+libbsp_a_SOURCES += console/debugputs.c
 libbsp_a_SOURCES += ../../sparc/shared/uart/cons.c
 libbsp_a_SOURCES += ../../sparc/shared/uart/apbuart_cons.c
 include_HEADERS += ../../sparc/shared/include/cons.h

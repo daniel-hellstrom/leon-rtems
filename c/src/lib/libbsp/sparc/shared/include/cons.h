@@ -14,13 +14,6 @@
 struct console_dev;
 
 #define CONSOLE_FLAG_SYSCON      0x01
-#define CONSOLE_FLAG_DBGCON      0x02
-
-struct console_dbg_ops {
-	void (*init)(struct console_dev *);
-	char (*in_char)(struct console_dev *);
-	void (*out_char)(struct console_dev *, char c);
-};
 
 struct console_cons_ops {
 	void (*get_uart_attrs)(struct console_dev *, struct termios *t);
@@ -31,7 +24,6 @@ struct console_dev {
 	 * debug console.
 	 */
 	int flags;
-	struct console_dbg_ops *dbgops;
 	char *fsname; /* File system prefix */
 	const struct rtems_termios_callbacks *callbacks; /* TERMIOS Callbacks */
 	struct console_cons_ops ops;

@@ -28,20 +28,10 @@
 
 int console_initialized = 0;
 rtems_device_major_number console_major = 0;
-struct console_dev *dbgcon = NULL;
-
-/* Before UART driver has registered calls to printk that gets to
- * console_dbg_out_char() will be filling data into the pre_printk_dbgbuf[]
- * buffer, hopefully the buffer can help in debugging the cause. At least
- * the last printk() will be caught.
- */
-char pre_printk_dbgbuf[32] = {0};
-int pre_printk_pos = 0;
 
 #define FLAG_SYSCON 0x01
-#define FLAG_DBGCON 0x02
 struct console_priv {
-	unsigned char flags; /* 0x1=SystemConsole, 0x2=DBG-Console */
+	unsigned char flags; /* 0x1=SystemConsole */
 	unsigned char minor;
 	struct console_dev *dev;
 };
@@ -49,46 +39,17 @@ struct console_priv {
 #define CONSOLE_MAX CONFIGURE_NUMBER_OF_TERMIOS_PORTS
 struct console_priv cons[CONSOLE_MAX] = {{0,0},};
 
-static void console_dbg_init(void)
-{
-	if ( dbgcon && dbgcon->dbgops->init )
-		dbgcon->dbgops->init(dbgcon);
-}
-
-static void console_dbg_out_char(char c)
-{
-	if ( !dbgcon || !dbgcon->dbgops->out_char ) {
-		/* Local debug buffer when UART driver has not registered */
-		pre_printk_dbgbuf[pre_printk_pos++] = c;
-		pre_printk_pos = pre_printk_pos & (sizeof(pre_printk_dbgbuf)-1);
-		return;
-	}
-
-	dbgcon->dbgops->out_char(dbgcon, c);
-}
-
-static char console_dbg_in_char(void)
-{
-	if ( !dbgcon || !dbgcon->dbgops->in_char )
-		return 0;
-	return dbgcon->dbgops->in_char(dbgcon);
-}
-
 /* Register Console to TERMIOS layer and initialize it */
 void console_dev_init(struct console_priv *con, int minor)
 {
-	char name[32];
-	char *namestr, *fsname;
+	char name[16], *fsname;
 	rtems_status_code status;
 
 	if ( !con->dev->fsname ) {
-		if ( minor == 0 ) {
-			/* Special console name and MINOR for SYSTEM CONSOLE */
-			namestr = "/dev/console";
-		} else {
-			namestr = "/dev/console_a";
-		}
-		strcpy(name, namestr);
+		strcpy(name, "/dev/console_a");
+		/* Special console name and MINOR for SYSTEM CONSOLE */
+		if (minor == 0)
+			name[12] = '\0'; /* /dev/console */
 		name[13] += minor; /* when minor=0, this has no effect... */
 		fsname = name;
 	} else {
@@ -130,19 +91,8 @@ void console_dev_register(struct console_dev *dev)
 	/* Console layer is already initialized, that means that we can
 	 * register termios interface directly.
 	 */
-	if ( console_initialized ) {
-		if ( (dev->flags & CONSOLE_FLAG_DBGCON) && !dbgcon) {
-			dbgcon = dev;
-			con->flags |= FLAG_DBGCON;
-			console_dbg_init();
-		}
+	if ( console_initialized )
 		console_dev_init(con, minor);
-	} else {
-		if ( dev->flags & CONSOLE_FLAG_DBGCON ) {
-			/* Assign Debug Console */
-			dbgcon = dev;
-		}
-	}
 }
 
 #if 0
@@ -162,10 +112,6 @@ rtems_device_driver console_initialize(
 	console_major = major;
 
 	rtems_termios_initialize();
-
-	/* Initialize Debug Console */
-	/*con->flags |= FLAG_DBGCON;*/
-	console_dbg_init();
 
 	/* Register all Console a file system device node */
 	for (i=0; i<CONSOLE_MAX; i++) {
@@ -241,9 +187,5 @@ rtems_device_driver console_control(
 {
 	return rtems_termios_ioctl(arg);
 }
-
-/* printk() support functions, will call DBG-console device functions */
-BSP_output_char_function_type BSP_output_char = console_dbg_out_char;
-BSP_polling_getchar_function_type BSP_poll_char = console_dbg_in_char;
 
 #endif

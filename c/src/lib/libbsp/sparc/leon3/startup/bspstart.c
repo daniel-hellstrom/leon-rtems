@@ -31,7 +31,7 @@ int CPU_SPARC_HAS_SNOOPING;
 int LEON3_Cpu_Index = 0;
 
 extern void amba_initialize(void);
-extern int scan_uarts(void);
+extern void bsp_debug_uart_init(void);
 
 /*
  * set_snooping
@@ -82,8 +82,8 @@ void bsp_start( void )
    */
   amba_initialize();
 
-  /* find UARTS */
-#warning FIX UART INITIALIZATION /* We need printk() even though console driver is not present */
+  /* find debug UART for printk() */
+  bsp_debug_uart_init();
 }
 
 void bsp_predriver_hook( void )

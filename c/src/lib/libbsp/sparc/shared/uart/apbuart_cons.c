@@ -4,7 +4,6 @@
  *
  *  - mode   (0=Polling, 1=Interrupt, 2=Task-Driven-Interrupt Mode)
  *  - syscon (0=Force not Ssystem Console, 1=Suggest System Console)
- *  - dbgcon (0=Force not Debug Console, 1=Suggest Debug Console)
  *
  *  The BSP define APBUART_INFO_AVAIL in order to add the info routine
  *  used for debugging.
@@ -45,6 +44,15 @@
 #define DBG(x...) 
 #endif
 
+/* LEON3 Low level transmit/receive functions provided by debug-uart code */
+extern void apbuart_outbyte_polled(
+  ambapp_apb_uart *regs,
+  unsigned char ch,
+  int do_cr_on_newline,
+  int wait_sent);
+extern int apbuart_inbyte_nonblocking(ambapp_apb_uart *regs);
+extern ambapp_apb_uart *dbg_uart; /* The debug UART */
+
 struct apbuart_priv {
 	struct console_dev condev;
 	struct drvmgr_dev *dev;
@@ -53,7 +61,6 @@ struct apbuart_priv {
 	void *cookie;
 	int sending;
 	int mode;
-	int dbg;
 };
 
 /* TERMIOS Layer Callback functions */
@@ -65,11 +72,6 @@ ssize_t apbuart_write_intr(int minor, const char *buf, size_t len);
 int apbuart_pollRead_task(int minor);
 int apbuart_firstOpen(int major, int minor, void *arg);
 int apbuart_lastClose(int major, int minor, void *arg);
-
-/* Printk Debug functions */
-void apbuart_dbg_init(struct console_dev *);
-char apbuart_dbg_in_char(struct console_dev *);
-void apbuart_dbg_out_char(struct console_dev *, char c);
 
 void apbuart_isr(void *arg);
 int apbuart_get_baud(struct apbuart_priv *uart);
@@ -157,12 +159,6 @@ static const rtems_termios_callbacks Callbacks_poll = {
     TERMIOS_POLLED               /* outputUsesInterrupts */
 };
 
-struct console_dbg_ops apbuart_dbg_ops = {
-	.init = apbuart_dbg_init,
-	.in_char = apbuart_dbg_in_char,
-	.out_char = apbuart_dbg_out_char,
-};
-
 int apbuart_init1(struct drvmgr_dev *dev)
 {
 	struct apbuart_priv *priv;
@@ -205,18 +201,29 @@ int apbuart_init1(struct drvmgr_dev *dev)
 
 	/* Clear HW regs, leave baudrate register as it is */
 	priv->regs->status = 0;
-	db = priv->regs->ctrl & LEON_REG_UART_CTRL_DB; /*leave debug bit*/
+	/* leave debug bit, and Transmitter/receiver if this is the debug UART */
+#ifdef LEON3
+	if (priv->regs == dbg_uart) {
+		db = priv->regs->ctrl & (LEON_REG_UART_CTRL_DB |
+					LEON_REG_UART_CTRL_RE |
+					LEON_REG_UART_CTRL_TE |
+					LEON_REG_UART_CTRL_FL |
+					LEON_REG_UART_CTRL_PE |
+					LEON_REG_UART_CTRL_PS);
+	} else
+#endif
+		db = priv->regs->ctrl & LEON_REG_UART_CTRL_DB;
+
 	priv->regs->ctrl = db;
 
 	/* The system console and Debug console may depend on this device, so
 	 * initialize it straight away.
 	 *
 	 * We default to have System Console on first APBUART, user may override
-	 * this behaviour by setting the syscon option to 0, same goes for
-	 * printk() debug console (dbgcon=0).
+	 * this behaviour by setting the syscon option to 0.
 	 */
 	if ( drvmgr_on_rootbus(dev) && first_uart ) {
-		priv->condev.flags = CONSOLE_FLAG_SYSCON | CONSOLE_FLAG_DBGCON;
+		priv->condev.flags = CONSOLE_FLAG_SYSCON;
 		first_uart = 0;
 	} else {
 		priv->condev.flags = 0;
@@ -229,15 +236,7 @@ int apbuart_init1(struct drvmgr_dev *dev)
 		else
 			priv->condev.flags &= ~CONSOLE_FLAG_SYSCON;
 	}
-	value = drvmgr_dev_key_get(priv->dev, "dbgcon", KEY_TYPE_INT);
-	if ( value ) {
-		if ( value->i )
-			priv->condev.flags |= CONSOLE_FLAG_DBGCON;
-		else
-			priv->condev.flags &= ~CONSOLE_FLAG_DBGCON;
-	}
 
-	priv->condev.dbgops = &apbuart_dbg_ops;
 	priv->condev.fsname = NULL;
 	priv->condev.ops.get_uart_attrs = apbuart_get_attributes;
 
@@ -313,24 +312,25 @@ static int apbuart_info(
 }
 #endif
 
+#ifndef LEON3
 /* This routine transmits a character, it will busy-wait until on character
  * fits in the APBUART Transmit FIFO
  */
 void apbuart_outbyte_polled(
-  struct apbuart_priv *uart,
+  ambapp_apb_uart *regs,
   unsigned char ch,
   int do_cr_on_newline,
   int wait_sent)
 {
 send:
-	while ( (uart->regs->status & LEON_REG_UART_STATUS_THE) == 0 ) {
+	while ( (regs->status & LEON_REG_UART_STATUS_THE) == 0 ) {
 		/* Lower bus utilization while waiting for UART */
 		asm volatile ("nop"::);	asm volatile ("nop"::);
 		asm volatile ("nop"::);	asm volatile ("nop"::);
 		asm volatile ("nop"::);	asm volatile ("nop"::);
 		asm volatile ("nop"::);	asm volatile ("nop"::);
 	}
-	uart->regs->data = (unsigned int) ch;
+	regs->data = (unsigned int) ch;
 
 	if ((ch == '\n') && do_cr_on_newline) {
 		ch = '\r';
@@ -339,23 +339,24 @@ send:
 
 	/* Wait until the character has been sent? */
 	if ( wait_sent ) {
-		while ( (uart->regs->status & LEON_REG_UART_STATUS_THE) == 0 )
+		while ((regs->status & LEON_REG_UART_STATUS_THE) == 0)
 			;
 	}
 }
 
 /* This routine polls for one character, return EOF if no character is available */
-int apbuart_inbyte_nonblocking(struct apbuart_priv *uart)
+int apbuart_inbyte_nonblocking(ambapp_apb_uart *regs)
 {
-	if (uart->regs->status & LEON_REG_UART_STATUS_ERR) {
-		uart->regs->status = ~LEON_REG_UART_STATUS_ERR;
+	if (regs->status & LEON_REG_UART_STATUS_ERR) {
+		regs->status = ~LEON_REG_UART_STATUS_ERR;
 	}
 
-	if ((uart->regs->status & LEON_REG_UART_STATUS_DR) == 0)
+	if ((regs->status & LEON_REG_UART_STATUS_DR) == 0)
 		return EOF;
 
-	return (int)uart->regs->data;
+	return (int)regs->data;
 }
+#endif
 
 int apbuart_firstOpen(int major, int minor, void *arg)
 {
@@ -400,9 +401,11 @@ int apbuart_lastClose(int major, int minor, void *arg)
 		drvmgr_interrupt_unregister(uart->dev, 0, apbuart_isr, uart);
 	}
 
+#ifdef LEON3
 	/* Disable TX/RX if not used for DEBUG */
-	if (uart->dbg == 0)
+	if (uart->regs != dbg_uart)
 		uart->regs->ctrl &= ~(LEON_REG_UART_CTRL_RE | LEON_REG_UART_CTRL_TE);
+#endif
 
 	return 0;
 }
@@ -411,7 +414,7 @@ int apbuart_pollRead(int minor)
 {
 	struct apbuart_priv *uart = (struct apbuart_priv *)minor;
 
-	return apbuart_inbyte_nonblocking(uart);
+	return apbuart_inbyte_nonblocking(uart->regs);
 }
 
 int apbuart_pollRead_task(int minor)
@@ -421,7 +424,7 @@ int apbuart_pollRead_task(int minor)
 	char buf[32];
 
 	tot = 0;
-	while ( (c=apbuart_inbyte_nonblocking(uart)) != EOF ) {
+	while ( (c=apbuart_inbyte_nonblocking(uart->regs)) != EOF ) {
 		buf[tot] = c;
 		tot++;
 		if ( tot > 31 ) {
@@ -604,7 +607,7 @@ ssize_t apbuart_write_polled(int minor, const char *buf, size_t len)
 	struct apbuart_priv *uart = (struct apbuart_priv *)minor;
 
 	while (nwrite < len) {
-		apbuart_outbyte_polled(uart, *buf++, 0, 0);
+		apbuart_outbyte_polled(uart->regs, *buf++, 0, 0);
 		nwrite++;
 	}
 	return nwrite;
@@ -677,33 +680,4 @@ void apbuart_isr(void *arg)
 		/* apbuart_write_intr() will get called from this function */
 		rtems_termios_dequeue_characters(uart->cookie, cnt);
 	}
-}
-
-
-/* Printk Debug functions */
-void apbuart_dbg_init(struct console_dev *condev)
-{
-	struct apbuart_priv *uart = (struct apbuart_priv *)condev;
-
-	uart->dbg = 1;
-	/* Enable transmitter once on debug UART initialization */
-	uart->regs->ctrl |= LEON_REG_UART_CTRL_RE | LEON_REG_UART_CTRL_TE;
-}
-
-char apbuart_dbg_in_char(struct console_dev *condev)
-{
-	int tmp;
-	struct apbuart_priv *uart = (struct apbuart_priv *)condev;
-
-	while ((tmp = apbuart_inbyte_nonblocking(uart)) < 0)
-		;
-
-	return (char)tmp;
-}
-
-void apbuart_dbg_out_char(struct console_dev *condev, char c)
-{
-	struct apbuart_priv *uart = (struct apbuart_priv *)condev;
-
-	apbuart_outbyte_polled(uart, c, 1, 1);
 }
