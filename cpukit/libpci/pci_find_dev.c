@@ -27,7 +27,7 @@ static int compare_dev_id(struct pci_dev *dev, void *arg)
 	if ((dev->vendor != info->vendor) || (dev->device != info->device))
 		return 0;
 	if (info->index-- == 0)
-		return dev;
+		return (int)dev;
 	else
 		return 0;
 }

@@ -858,7 +858,6 @@ int pci_set_irq_dev(struct pci_dev *dev, void *cfg)
 	struct pci_auto_setup *autocfg = cfg;
 	uint8_t irq_pin, irq_line, *psysirq;
 	pci_dev_t pcidev;
-	struct pci_dev *top;
 
 	psysirq = &dev->sysirq;
 	pcidev = dev->busdevfun;

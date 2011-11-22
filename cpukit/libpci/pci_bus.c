@@ -535,7 +535,7 @@ int pcibus_register(struct drvmgr_dev *dev, struct pcibus_config *config)
 	dev->bus->reslist = NULL;
 	dev->bus->maps_up = config->maps_up;
 	dev->bus->maps_down = config->maps_down;
-	dev->bus->funcs = &pcibus_funcs;
+	dev->bus->funcs = &pcibus_funcs[0];
 
 	/* Copy function definitions from PCI Layer */
 	for (i=0; i<6; i++) {
