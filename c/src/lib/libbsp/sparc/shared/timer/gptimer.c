@@ -41,7 +41,7 @@
 #include <drvmgr/ambapp_bus.h>
 #include "tlib.h"
 
-#ifdef RTEMS_DRVMGR_STARTUP
+#if defined(LEON3) && defined(RTEMS_DRVMGR_STARTUP)
 #include <leon.h>
 volatile LEON3_Timer_Regs_Map *LEON3_Timer_Regs = 0;
 #endif
@@ -193,7 +193,7 @@ int gptimer_init1(struct drvmgr_dev *dev)
 	int i, size;
 	struct gptimer_timer *timer;
 	union drvmgr_key_value *value;
-#ifdef RTEMS_DRVMGR_STARTUP
+#if defined(LEON3) && defined(RTEMS_DRVMGR_STARTUP)
 	char timer_index[7];
 #endif
 
@@ -247,15 +247,14 @@ int gptimer_init1(struct drvmgr_dev *dev)
 	priv->dev = dev;
 	priv->regs = regs;
 
-#ifdef RTEMS_DRVMGR_STARTUP
-	if ( drvmgr_on_rootbus(priv->dev) ) {
+#if defined(LEON3) && defined(RTEMS_DRVMGR_STARTUP)
+	if ( drvmgr_on_rootbus(priv->dev) && !LEON3_Timer_Regs) {
 		/* Bootloader has initialized the Timer prescaler to 1MHz,
 		 * this means that the AMBA Frequency is 1MHz * PRESCALER.
 		 */
 		priv->base_clk = (regs->scaler_reload + 1) * 1000000;
 		ambapp_bus_freq_register(priv->dev,DEV_APB_SLV,priv->base_clk);
-		if ( !LEON3_Timer_Regs )
-			LEON3_Timer_Regs = (void *)regs;
+		LEON3_Timer_Regs = (void *)regs;
 	} else
 #endif
 	{
@@ -296,7 +295,7 @@ int gptimer_init1(struct drvmgr_dev *dev)
 		timer->tregs->ctrl = 0;
 
 		/* Register Timer at Timer Library */
-#ifdef RTEMS_DRVMGR_STARTUP
+#if defined(LEON3) && defined(RTEMS_DRVMGR_STARTUP)
 		timer_index[i] =
 #endif
 			tlib_dev_reg(&timer->tdev);
@@ -322,7 +321,7 @@ int gptimer_init1(struct drvmgr_dev *dev)
 	/* If the user request a certain Timer to be the RTEMS Clock Timer,
 	 * the timer must be registered at the Clock Driver.
 	 */
-#ifdef RTEMS_DRVMGR_STARTUP
+#if defined(LEON3) && defined(RTEMS_DRVMGR_STARTUP)
 	value = drvmgr_dev_key_get(priv->dev, "clockTimer", KEY_TYPE_INT);
 	if ( value && (value->i < timer_cnt) ) {
 		LEON3_Timer_Regs = (void *)regs;
