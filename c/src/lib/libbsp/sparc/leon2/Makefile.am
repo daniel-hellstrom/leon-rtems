@@ -73,6 +73,11 @@ libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp_names.c
 libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp_show.c
 libbsp_a_SOURCES += ../../sparc/shared/amba/ahbstat.c
 
+# Clock Driver and Timer Library
+include_HEADERS += ../../sparc/shared/include/tlib.h
+libbsp_a_SOURCES += ../../sparc/shared/timer/gptimer.c
+libbsp_a_SOURCES += ../../sparc/shared/timer/tlib.c
+
 ### PCI ###
 include_HEADERS += ../../sparc/shared/include/grpci2.h
 libbsp_a_SOURCES += ../../sparc/shared/pci/grpci2.c

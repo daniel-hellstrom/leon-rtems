@@ -93,6 +93,10 @@ $(PROJECT_INCLUDE)/ahbstat.h: ../../sparc/shared/include/ahbstat.h $(PROJECT_INC
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/ahbstat.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/ahbstat.h
 
+$(PROJECT_INCLUDE)/tlib.h: ../../sparc/shared/include/tlib.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/tlib.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/tlib.h
+
 $(PROJECT_INCLUDE)/grpci2.h: ../../sparc/shared/include/grpci2.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grpci2.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/grpci2.h
