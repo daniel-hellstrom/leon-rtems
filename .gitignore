@@ -1,0 +1,15 @@
+*configure*
+*autom4te.cache*
+aclocal.m4
+Makefile.in
+install-sh
+missing
+config.guess
+bspopts.h.in
+config.sub
+INSTALL
+depcomp
+mdate-sh
+texinfo.tex
+config.h.in
+compile
