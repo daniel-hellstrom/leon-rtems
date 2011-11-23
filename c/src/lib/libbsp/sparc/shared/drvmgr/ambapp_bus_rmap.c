@@ -247,9 +247,9 @@ int ambapp_rmap_init1(struct drvmgr_dev *dev)
 	/* Get Read/Write operations for bus */
 	priv->rw_arg.dev = dev;
 	priv->rw_arg.arg = (void *)drvmgr_func_call(dev->parent, SPWBUS_RW_ARG, dev, NULL, NULL, NULL);
-	drvmgr_func_get(dev->parent, SPWBUS_R32, &priv->rw_r32);
-	drvmgr_func_get(dev->parent, SPWBUS_W32, &priv->rw_w32);
-	drvmgr_func_get(dev->parent, SPWBUS_RMEM, &priv->rw_rmem);
+	drvmgr_func_get(dev->parent, SPWBUS_R32, (void **)&priv->rw_r32);
+	drvmgr_func_get(dev->parent, SPWBUS_W32, (void **)&priv->rw_w32);
+	drvmgr_func_get(dev->parent, SPWBUS_RMEM, (void **)&priv->rw_rmem);
 
 	/* Scan Amba Bus */
 	status = ambapp_scan(&priv->abus, ioarea, ambapp_rmap_memcpy, NULL);
