@@ -147,7 +147,7 @@ uint32_t Clock_nanoseconds_since_last_tick(void)
   if ( !Clock_handle )
     return 0;
 
-  tlib_get_counter(Clock_handle, &clicks);
+  tlib_get_counter(Clock_handle, (unsigned int *)&clicks);
 
 #ifdef CLOCK_DRIVER_DONT_ASSUME_PRESCALER_1MHZ
   {

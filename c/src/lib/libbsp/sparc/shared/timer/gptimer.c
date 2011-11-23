@@ -498,7 +498,7 @@ void gptimer_tlib_restart(struct tlib_dev *hand)
 	timer->tregs->ctrl |= GPTIMER_CTRL_LD | GPTIMER_CTRL_EN;
 }
 
-void gptimer_tlib_get_counter(struct tlib_dev *hand, int *counter)
+void gptimer_tlib_get_counter(struct tlib_dev *hand, unsigned int *counter)
 {
 	struct gptimer_timer *timer = (struct gptimer_timer *)hand;
 

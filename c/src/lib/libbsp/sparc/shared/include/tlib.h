@@ -27,7 +27,7 @@ struct tlib_drv {
 	void	(*start)(struct tlib_dev *hand, int once);
 	void	(*stop)(struct tlib_dev *hand);
 	void	(*restart)(struct tlib_dev *hand);
-	void	(*get_counter)(struct tlib_dev *hand, int *counter);
+	void	(*get_counter)(struct tlib_dev *hand, unsigned int *counter);
 	int	(*custom)(struct tlib_dev *hand, int cmd, void *arg);
 };
 
@@ -146,7 +146,7 @@ static inline void tlib_restart(void *hand)
 }
 
 /* Get current counter value (since last tick) */
-static inline void tlib_get_counter(void *hand, int *counter)
+static inline void tlib_get_counter(void *hand, unsigned int *counter)
 {
 	struct tlib_dev *dev = hand;
 
