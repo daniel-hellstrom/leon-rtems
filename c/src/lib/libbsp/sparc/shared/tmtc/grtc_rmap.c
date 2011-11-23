@@ -1227,7 +1227,6 @@ static int grtc_copy(unsigned short *src, unsigned char *buf, int cnt)
 
 static int grtc_hw_find_frm(struct grtc_priv *pDev)
 {
-	struct grtc_regs *regs = pDev->regs;
 	unsigned int rp, wp, asr, bufmax, rrp, rwp;
 	unsigned int upper, lower;
 	unsigned int count, cnt;
@@ -1334,8 +1333,7 @@ static int grtc_check_ending(unsigned short *src, int max, int end)
 
 static int grtc_hw_check_ending(struct grtc_priv *pDev, int max)
 {
-	struct grtc_regs *regs = pDev->regs;
-	unsigned int rp, wp, asr, bufmax, tcbuf_start, rrp, rwp;
+	unsigned int rp, wp, asr, bufmax, rrp, rwp;
 	unsigned int upper, lower;
 	unsigned int count, cnt, left;
 	int tot;
@@ -1412,7 +1410,6 @@ static int grtc_hw_check_ending(struct grtc_priv *pDev, int max)
  */
 static int grtc_hw_copy(struct grtc_priv *pDev, unsigned char *buf, int max, int partial)
 {
-	struct grtc_regs *regs = pDev->regs;
 	unsigned int rp, wp, asr, bufmax, rrp, rwp;
 	unsigned int upper, lower;
 	unsigned int count, cnt, left;
@@ -1718,10 +1715,11 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 	struct grtc_frame_pool *pool;
 	struct grtc_list *frmlist;
 	struct grtc_ioc_stats *stats;
-	unsigned int mem;
 	unsigned int tmpdata[8];
-	
+
+#if NOT_IMPLEMENTED
 	IRQ_GLOBAL_PREPARE(oldLevel);
+#endif
 
 	FUNCDBG();
 
