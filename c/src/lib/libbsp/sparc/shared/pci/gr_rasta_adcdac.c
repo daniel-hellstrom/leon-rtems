@@ -320,13 +320,13 @@ int gr_rasta_adcdac_hw_init1(struct gr_rasta_adcdac_priv *priv)
 	/* DOWN streams translation table */
 	priv->bus_maps_down[0].name = "PCI BAR0 -> AMBA";
 	priv->bus_maps_down[0].size = priv->amba_maps[0].size;
-	priv->bus_maps_down[0].from_adr = priv->amba_maps[0].local_adr;
-	priv->bus_maps_down[0].to_adr = priv->amba_maps[0].remote_adr;
+	priv->bus_maps_down[0].from_adr = (void *)priv->amba_maps[0].local_adr;
+	priv->bus_maps_down[0].to_adr = (void *)priv->amba_maps[0].remote_adr;
 
 	priv->bus_maps_down[1].name = "PCI BAR1 -> AMBA";
 	priv->bus_maps_down[1].size = priv->amba_maps[1].size;
-	priv->bus_maps_down[1].from_adr = priv->amba_maps[1].local_adr;
-	priv->bus_maps_down[1].to_adr = priv->amba_maps[1].remote_adr;
+	priv->bus_maps_down[1].from_adr = (void *)priv->amba_maps[1].local_adr;
+	priv->bus_maps_down[1].to_adr = (void *)priv->amba_maps[1].remote_adr;
 
 	/* Mark end of translation table */
 	priv->bus_maps_down[2].size = 0;
@@ -342,8 +342,9 @@ int gr_rasta_adcdac_hw_init1(struct gr_rasta_adcdac_priv *priv)
 	/* UP streams translation table */
 	priv->bus_maps_up[0].name = "AMBA GRPCI Window";
 	priv->bus_maps_up[0].size = ahb->mask[0]; /* AMBA->PCI Window on GR-RASTA-ADCDAC board */
-	priv->bus_maps_up[0].from_adr = ahb->start[0];
-	priv->bus_maps_up[0].to_adr = priv->ahbmst2pci_map & 0xf0000000;
+	priv->bus_maps_up[0].from_adr = (void *)ahb->start[0];
+	priv->bus_maps_up[0].to_adr = (void *)
+					(priv->ahbmst2pci_map & 0xf0000000);
 
 	/* Mark end of translation table */
 	priv->bus_maps_up[1].size = 0;
