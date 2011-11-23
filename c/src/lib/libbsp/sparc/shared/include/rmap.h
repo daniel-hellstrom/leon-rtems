@@ -21,7 +21,7 @@ extern "C" {
 #define PKT_OPTION_HDR_CRC	0x1 /* Enable Header CRC by Hardware */
 #define PKT_OPTION_DATA_CRC	0x2 /* Enable Data CRC by Hardware */
 /* skip len of header when calculating CRC by hardware */
-#define PKT_OPTION_HDR_CRC_SKIPLEN(len)	((len & 0xf) << 8)
+#define PKT_OPTION_HDR_CRC_SKIPLEN(len)	(((len) & 0xf) << 8)
 #define PKT_OPTION_HDR_CRC_SKIPLEN_MASK 0xf00
 
 /* RMAP SpW packet */
