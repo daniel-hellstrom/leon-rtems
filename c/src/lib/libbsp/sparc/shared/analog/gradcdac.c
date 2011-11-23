@@ -147,10 +147,10 @@ int gradcdac_init3(struct drvmgr_dev *dev)
 
 void gradcdac_print_dev(struct gradcdac_priv *pDev)
 {
-	printf("======= GRADCDAC 0x%x =======\n", pDev->regs);
+	printf("======= GRADCDAC %p =======\n", pDev->regs);
 	printf(" Minor:          %d\n", pDev->minor);
 	printf(" Dev Name:       %s\n", pDev->devName);
-	printf(" RegBase:        0x%x\n", pDev->regs);
+	printf(" RegBase:        %p\n", pDev->regs);
 	printf(" IRQ:            %d and %d\n", pDev->irqno, pDev->irqno+1);
 	printf(" Core Freq:      %d kHz\n", pDev->freq / 1000);
 	printf(" Opened:         %s\n", pDev->open ? "YES" : "NO");
