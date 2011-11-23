@@ -451,14 +451,14 @@ void ambapp_dev_info(
 				str1 = "ahbmem";
 			else
 				continue;
-			sprintf(buf, " %s[%d]:  0x%08lx-0x%08lx", str1, i,
+			sprintf(buf, " %s[%d]:  0x%08x-0x%08x", str1, i,
 				core->ahb_slv->start[i],
 				core->ahb_slv->start[i]+core->ahb_slv->mask[i]-1);
 			print_line(p, buf);
 		}
 	}
 	if (core->apb_slv) {
-		sprintf(buf, "       apb:  0x%08lx-0x%08lx",
+		sprintf(buf, "       apb:  0x%08x-0x%08x",
 			core->apb_slv->start,
 			core->apb_slv->start + core->apb_slv->mask - 1);
 		print_line(p, buf);
