@@ -31,7 +31,6 @@ int rtems_leon_open_eth_driver_attach(
   int attach
 )
 {
-  int device_found = 0;
   int i;
   unsigned int base_addr = 0; /* avoid warnings */
   unsigned int eth_irq = 0;   /* avoid warnings */
