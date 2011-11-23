@@ -441,7 +441,6 @@ struct grtm_priv {
 };
 
 /* Prototypes */
-static void *grtm_memalign(unsigned int boundary, unsigned int length, void *realbuf);
 static void grtm_hw_reset(struct grtm_priv *pDev);
 static void grtm_interrupt(void *arg);
 
@@ -509,10 +508,11 @@ static int grtm_init2(struct drvmgr_dev *dev)
 	/* Get Read/Write operations for bus */
 	priv->rw_arg.dev = dev;
 	priv->rw_arg.arg = drvmgr_func_call(dev->parent, AMBAPP_RMAP_RW_ARG, dev, NULL, NULL, NULL);
-	drvmgr_func_get(dev->parent, AMBAPP_RMAP_R32, &priv->rw_r32);
-	drvmgr_func_get(dev->parent, AMBAPP_RMAP_W32, &priv->rw_w32);
-	drvmgr_func_get(dev->parent, AMBAPP_RMAP_WMEM, &priv->rw_wmem);
-	drvmgr_func_get(dev->parent, AMBAPP_RMAP_MEMSET, &priv->rw_memset);
+	drvmgr_func_get(dev->parent, AMBAPP_RMAP_R32, (void **)&priv->rw_r32);
+	drvmgr_func_get(dev->parent, AMBAPP_RMAP_W32, (void **)&priv->rw_w32);
+	drvmgr_func_get(dev->parent, AMBAPP_RMAP_WMEM, (void **)&priv->rw_wmem);
+	drvmgr_func_get(dev->parent, AMBAPP_RMAP_MEMSET,
+			(void **)&priv->rw_memset);
 
 	/* This core will not find other cores, so we wait for init2() */
 
@@ -1674,9 +1674,10 @@ static void grtm_interrupt(void *arg)
 		}
 
 	}
-
+#if 0
 procceed_processing_interrupts:
 	;
+#endif
 }
 
 static rtems_device_driver grtm_initialize(
