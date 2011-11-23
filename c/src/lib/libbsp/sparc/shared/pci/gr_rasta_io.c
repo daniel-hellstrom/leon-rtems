@@ -237,12 +237,10 @@ int gr_rasta_io_dev_find(struct ambapp_dev *dev, int index, void *arg)
 
 int gr_rasta_io_hw_init(struct gr_rasta_io_priv *priv)
 {
-	unsigned int data;
 	unsigned int *page0 = NULL;
 	struct ambapp_dev *tmp;
 	int status;
 	struct ambapp_ahb_info *ahb;
-	pci_dev_t pcidev = priv->pcidev;
 	struct pci_dev_info *devinfo = priv->devinfo;
 	uint32_t bar0, bar0_size;
 
@@ -266,9 +264,12 @@ int gr_rasta_io_hw_init(struct gr_rasta_io_priv *priv)
 	*page0 = priv->version->amba_ioarea & 0xf0000000;
 
 #if 0
-	/* set parity error response */
-	pci_cfg_r32(pcidev, PCI_COMMAND, &data);
-	pci_cfg_w32(pcidev, PCI_COMMAND, (data|PCI_COMMAND_PARITY));
+	{
+		uint32_t data;
+		/* set parity error response */
+		pci_cfg_r32(priv->pcidev, PCI_COMMAND, &data);
+		pci_cfg_w32(priv->pcidev, PCI_COMMAND, (data|PCI_COMMAND_PARITY));
+	}
 #endif
 
 	/* Scan AMBA Plug&Play */
@@ -334,13 +335,13 @@ int gr_rasta_io_hw_init(struct gr_rasta_io_priv *priv)
 	/* DOWN streams translation table */
 	priv->bus_maps_down[0].name = "PCI BAR0 -> AMBA";
 	priv->bus_maps_down[0].size = priv->amba_maps[0].size;
-	priv->bus_maps_down[0].from_adr = priv->amba_maps[0].local_adr;
-	priv->bus_maps_down[0].to_adr = priv->amba_maps[0].remote_adr;
+	priv->bus_maps_down[0].from_adr = (void *)priv->amba_maps[0].local_adr;
+	priv->bus_maps_down[0].to_adr = (void *)priv->amba_maps[0].remote_adr;
 
 	priv->bus_maps_down[1].name = "PCI BAR1 -> AMBA";
 	priv->bus_maps_down[1].size = priv->amba_maps[1].size;
-	priv->bus_maps_down[1].from_adr = priv->amba_maps[1].local_adr;
-	priv->bus_maps_down[1].to_adr = priv->amba_maps[1].remote_adr;
+	priv->bus_maps_down[1].from_adr = (void *)priv->amba_maps[1].local_adr;
+	priv->bus_maps_down[1].to_adr = (void *)priv->amba_maps[1].remote_adr;
 
 	/* Mark end of translation table */
 	priv->bus_maps_down[2].size = 0;
@@ -356,8 +357,9 @@ int gr_rasta_io_hw_init(struct gr_rasta_io_priv *priv)
 	/* UP streams translation table */
 	priv->bus_maps_up[0].name = "AMBA GRPCI Window";
 	priv->bus_maps_up[0].size = ahb->mask[0]; /* AMBA->PCI Window on GR-RASTA-IO board */
-	priv->bus_maps_up[0].from_adr = ahb->start[0];
-	priv->bus_maps_up[0].to_adr = priv->ahbmst2pci_map & 0xf0000000;
+	priv->bus_maps_up[0].from_adr = (void *)ahb->start[0];
+	priv->bus_maps_up[0].to_adr = (void *)
+					(priv->ahbmst2pci_map & 0xf0000000);
 
 	/* Mark end of translation table */
 	priv->bus_maps_up[1].size = 0;
@@ -446,7 +448,8 @@ int gr_rasta_io_init1(struct drvmgr_dev *dev)
 		return DRVMGR_FAIL;
 	}
 
-	if ( status = gr_rasta_io_hw_init(priv) ) {
+	status = gr_rasta_io_hw_init(priv);
+	if ( status != 0 ) {
 		genirq_destroy(priv->genirq);
 		free(priv);
 		dev->priv = NULL;
