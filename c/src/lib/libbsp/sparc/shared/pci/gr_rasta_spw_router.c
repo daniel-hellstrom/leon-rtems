@@ -337,8 +337,8 @@ int gr_rasta_spw_router_hw_init(struct gr_rasta_spw_router_priv *priv)
 
 	priv->bus_maps_down[0].name = "PCI BAR0 -> AMBA";
 	priv->bus_maps_down[0].size = priv->amba_maps[0].size;
-	priv->bus_maps_down[0].from_adr = priv->amba_maps[0].local_adr;
-	priv->bus_maps_down[0].to_adr = priv->amba_maps[0].remote_adr;
+	priv->bus_maps_down[0].from_adr = (void *)priv->amba_maps[0].local_adr;
+	priv->bus_maps_down[0].to_adr = (void *)priv->amba_maps[0].remote_adr;
 	priv->bus_maps_down[1].size = 0;
 
 	/* Find GRPCI2 controller AHB Slave interface */
@@ -350,8 +350,9 @@ int gr_rasta_spw_router_hw_init(struct gr_rasta_spw_router_priv *priv)
 	ahb = (struct ambapp_ahb_info *)tmp->devinfo;
 	priv->bus_maps_up[0].name = "AMBA GRPCI2 Window";
 	priv->bus_maps_up[0].size = ahb->mask[0]; /* AMBA->PCI Window on GR-RASTA-SPW-ROUTER board */
-	priv->bus_maps_up[0].from_adr = ahb->start[0];
-	priv->bus_maps_up[0].to_adr = priv->ahbmst2pci_map & ~(ahb->mask[0]-1);
+	priv->bus_maps_up[0].from_adr = (void *)ahb->start[0];
+	priv->bus_maps_up[0].to_adr = (void *)
+				(priv->ahbmst2pci_map & ~(ahb->mask[0]-1));
 	priv->bus_maps_up[1].size = 0;
 
 	/* Find GRPCI2 controller APB Slave interface */
@@ -427,7 +428,7 @@ int gr_rasta_spw_router_init1(struct drvmgr_dev *dev)
 	printf("\n\n--- GR-RASTA-SPW-ROUTER[%d] ---\n", dev->minor_drv);
 	printf(" PCI BUS: 0x%x, SLOT: 0x%x, FUNCTION: 0x%x\n",
 		PCI_DEV_EXPAND(priv->pcidev));
-	printf(" PCI VENDOR: 0x%04lx, DEVICE: 0x%04lx\n",
+	printf(" PCI VENDOR: 0x%04x, DEVICE: 0x%04x\n",
 		devinfo->id.vendor, devinfo->id.device);
 	printf(" PCI BAR[0]: 0x%08lx - 0x%08lx\n", bar0, bar0 + bar0_size - 1);
 	printf(" IRQ: %d\n\n\n", devinfo->irq);
@@ -644,7 +645,7 @@ void gr_rasta_spw_router_print_dev(struct drvmgr_dev *dev, int options)
 
 	bar0 = devinfo->resources[0].address;
 	bar0_size = devinfo->resources[0].size;
-	printf(" PCI BAR[0]: 0x%x - 0x%x\n", bar0, bar0 + bar0_size - 1);
+	printf(" PCI BAR[0]: 0x%lx - 0x%lx\n", bar0, bar0 + bar0_size - 1);
 	printf(" IRQ REGS:        0x%x\n", (unsigned int)priv->irq);
 	printf(" IRQ:             %d\n", devinfo->irq);
 	printf(" PCI REVISION:    %d\n", devinfo->rev);
