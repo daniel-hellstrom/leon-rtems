@@ -151,7 +151,7 @@ int genirq_unregister(genirq_t d, int irq, genirq_handler isr, void *arg)
 int genirq_set_active(struct genirq_priv *priv, int irq, genirq_handler isr, void *arg, int action)
 {
 	struct genirq_irq_entry *irqentry;
-	struct genirq_handler_entry *isrentry, *e;
+	struct genirq_handler_entry *isrentry, *e = NULL;
 	int enabled;
 
 	if ( genirq_check(priv, irq) )
