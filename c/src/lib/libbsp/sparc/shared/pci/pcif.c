@@ -463,16 +463,16 @@ int pcif_init(struct pcif_priv *priv)
 	/* Down streams translation table */
 	priv->maps_down[0].name = "AMBA -> PCI MEM Window";
 	priv->maps_down[0].size = priv->pci_area_end - priv->pci_area;
-	priv->maps_down[0].from_adr = priv->pci_area;
-	priv->maps_down[0].to_adr = priv->pci_area;
+	priv->maps_down[0].from_adr = (void *)priv->pci_area;
+	priv->maps_down[0].to_adr = (void *)priv->pci_area;
 	/* End table */
 	priv->maps_down[1].size = 0;
 
 	/* Up streams translation table */
 	priv->maps_up[0].name = "Target BAR1 -> AMBA";
 	priv->maps_up[0].size = priv->bar1_size;
-	priv->maps_up[0].from_adr = SYSTEM_MAINMEM_START;
-	priv->maps_up[0].to_adr = SYSTEM_MAINMEM_START;
+	priv->maps_up[0].from_adr = (void *)SYSTEM_MAINMEM_START;
+	priv->maps_up[0].to_adr = (void *)SYSTEM_MAINMEM_START;
 	/* End table */
 	priv->maps_up[1].size = 0;
 
