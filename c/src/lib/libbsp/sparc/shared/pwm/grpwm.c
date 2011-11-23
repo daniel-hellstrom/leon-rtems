@@ -149,7 +149,7 @@ struct grpwm_regs {
 struct grpwm_priv {
 	struct drvmgr_dev	*dev;
 	struct grpwm_regs		*regs;
-	unsigned char			devName[32];
+	char				devName[32];
 	int				irq;
 	int				open;
 
@@ -339,7 +339,7 @@ void grpwm_write_wram(struct grpwm_regs *regs, unsigned int *data, int length)
 	unsigned int *end;
 	volatile unsigned int *pos;
 
-	pos = &regs->wram;
+	pos = &regs->wram[0];
 
 	/* Write RAM */
 	if ( data ) {
@@ -759,7 +759,6 @@ int grpwm_device_init(struct grpwm_priv *priv)
 {
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
-	union drvmgr_key_value *value;
 	int mask, i, sepirq;
 	unsigned int wabits;
 	struct grpwm_chan_priv *pwm;
