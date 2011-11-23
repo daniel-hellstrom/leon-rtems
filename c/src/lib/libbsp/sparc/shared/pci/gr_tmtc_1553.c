@@ -208,13 +208,10 @@ int gr_tmtc_1553_dev_find(struct ambapp_dev *dev, int index, int maxdepth, void 
 
 int gr_tmtc_1553_hw_init(struct gr_tmtc_1553_priv *priv)
 {
-	unsigned int data;
 	unsigned int *page0 = NULL;
 	struct ambapp_dev *tmp;
 	int status;
-	struct ambapp_ahb_info *ahb;
 	unsigned int pci_freq_hz;
-	pci_dev_t pcidev = priv->pcidev;
 	struct pci_dev_info *devinfo = priv->devinfo;
 	uint32_t bar0, bar0_size;
 
@@ -277,8 +274,8 @@ int gr_tmtc_1553_hw_init(struct gr_tmtc_1553_priv *priv)
 	/* DOWN streams translation table */
 	priv->bus_maps_down[0].name = "PCI BAR0 -> AMBA";
 	priv->bus_maps_down[0].size = priv->amba_maps[0].size;
-	priv->bus_maps_down[0].from_adr = priv->amba_maps[0].local_adr;
-	priv->bus_maps_down[0].to_adr = priv->amba_maps[0].remote_adr;
+	priv->bus_maps_down[0].from_adr = (void *)priv->amba_maps[0].local_adr;
+	priv->bus_maps_down[0].to_adr = (void *)priv->amba_maps[0].remote_adr;
 	/* Mark end of translation table */
 	priv->bus_maps_down[1].size = 0;
 
@@ -350,7 +347,8 @@ int gr_tmtc_1553_init1(struct drvmgr_dev *dev)
 		return DRVMGR_FAIL;
 	}
 
-	if ( status = gr_tmtc_1553_hw_init(priv) ) {
+	status = gr_tmtc_1553_hw_init(priv);
+	if ( status != 0 ) {
 		genirq_destroy(priv->genirq);
 		free(priv);
 		dev->priv = NULL;
@@ -538,7 +536,6 @@ void gr_tmtc_1553_print_dev(struct drvmgr_dev *dev, int options)
 {
 	struct gr_tmtc_1553_priv *priv = dev->priv;
 	struct pci_dev_info *devinfo = priv->devinfo;
-	int i;
 	uint32_t bar0, bar0_size;
 
 	/* Print */
@@ -562,6 +559,7 @@ void gr_tmtc_1553_print_dev(struct drvmgr_dev *dev, int options)
 #if 0
 	/* Print IRQ handlers and their arguments */
 	if ( options & TMTC_1553_OPTIONS_IRQ ) {
+		int i;
 		for(i=0; i<16; i++) {
 			printf(" IRQ[%02d]:         0x%x, arg: 0x%x\n", 
 				i, (unsigned int)priv->isrs[i].handler, (unsigned int)priv->isrs[i].arg);
