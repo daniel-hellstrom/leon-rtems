@@ -21,7 +21,7 @@ extern "C" {
 
 /* "Raw" access */
 extern uint8_t _ld8(uint8_t *addr);
-extern void _st8(uint16_t *addr, uint8_t val);
+extern void _st8(uint8_t *addr, uint8_t val);
 extern uint16_t _ld16(uint16_t *addr);
 extern void _st16(uint16_t *addr, uint16_t val);
 extern uint32_t _ld32(uint32_t *addr);
