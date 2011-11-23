@@ -202,7 +202,6 @@ void gr701_interrupt(void *arg)
 {
 	struct gr701_priv *priv = arg;
 	unsigned int status;
-	struct gr701_isr *isr;
 	int irq = 0;
 
 	while ( (status=priv->pcib->istatus) != 0 ) {
@@ -216,14 +215,6 @@ void gr701_interrupt(void *arg)
 	/* ACK interrupt, this is because PCI is Level, so the IRQ Controller still drives the IRQ. */
 	if ( irq )
 		drvmgr_interrupt_clear(priv->dev, 0);
-}
-
-/* AMBA PP find routines */
-int gr701_dev_find(struct ambapp_dev_hdr *dev, int index, int maxdepth, void *arg)
-{
-	/* Found IRQ/PCI controller, stop */
-	*(struct ambapp_dev_hdr **)arg = dev;
-	return 1;
 }
 
 int gr701_hw_init(struct gr701_priv *priv)
@@ -267,14 +258,14 @@ int gr701_hw_init(struct gr701_priv *priv)
 	/* Setup DOWN-streams address translation */
 	priv->bus_maps_down[0].name = "PCI BAR1 -> AMBA";
 	priv->bus_maps_down[0].size = priv->amba_maps[0].size;
-	priv->bus_maps_down[0].from_adr = devinfo->resources[1].address;
-	priv->bus_maps_down[0].to_adr = 0xfc000000;
+	priv->bus_maps_down[0].from_adr = (void *)devinfo->resources[1].address;
+	priv->bus_maps_down[0].to_adr = (void *)0xfc000000;
 
 	/* Setup UP-streams address translation */
 	priv->bus_maps_up[0].name = "AMBA PCIF Window";
 	priv->bus_maps_up[0].size = 0x10000000;
-	priv->bus_maps_up[0].from_adr = 0xe0000000;
-	priv->bus_maps_up[0].to_adr = 0x40000000;
+	priv->bus_maps_up[0].from_adr = (void *)0xe0000000;
+	priv->bus_maps_up[0].to_adr = (void *)0x40000000;
 
 	/* Mark end of translation tables */
 	priv->bus_maps_down[1].size = 0;
@@ -286,8 +277,6 @@ int gr701_hw_init(struct gr701_priv *priv)
 	pci_cfg_w32(pcidev, PCI_COMMAND, com1);
 
 	/* Start AMBA PnP scan at first AHB bus */
-	/*ambapp_scan(priv->bars[1] + 0x3f00000,
-		NULL, &priv->amba_maps[0], NULL, &priv->abus.root, NULL);*/
 	ambapp_scan(&priv->abus, devinfo->resources[1].address + 0x3f00000,
 			NULL, &priv->amba_maps[0]);
 
