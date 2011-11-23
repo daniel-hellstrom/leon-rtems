@@ -16,6 +16,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 #include <grspw.h>
 #include "rmap.h"
 #include "rmap_drv_grspw.h"
@@ -40,7 +42,7 @@ void *rmap_drv_grspw_init(struct rmap_drv_grspw_config *config)
 
 int rmap_drv_grspw_ops_init(void *cookie)
 {
-	struct rmap_drv_grspw_priv *priv = cookie;
+	/*struct rmap_drv_grspw_priv *priv = cookie;*/
 	return 0;
 }
 
