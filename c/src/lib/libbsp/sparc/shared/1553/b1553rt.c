@@ -620,7 +620,6 @@ static rtems_device_driver rt_control(rtems_device_major_number major, rtems_dev
 
     rt_priv *rt;
     struct drvmgr_dev *dev;
-    rtems_device_driver ret;
 
     FUNCDBG("rt_control[%d]: [%i,%i]\n", minor, major, minor);
 
@@ -809,7 +808,6 @@ void b1553rt_print_dev(struct drvmgr_dev *dev, int options)
 {
     rt_priv *pDev = dev->priv;
     struct amba_dev_info *devinfo;
-    struct rt_reg *regs = pDev->regs;
 
     devinfo = (struct amba_dev_info *)pDev->dev->businfo;
 
