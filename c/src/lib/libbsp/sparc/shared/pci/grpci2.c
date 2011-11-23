@@ -626,7 +626,7 @@ int grpci2_hw_init(struct grpci2_priv *priv)
 	struct grpci2_regs *regs = priv->regs;
 	int i;
 	uint8_t capptr;
-	uint32_t data, addr, mbar0size, io_map, ahbadr, pciadr, size;
+	uint32_t data, io_map, ahbadr, pciadr, size;
 	pci_dev_t host = PCI_DEV(0, 0, 0);
 	struct grpci2_pcibar_cfg *barcfg = priv->barcfg;
 
@@ -785,8 +785,8 @@ int grpci2_init(struct grpci2_priv *priv)
 	/* Down streams translation table */
 	priv->maps_down[0].name = "AMBA -> PCI MEM Window";
 	priv->maps_down[0].size = priv->pci_area_end - priv->pci_area;
-	priv->maps_down[0].from_adr = priv->pci_area;
-	priv->maps_down[0].to_adr = priv->pci_area;
+	priv->maps_down[0].from_adr = (void *)priv->pci_area;
+	priv->maps_down[0].to_adr = (void *)priv->pci_area;
 	/* End table */
 	priv->maps_down[1].size = 0;
 
@@ -801,8 +801,10 @@ int grpci2_init(struct grpci2_priv *priv)
 		/* Make sure address is properly aligned */
 		priv->maps_up[j].name = "Target BAR[I] -> AMBA";
 		priv->maps_up[j].size = size;
-		priv->maps_up[j].from_adr = barcfg[i].pciadr & ~(size - 1);
-		priv->maps_up[j].to_adr = barcfg[i].ahbadr & ~(size - 1);
+		priv->maps_up[j].from_adr = (void *)
+					(barcfg[i].pciadr & ~(size - 1));
+		priv->maps_up[j].to_adr = (void *)
+					(barcfg[i].ahbadr & ~(size - 1));
 		j++;
 	}
 
