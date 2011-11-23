@@ -382,7 +382,6 @@ int spictrl_start_periodic(struct spictrl_priv *priv)
 void spictrl_stop_periodic(struct spictrl_priv *priv)
 {
 	priv->regs->am_cfg = 0;
-	return 0;
 }
 
 /* Return the status of the SPI controller (the event register), 
