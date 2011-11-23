@@ -79,7 +79,7 @@ extern rtems_mpci_entry Shm_Send_packet(
 /* Let user override this configuration by declaring this a weak variable */
 shm_config_table BSP_shm_cfgtbl __attribute__((weak)) =
 {
-  0x40000000,
+  (vol_u32 *)0x40000000,
   0x00001000,
 };
 
@@ -109,7 +109,7 @@ void Shm_Get_configuration(
 
   BSP_shm_cfgtbl.poll_intr    = INTR_MODE;
   BSP_shm_cfgtbl.Intr.address =
-     (vol_u32) &(LEON3_IrqCtrl_Regs->force[LEON3_Cpu_Index]);
+     (vol_u32 *) &(LEON3_IrqCtrl_Regs->force[LEON3_Cpu_Index]);
   BSP_shm_cfgtbl.Intr.value   = 1 << LEON3_MP_IRQ ;
   BSP_shm_cfgtbl.Intr.length  = 4;
 
