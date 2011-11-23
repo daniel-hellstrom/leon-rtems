@@ -539,20 +539,20 @@ int at697pci_init(struct at697pci_priv *priv)
 	/* Down streams translation table */
 	priv->maps_down[0].name = "AMBA -> PCI MEM Window";
 	priv->maps_down[0].size = 0xF0000000 - 0xA0000000;
-	priv->maps_down[0].from_adr = 0xA0000000;
-	priv->maps_down[0].to_adr = 0xA0000000;
+	priv->maps_down[0].from_adr = (void *)0xA0000000;
+	priv->maps_down[0].to_adr = (void *)0xA0000000;
 	/* End table */
 	priv->maps_down[1].size = 0;
 
 	/* Up streams translation table, 2x16Mb mapped 1:1  */
 	priv->maps_up[0].name = "Target BAR0 -> AMBA";
 	priv->maps_up[0].size = 0x01000000; /* 16Mb BAR1 */
-	priv->maps_up[0].from_adr = priv->bar1_pci_adr;
-	priv->maps_up[0].to_adr = priv->bar1_pci_adr;
+	priv->maps_up[0].from_adr = (void *)priv->bar1_pci_adr;
+	priv->maps_up[0].to_adr = (void *)priv->bar1_pci_adr;
 	priv->maps_up[1].name = "Target BAR1 -> AMBA";
 	priv->maps_up[1].size = 0x01000000; /* 16Mb BAR2 */
-	priv->maps_up[1].from_adr = priv->bar2_pci_adr;
-	priv->maps_up[1].to_adr = priv->bar2_pci_adr;
+	priv->maps_up[1].from_adr = (void *)priv->bar2_pci_adr;
+	priv->maps_up[1].to_adr = (void *)priv->bar2_pci_adr;
 	/* End table */
 	priv->maps_up[2].size = 0;
 
