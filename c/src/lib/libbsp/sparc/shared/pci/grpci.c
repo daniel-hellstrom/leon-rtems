@@ -556,16 +556,16 @@ int grpci_init(struct grpci_priv *priv)
 	/* Down streams translation table */
 	priv->maps_down[0].name = "AMBA -> PCI MEM Window";
 	priv->maps_down[0].size = priv->pci_area_end - priv->pci_area;
-	priv->maps_down[0].from_adr = priv->pci_area;
-	priv->maps_down[0].to_adr = priv->pci_area;
+	priv->maps_down[0].from_adr = (void *)priv->pci_area;
+	priv->maps_down[0].to_adr = (void *)priv->pci_area;
 	/* End table */
 	priv->maps_down[1].size = 0;
 
 	/* Up streams translation table */
 	priv->maps_up[0].name = "Target BAR1 -> AMBA";
 	priv->maps_up[0].size = priv->bar1_size;
-	priv->maps_up[0].from_adr = priv->bar1_pci_adr;
-	priv->maps_up[0].to_adr = priv->bar1_pci_adr;
+	priv->maps_up[0].from_adr = (void *)priv->bar1_pci_adr;
+	priv->maps_up[0].to_adr = (void *)priv->bar1_pci_adr;
 	/* End table */
 	priv->maps_up[1].size = 0;
 
