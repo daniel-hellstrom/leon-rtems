@@ -193,8 +193,8 @@ rtems_device_driver Clock_initialize(
    */
   Clock_handle = tlib_open(Clock_timer);
   if ( Clock_handle == NULL ) {
-#warning IMPLEMENT ERROR HANDLING HERE
-    return;
+    /* System Clock Timer not found */
+    return RTEMS_NOT_DEFINED;
   }
 
   /*
