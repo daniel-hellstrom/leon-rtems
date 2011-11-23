@@ -1159,7 +1159,7 @@ static int grtc_check_ending(unsigned short *src, int max, int end)
 static int grtc_hw_check_ending(struct grtc_priv *pDev, int max)
 {
 	struct grtc_regs *regs = pDev->regs;
-	unsigned int rp, wp, asr, bufmax, tcbuf_start, rrp, rwp;
+	unsigned int rp, wp, asr, bufmax, rrp, rwp;
 	unsigned int upper, lower;
 	unsigned int count, cnt, left;
 	int tot;
