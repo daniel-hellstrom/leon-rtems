@@ -14,6 +14,7 @@
  */
 
 #include <bsp.h>
+#include <stdlib.h>
 
 /* Tells us where to put the workspace in case remote debugger is present. */
 extern uint32_t rdb_start;
@@ -37,7 +38,7 @@ void *bsp_early_malloc(int size)
 	if (rdb_start - STACK_SIZE - early_mem < size)
 		return NULL;
 
-	start = early_mem;
+	start = (void *)early_mem;
 	early_mem += size;
 
 	return start;

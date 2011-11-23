@@ -41,7 +41,7 @@ void bsp_get_work_area(
 
 #ifdef LEON3
   /* LEON3 has an early dynamic memory allocator placed just above _end  */
-  *work_area_start = (uintptr_t)early_mem;
+  *work_area_start = (void *)early_mem;
   *work_area_size  = (void *)rdb_start - (void *)early_mem - STACK_SIZE;
   early_mem = ~0; /* Signal bsp_early_malloc not to be used anymore */
 #else
