@@ -249,7 +249,7 @@ int rmap_build(struct rmap_priv *priv, struct rmap_command *cmd, struct rmap_spw
 {
 	int len1, len2;
 	unsigned char *pos, *pkt = (unsigned char *)txpkt->hdr;
-	unsigned int length, hdr_length, src_path_len;
+	unsigned int length, src_path_len;
 	int options;
 
 	/* Begin with address translation */
@@ -288,7 +288,7 @@ int rmap_build(struct rmap_priv *priv, struct rmap_command *cmd, struct rmap_spw
 	if ( priv->config->tid_msb < 0 ) {
 		priv->tid++;
 	} else {
-		if ( priv->tid & 0xff == 0xff) {
+		if ( (priv->tid & 0xff) == 0xff) {
 			priv->tid = priv->tid & 0xff00;
 		} else {
 			priv->tid++;
@@ -439,7 +439,8 @@ int rmap_parse(struct rmap_priv *priv, struct rmap_command *cmd, struct rmap_spw
 	/* Length may be equal or less than request nembuer of bytes */
 	cmd->data.read.datalength = length = (pkt[8]<<16) | (pkt[9]<<8) | pkt[10];
 	if ( length > cmd->data.read.length ) {
-		printf("Response DATA Length != Command Data Length [0x%x, 0x%x]\n", cmd, pkt);
+		printf("Response DATA Length != Command Data Length [%p, %p]\n",
+			cmd, pkt);
 		return -1;
 	}
 	if ( length > 0 ) {
@@ -488,7 +489,8 @@ int rmap_send(void *cookie, struct rmap_command *cmd)
 	if ( priv->lock ) {
 		status = rtems_semaphore_obtain(priv->lock, RTEMS_WAIT, RTEMS_NO_TIMEOUT);
 		if ( status != RTEMS_SUCCESSFUL ) {
-			printf("RMAP-STACK: FAILED TO OBTAIN LOCK: %d (0x%x)\n", status, priv->lock);
+			printf("RMAP-STACK: FAILED TO OBTAIN LOCK: %d (%p)\n",
+				status, priv->lock);
 			return -1;
 		}
 	}
@@ -584,7 +586,8 @@ int rmap_write(void *cookie, void *dst, void *buf, int length, int dstadr, int d
 
 	/* Read Data */
 	if ( writecmd.status != 0 ) {
-		printf("GRTMPAHB WRITE: Status non-zero 0x%x, address: 0x%x\n", writecmd.status, writecmd.address);
+		printf("GRTMPAHB WRITE: Status non-zero 0x%x, address: 0x%llx\n",
+			writecmd.status, writecmd.address);
 		return -1;
 	}
 
