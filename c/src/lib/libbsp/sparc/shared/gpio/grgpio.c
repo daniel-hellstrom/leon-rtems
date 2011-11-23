@@ -335,7 +335,7 @@ int grgpio_gpiolib_show(void *handle)
 	for (i=0, reg=&priv->regs->data; i<7; i++, reg++) {
 		regs[i] = ( *reg >> portnr) & 1;
 	}
-	printf("GRGPIO[0x%08x] PORT[%d]: IN/OUT/DIR: [%d,%d,%d], MASK/POL/EDGE: [%d,%d,%d], BYPASS: %d\n", 
+	printf("GRGPIO[%p] PORT[%d]: IN/OUT/DIR: [%d,%d,%d], MASK/POL/EDGE: [%d,%d,%d], BYPASS: %d\n",
 		priv->regs, portnr, regs[0], regs[1], regs[2], regs[3], regs[4], regs[5], regs[6]);
 	return 0;
 }
