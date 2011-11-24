@@ -3,3 +3,10 @@ autom4te.cache
 configure
 config.h.in
 Makefile.in
+missing
+bspopts.h.in
+config.sub
+depcomp
+mdate-sh
+texinfo.tex
+compile
