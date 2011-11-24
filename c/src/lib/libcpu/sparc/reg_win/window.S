@@ -128,8 +128,7 @@ SYM(window_underflow_trap_handler):
         /*
          *  Flush All Windows trap handler.
          *
-         *  Flush all windows with valid contents except the current one
-         *  and the one we will be returning to.
+         *  Flush all windows with valid contents except the current one.
          *
          *  In examining the set register windows, one may logically divide
          *  the windows into sets (some of which may be empty) based on their
@@ -152,8 +151,8 @@ SYM(window_underflow_trap_handler):
          *    + 5   - current
          *    + 6-7 - used
          *
-         *  In this case, we only would save the used windows which we
-         *  will not be returning to -- 6.
+         *  In this case, we only would save the used windows 6 and 7, but
+         *  not 5.
          *
          *    Register Usage while saving the windows:
          *      g1 = current PSR
@@ -192,22 +191,9 @@ SYM(window_flush_trap_handler):
         mov     1, %g4
         sll     %g4, %g5, %g4                 ! g4 = WIM mask for CWP+1 invalid
 
-        restore                               ! go back one register window
-
 save_frame_loop:
-        sll     %g4, 1, %g5                   ! rotate the "wim" left 1
-        srl     %g4, SPARC_NUMBER_OF_REGISTER_WINDOWS - 1, %g4
-        or      %g4, %g5, %g4                 ! g4 = wim if we do one restore
 
-        /*
-         *  If a restore would not underflow, then continue.
-         */
-
-        andcc   %g4, %g2, %g0                 ! Any windows to flush?
-        bnz     done_flushing                 ! No, then continue
-        nop
-
-        restore                               ! back one window
+        restore                               ! go back one register window
 
         /*
          *  Now save the window just as if we overflowed to it.
@@ -223,8 +209,17 @@ save_frame_loop:
         std     %i4, [%sp + CPU_STACK_FRAME_I4_OFFSET]
         std     %i6, [%sp + CPU_STACK_FRAME_I6_FP_OFFSET]
 
-        ba      save_frame_loop
-        nop
+        sll     %g4, 1, %g5                   ! rotate the "wim" left 1
+        srl     %g4, SPARC_NUMBER_OF_REGISTER_WINDOWS - 1, %g4
+        or      %g4, %g5, %g4                 ! g4 = wim if we do one restore
+ 
+        /*
+         *  If a restore would not underflow, then continue.
+         */
+ 
+        andcc   %g4, %g2, %g0                 ! Any windows to flush?
+        be      save_frame_loop               ! Yes, then continue saving
+         nop
 
 done_flushing:
 
