@@ -55,7 +55,13 @@ SYM(_CPU_Context_save_fp):
         or      %l1, %lo(SPARC_PSR_EF_MASK), %l1
         or      %l0, %l1, %l0
         mov     %l0, %psr                  ! **** ENABLE FLOAT ACCESS ****
-	nop; nop; nop;			   ! Need three nops before EF is
+        nop; nop; nop;                     ! Need three nops before EF is 
+#ifdef SPARC_DYNAMIC_FPU_DETECTION        
+        mov     %psr, %l0                  ! **** check whether fpu present ****
+        andcc   %l0,%l1,%g0
+        beq     1f     
+        nop
+#endif
         ld      [%i0], %l0		   ! active due to pipeline delay!!!
         std     %f0, [%l0 + FO_F1_OFFSET]
         std     %f2, [%l0 + F2_F3_OFFSET]
@@ -74,7 +80,7 @@ SYM(_CPU_Context_save_fp):
         std     %f28, [%l0 + F28_F29_OFFSET]
         std     %f30, [%l0 + F3O_F31_OFFSET]
         st      %fsr, [%l0 + FSR_OFFSET]
-        ret
+1:      ret
         restore
 
 /*
@@ -104,7 +110,13 @@ SYM(_CPU_Context_restore_fp):
         or      %l1, %lo(SPARC_PSR_EF_MASK), %l1
         or      %l0, %l1, %l0
         mov     %l0, %psr                  ! **** ENABLE FLOAT ACCESS ****
-	nop; nop; nop;			   ! Need three nops before EF is
+        nop; nop; nop;                     ! Need three nops before EF is 
+#ifdef SPARC_DYNAMIC_FPU_DETECTION
+        mov     %psr, %l0                  ! **** check whether fpu present ****
+        andcc   %l0,%l1,%g0
+        beq     1f
+        nop
+#endif
         ld      [%i0], %l0		   ! active due to pipeline delay!!!
         ldd     [%l0 + FO_F1_OFFSET], %f0
         ldd     [%l0 + F2_F3_OFFSET], %f2
@@ -123,7 +135,7 @@ SYM(_CPU_Context_restore_fp):
         ldd     [%l0 + F28_F29_OFFSET], %f28
         ldd     [%l0 + F3O_F31_OFFSET], %f30
         ld      [%l0 + FSR_OFFSET], %fsr
-        ret
+1:      ret
         restore
 
 #endif /* SPARC_HAS_FPU */
