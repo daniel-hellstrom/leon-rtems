@@ -64,12 +64,20 @@ extern "C" {
 #define SPARC_NUMBER_OF_REGISTER_WINDOWS 8
 
 /*
+ * Compile the SPARC kernel with runtime FPU detection. This is used
+ * by RTEMS kernels built without FPU but still need to be able to
+ * run tasks with FPU enabled. This way the kernel is SPARC (v7/v8)  
+ * with or without FPU compatible.
+ */
+
+#define SPARC_DYNAMIC_FPU_DETECTION      1
+
+/*
  *  This should be determined based on some soft float derived
  *  cpp predefine but gcc does not currently give us that information.
  */
 
-
-#if defined(_SOFT_FLOAT)
+#if !defined(SPARC_DYNAMIC_FPU_DETECTION) && defined(_SOFT_FLOAT)
 #define SPARC_HAS_FPU 0
 #else
 #define SPARC_HAS_FPU 1
