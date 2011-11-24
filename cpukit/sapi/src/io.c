@@ -22,6 +22,8 @@
 
 #include <string.h>
 
+int _IO_Manager_drivers_inititalized = 0;
+
 /*
  *  _IO_Manager_initialization
  *
@@ -93,6 +95,8 @@ void _IO_Manager_initialization(void)
 void _IO_Initialize_all_drivers( void )
 {
    rtems_device_major_number major;
+
+   _IO_Manager_drivers_inititalized = 1;
 
    for ( major=0 ; major < _IO_Number_of_drivers ; major ++ )
      (void) rtems_io_initialize( major, 0, NULL );
