@@ -14,7 +14,7 @@
 #define BSP_INTERRUPT_VECTOR_MIN 0
 #define BSP_INTERRUPT_VECTOR_MAX BSP_INTERRUPT_VECTOR_MAX_STD
 
-/* The check is different depending on IRQ controller, runtime detected */
+/* No extra check is needed */
 #undef BSP_INTERRUPT_CUSTOM_VALID_VECTOR
 
 #endif /* LIBBSP_LEON2_IRQ_CONFIG_H */
