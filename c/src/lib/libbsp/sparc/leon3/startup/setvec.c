@@ -7,7 +7,6 @@
  *    vector  - vector number
  *    type    - 0 indicates raw hardware connect
  *              1 indicates RTEMS interrupt connect
- *              2 indicates RTEMS extended interrupt connect
  *
  *  OUTPUT PARAMETERS:  NONE
  *
