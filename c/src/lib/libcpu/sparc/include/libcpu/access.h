@@ -1,5 +1,5 @@
 /*
- * access.h  - access routines for SPARC. SPARC is big endian only.
+ *  access.h  - access routines for SPARC. SPARC is big endian only.
  *
  *  COPYRIGHT (c) 2011
  *  Aeroflex Gaisler.
@@ -26,7 +26,7 @@ extern uint16_t _ld16(uint16_t *addr);
 extern void _st16(uint16_t *addr, uint16_t val);
 extern uint32_t _ld32(uint32_t *addr);
 extern void _st32(uint32_t *addr, uint32_t val);
-extern uint64_t _ld64(uint16_t *addr);
+extern uint64_t _ld64(uint64_t *addr);
 extern void _st64(uint64_t *addr, uint64_t val);
 
 /* Aliases for Big Endian */

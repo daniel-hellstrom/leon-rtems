@@ -11,17 +11,17 @@
 
 #include <rtems/asm.h>
 
-        .align 4
+	.align 4
 	.seg "text"
-        PUBLIC(_ld8)
-        PUBLIC(_ld16)
+	PUBLIC(_ld8)
+	PUBLIC(_ld16)
 	PUBLIC(_ld32)
 	PUBLIC(_ld64)
 	PUBLIC(_st8)
 	PUBLIC(_st16)
 	PUBLIC(_st32)
 	PUBLIC(_st64)
-        PUBLIC(_ld_be16)
+	PUBLIC(_ld_be16)
 	PUBLIC(_ld_be32)
 	PUBLIC(_st_be16)
 	PUBLIC(_st_be32)

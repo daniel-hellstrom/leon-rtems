@@ -1,5 +1,5 @@
 /*
- * byteorder.h  - Endian conversion for SPARC. SPARC is big endian only.
+ *  byteorder.h  - Endian conversion for SPARC. SPARC is big endian only.
  *
  *  COPYRIGHT (c) 2011
  *  Aeroflex Gaisler.
