@@ -76,8 +76,12 @@ extern rtems_mpci_entry Shm_Send_packet(
 #define INTERRUPT 0        /* XXX: */
 #define POLLING   1        /* XXX: fix me -- is polling ONLY!!! */
 
-
-shm_config_table BSP_shm_cfgtbl;
+/* Let user override this configuration by declaring this a weak variable */
+shm_config_table BSP_shm_cfgtbl __attribute__((weak)) =
+{
+  (vol_u32 *)0x40000000,
+  0x00001000,
+};
 
 void Shm_Get_configuration(
   uint32_t   localnode,
@@ -88,8 +92,6 @@ void Shm_Get_configuration(
   int i;
   unsigned int tmp;
 
-  BSP_shm_cfgtbl.base         = 0x40000000;
-  BSP_shm_cfgtbl.length       = 0x00001000;
   BSP_shm_cfgtbl.format       = SHM_BIG;
 
   /*
