@@ -213,6 +213,24 @@ extern volatile LEON3_UART_Regs_Map *LEON3_Console_Uart[LEON3_APBUARTS];
 
 extern int LEON3_Cpu_Index;
 
+/* The external IRQ number, -1 if not external interrupts */
+extern int LEON3_IrqCtrl_EIrq;
+
+static __inline__ int leon_irq_fixup(int irq)
+{
+	int eirq;
+
+	if (LEON3_IrqCtrl_EIrq != 0 && irq == LEON3_IrqCtrl_EIrq) {
+		/* Get interrupt number from IRQ controller */
+		eirq = LEON3_IrqCtrl_Regs->intid[LEON3_Cpu_Index] & 0x1f;
+		if (eirq & 0x10)
+			irq = eirq;
+	}
+
+	return irq;
+}
+
+
 /* Macros used for manipulating bits in LEON3 GP Timer Control Register */
 
 #define LEON3_GPTIMER_EN 1

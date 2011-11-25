@@ -55,7 +55,7 @@ libbsp_a_SOURCES =
 
 # startup
 libbsp_a_SOURCES += ../../shared/bspclean.c ../../shared/bsplibc.c \
-    ../../shared/bsppost.c ../../shared/bsppredriverhook.c \
+    ../../shared/bsppost.c startup/bsppredriver.c \
     startup/bspstart.c ../../sparc/shared/bsppretaskinghook.c \
     ../../sparc/shared/bspgetworkarea.c ../../shared/bootcard.c \
     ../../shared/sbrk.c startup/setvec.c startup/spurious.c startup/bspidle.c \
@@ -66,6 +66,18 @@ libbsp_a_SOURCES += gnatsupp/gnatsupp.c ../../sparc/shared/gnatcommon.c
 libbsp_a_SOURCES += console/console.c console/debugputs.c
 # clock
 libbsp_a_SOURCES += clock/ckinit.c ../../../shared/clockdrv_shell.h
+# IRQ
+include_bsp_HEADERS = \
+    ../../shared/include/irq-generic.h \
+    ../../shared/include/irq-info.h \
+    include/bsp/irq.h
+libbsp_a_SOURCES += \
+    ../../sparc/shared/irq/irq-shared.c \
+    ../../shared/src/irq-generic.c \
+    ../../shared/src/irq-legacy.c \
+    ../../shared/src/irq-info.c \
+    ../../shared/src/irq-shell.c \
+    ../../shared/src/irq-server.c
 # AMBA PnP Scanning
 libbsp_a_SOURCES += ../../sparc/shared/amba/ambapp.c
 # PCI
