@@ -16,6 +16,7 @@ top_srcdir=`dirname $0`
 verbose="";
 quiet="false"
 mode="autoreconf"
+base=.
 
 usage()
 {
@@ -23,6 +24,7 @@ usage()
   echo "usage: ${progname} [-c|-p|-h] [-q][-v]"
   echo
   echo "options:"
+  echo "	-b .. base directory tree for bootstrapping processing, defaults to ."
   echo "	-c .. clean, remove all aclocal/autoconf/automake generated files"
   echo "	-h .. display this message and exit"
   echo "	-p .. regenerate preinstall.am files"
@@ -90,6 +92,13 @@ case $1 in
 -g|--ge|--gen|--gene|--gener|--genera|--generat|--generate)
   mode="generate";
   shift;;
+-b|--ba|--bas|--base)
+  if [ $# -lt 2 ]; then
+    echo "base option requires one argument"
+    exit 1
+  fi
+  base=$2;
+  shift 2;;
 -*) echo "unknown option $1" ;
   usage ;;
 *) echo "invalid parameter $1" ;
@@ -99,7 +108,7 @@ done
 
 case $mode in
 preinstall)
-  confs=`find . -name Makefile.am -exec grep -l 'include .*/preinstall\.am' {} \;`
+  confs=`find $base -name Makefile.am -exec grep -l 'include .*/preinstall\.am' {} \;`
   for i in $confs; do
     dir=$(dirname $i);
     test "$quite" = "true" || echo "Generating $dir/preinstall.am"
@@ -139,7 +148,7 @@ generate)
     ;;
   esac
 
-  confs=`find . \( -name 'configure.in' -o -name 'configure.ac' \) -print`
+  confs=`find $base \( -name 'configure.in' -o -name 'configure.ac' \) -print`
   for i in $confs; do
   dir=`dirname $i`;
   configure=`basename $i`;
@@ -171,7 +180,7 @@ autoreconf)
     exit 1
   fi
 
-  confs=`find . -name 'configure.ac' -print`
+  confs=`find $base -name 'configure.ac' -print $maxdepth`
   for i in $confs; do
   dir=`dirname $i`;
   configure=`basename $i`;
@@ -188,14 +197,14 @@ autoreconf)
 
 clean)
   test "$quiet" = "true" || echo "removing automake generated Makefile.in files"
-  files=`find . -name 'Makefile.am' -print | sed -e 's%\.am%\.in%g'` ;
+  files=`find $base -name 'Makefile.am' -print | sed -e 's%\.am%\.in%g'` ;
   for i in $files; do if test -f $i; then
     rm -f $i
     test "$verbose" = "-v" && echo "$i"    
   fi; done
 
   test "$quiet" = "true" || echo "removing configure files"
-  files=`find . -name 'configure' -print` ;
+  files=`find $base -name 'configure' -print` ;
   test "$verbose" = "-v" && test -n "$files" && echo "$files" ;
   for i in $files; do if test -f $i; then
     rm -f $i config.sub config.guess install-sh missing mkinstalldirs
@@ -204,25 +213,25 @@ clean)
   fi; done
   
   test "$quiet" = "true" || echo "removing aclocal.m4 files"
-  files=`find . -name 'aclocal.m4' -print` ;
+  files=`find $base -name 'aclocal.m4' -print` ;
   test "$verbose" = "-v" && test -n "$files" && echo "$files" ;
   for i in $files; do if test -f $i; then
     rm -f $i
     test "$verbose" = "-v" && echo "$i"    
   fi; done
 
-  find . -name '*~' -print | xargs rm -f
-  find . -name 'bspopts.h.in' -print | xargs rm -f
-  find . -name '*.orig' -print | xargs rm -f
-  find . -name '*.rej' -print | xargs rm -f
-  find . -name 'config.status' -print | xargs rm -f
-  find . -name 'config.log' -print | xargs rm -f
-  find . -name 'config.cache' -print | xargs rm -f
-  find . -name 'Makefile' -print | xargs rm -f
-  find . -name '.deps' -print | xargs rm -rf
-  find . -name '.libs' -print | xargs rm -rf
-  find . -name 'stamp-h.in' | xargs rm -rf
-  find . -name 'autom4te*.cache' | xargs rm -rf
+  find $base -name '*~' -print | xargs rm -f
+  find $base -name 'bspopts.h.in' -print | xargs rm -f
+  find $base -name '*.orig' -print | xargs rm -f
+  find $base -name '*.rej' -print | xargs rm -f
+  find $base -name 'config.status' -print | xargs rm -f
+  find $base -name 'config.log' -print | xargs rm -f
+  find $base -name 'config.cache' -print | xargs rm -f
+  find $base -name 'Makefile' -print | xargs rm -f
+  find $base -name '.deps' -print | xargs rm -rf
+  find $base -name '.libs' -print | xargs rm -rf
+  find $base -name 'stamp-h.in' | xargs rm -rf
+  find $base -name 'autom4te*.cache' | xargs rm -rf
   ;;
 esac
 
