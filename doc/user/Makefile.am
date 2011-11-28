@@ -14,7 +14,8 @@ GENERATED_FILES = overview.texi concepts.texi datatypes.texi init.texi \
     task.texi intr.texi clock.texi timer.texi sem.texi msg.texi event.texi \
     signal.texi part.texi region.texi dpmem.texi io.texi fatal.texi \
     schedule.texi rtmon.texi barrier.texi bsp.texi userext.texi conf.texi \
-    mp.texi stackchk.texi cpuuse.texi object.texi chains.texi cbs.texi
+    mp.texi libpci.texi stackchk.texi cpuuse.texi object.texi chains.texi \
+    cbs.texi
 
 COMMON_FILES += $(top_srcdir)/common/cpright.texi
 
@@ -160,10 +161,15 @@ conf.texi: conf.t
 mp.texi: mp.t
 	$(BMENU2) -p "Configuring a System Unlimited Objects" \
 	    -u "Top" \
+	    -n "PCI Library" < $< > $@
+
+libpci.texi: libpci.t
+	$(BMENU2) -p "Multiprocessing Manager MULTIPROCESSING_ANNOUNCE - Announce the arrival of a packet" \
+	    -u "Top" \
 	    -n "Stack Bounds Checker" < $< > $@
 
 stackchk.texi: stackchk.t
-	$(BMENU2) -p "Multiprocessing Manager MULTIPROCESSING_ANNOUNCE - Announce the arrival of a packet" \
+	$(BMENU2) -p "PCI Library PCI Shell command" \
 	    -u "Top" \
 	    -n "CPU Usage Statistics" < $< > $@
 
@@ -188,7 +194,7 @@ cbs.texi: cbs.t
 	    -n "Directive Status Codes" < $< > $@
 
 EXTRA_DIST = bsp.t cbs.t clock.t chains.t concepts.t cpuuse.t datatypes.t conf.t \
-    dpmem.t event.t fatal.t init.t intr.t io.t mp.t msg.t overview.t \
+    dpmem.t event.t fatal.t init.t intr.t io.t libpci.t mp.t msg.t overview.t \
     part.t region.t rtmon.t sem.t schedule.t signal.t stackchk.t \
     task.t timer.t userext.t $(TXT_FILES) $(PNG_FILES) $(EPS_IMAGES) \
     $(noinst_DATA)
