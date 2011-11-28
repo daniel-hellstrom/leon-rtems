@@ -15,12 +15,13 @@
  */
 
 #if defined(__sparc__)
-  #define SMC91111_SUPPORTED
+  #include <bsp.h>
+  #if defined(LEON2) || defined(LEON3)
+    #define SMC91111_SUPPORTED
+  #endif
 #endif
 
 #if defined(SMC91111_SUPPORTED)
-
-#include <bsp.h>
 
 #include <stdlib.h>
 #include <stdio.h>
