@@ -38,5 +38,10 @@ libpci_a_SOURCES += pci_get_dev.c
 libpci_a_SOURCES += pci_irq.c
 libpci_a_SOURCES += pci_print.c
 
+# Driver manager PCI bus
+libpci_a_SOURCES += pci_bus.c
+include_drvmgrdir = $(includedir)/drvmgr
+include_drvmgr_HEADERS = pci_bus.h
+
 include $(srcdir)/preinstall.am
 include $(top_srcdir)/automake/local.am
