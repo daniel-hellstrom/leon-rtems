@@ -3,7 +3,10 @@
 CC=/opt/rtems-4.10/bin/sparc-rtems-gcc
 CFLAGS=-Wall -I. -I/opt/rtems-4.10/sparc-rtems/leon3/lib/include -g3 -O3 -c
 
-.PHONY: pci
+.PHONY: drvmgr pci
+
+drvmgr:
+	$(CC) $(CFLAGS) pci_bus.c
 
 pci:
 	$(CC) $(CFLAGS) pci_access.c
