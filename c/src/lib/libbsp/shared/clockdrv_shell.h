@@ -56,14 +56,6 @@ rtems_isr Clock_isr(
   rtems_vector_number vector
 )
 {
-#if 0
-  /* Ack tick and check that IRQ really happened if Clock IRQ is shared
-   * between other sources
-   */
-  if (Clock_driver_ack_irq())
-    return;
-#endif
-
   /*
    *  Accurate count of ISRs
    */
