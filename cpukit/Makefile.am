@@ -11,6 +11,7 @@ include $(top_srcdir)/automake/multilib.am
 SUBDIRS = . score rtems sapi posix itron
 SUBDIRS += libcsupport libblock libfs
 SUBDIRS += libnetworking librpc
+SUBDIRS += libpci
 SUBDIRS += libi2c
 SUBDIRS += libmisc
 SUBDIRS += libmd

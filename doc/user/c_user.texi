@@ -107,6 +107,7 @@
 @include userext.texi
 @include conf.texi
 @include mp.texi
+@include libpci.texi
 @include stackchk.texi
 @include cpuuse.texi
 @include object.texi
@@ -147,6 +148,7 @@ This is the online version of the RTEMS C User's Guide.
 * User Extensions Manager::
 * Configuring a System::
 * Multiprocessing Manager::
+* PCI Library::
 * Stack Bounds Checker::
 * CPU Usage Statistics::
 * Object Services::
