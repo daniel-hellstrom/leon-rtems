@@ -105,7 +105,7 @@ libshell_a_SOURCES = shell/cat_file.c shell/cmds.c shell/internal.h \
     shell/main_mkrfs.c shell/main_debugrfs.c \
     shell/main_lsof.c \
     shell/shell-wait-for-input.c \
-    shell/main_pci.c
+    shell/main_drvmgr.c shell/main_pci.c
 
 if LIBNETWORKING
 libshell_a_SOURCES += \
