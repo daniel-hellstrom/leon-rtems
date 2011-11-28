@@ -15,7 +15,6 @@ pci:
 	$(CC) $(CFLAGS) pci_access_mem_be.c
 	$(CC) $(CFLAGS) pci_access_mem.c
 	$(CC) $(CFLAGS) pci_access_mem_le.c
-	$(CC) $(CFLAGS) pci_bus.c
 	$(CC) $(CFLAGS) pci_cfg_auto.c
 	$(CC) $(CFLAGS) pci_cfg.c
 	$(CC) $(CFLAGS) pci_cfg_peripheral.c
