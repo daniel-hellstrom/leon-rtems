@@ -31,7 +31,7 @@
 
 scmv91111_configuration_t leon_scmv91111_configuration = {
   SMC91111_BASE_ADDR, /* base address */
-  SMC91111_BASE_IRQ,  /* vector number to IRQ funcs (on LEON IRQ is used) */
+  SMC91111_BASE_IRQ,  /* IRQ number to IRQ funcs */
   SMC91111_BASE_PIO,  /* PIO */
   100,                /* 100b */
   1,                  /* fulldx */

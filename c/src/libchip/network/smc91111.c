@@ -59,12 +59,6 @@
 #include "smc91111config.h"
 #include <libchip/smc91111.h>
 
-#if defined(__m68k__)
-extern m68k_isr_entry set_vector( rtems_isr_entry, rtems_vector_number, int );
-#else
-extern rtems_isr_entry set_vector( rtems_isr_entry, rtems_vector_number, int );
-#endif
-
 struct lan91cxx_priv_data smc91111;
 
 int lan91cxx_hardware_init(struct lan91cxx_priv_data *cpd);
@@ -1056,8 +1050,8 @@ int lan91cxx_hardware_init(struct lan91cxx_priv_data *cpd)
 	cpd->txbusy = cpd->within_send = 0;
 
 	/* install interrupt vector */
-	db_printf("Install lan91cxx irqvector at %d\n", cpd->config.vector);
-	rc = rtems_interrupt_handler_install(cpd->config.vector, "smc91cxx",
+	db_printf("Install lan91cxx isr at irq %d\n", cpd->config.irq);
+	rc = rtems_interrupt_handler_install(cpd->config.irq, "smc91cxx",
 		RTEMS_INTERRUPT_SHARED, lan91cxx_interrupt_handler, cpd);
 	if (rc != RTEMS_SUCCESSFUL)
 		return 0;
