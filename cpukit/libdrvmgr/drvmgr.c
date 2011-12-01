@@ -497,6 +497,14 @@ int drvmgr_dev_register(struct drvmgr_dev *dev)
 		drv = drvmgr_dev_find_drv(dev);
 	}
 
+	DRVMGR_LOCK_WRITE();
+
+	/* Assign Bus Minor number and put into bus device list
+	 * unless root device.
+	 */
+	if (bus)
+		drvmgr_insert_dev_into_bus(bus, dev);
+
 	dev->drv = drv;
 	if (!drv) {
 		/* No driver found that can handle this device, put into
@@ -551,25 +559,15 @@ int drvmgr_dev_register(struct drvmgr_dev *dev)
 		}
 	}
 
-	DRVMGR_LOCK_WRITE();
-
 	drvmgr_list_add_tail(init_list, dev);
 
-	if (bus) {
-		/* Assign Bus Minor number and put into bus device list
-		 * unless root device.
-		 */
-		drvmgr_insert_dev_into_bus(bus, dev);
+	DRVMGR_UNLOCK();
 
-		DRVMGR_UNLOCK();
-
-		/* Trigger Device initialization if not root device and
-		 * has a driver
-		 */
-		if (dev->drv)
-			drvmgr_init_update();
-	} else
-		DRVMGR_UNLOCK();
+	/* Trigger Device initialization if not root device and
+	 * has a driver
+	 */
+	if (bus && dev->drv)
+		drvmgr_init_update();
 
 	return 0;
 }
