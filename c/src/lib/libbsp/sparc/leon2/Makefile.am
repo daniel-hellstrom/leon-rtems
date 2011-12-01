@@ -49,7 +49,8 @@ libbsp_a_SOURCES += \
 	../../shared/sbrk.c \
 	startup/setvec.c \
 	startup/spurious.c \
-	startup/bspidle.c
+	startup/bspidle.c \
+	../../sparc/shared/startup/early_malloc.c
 
 # gnatsupp
 libbsp_a_SOURCES += gnatsupp/gnatsupp.c ../../sparc/shared/gnatcommon.c

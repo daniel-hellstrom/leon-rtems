@@ -19,12 +19,11 @@
 /* Tells us where to put the workspace in case remote debugger is present. */
 extern uint32_t rdb_start;
 
+/* Must be aligned to 8 */
+extern unsigned int early_mem;
+
 /* must be identical to STACK_SIZE in start.S */
 #define STACK_SIZE (16 * 1024)
-
-/* _end aligned to 8 */
-extern int _end;
-unsigned int early_mem = (unsigned int)&_end;
 
 void *bsp_early_malloc(int size)
 {

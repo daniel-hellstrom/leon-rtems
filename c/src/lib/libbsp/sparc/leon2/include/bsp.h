@@ -95,7 +95,8 @@ void BSP_fatal_return( void );
 
 void bsp_spurious_initialize( void );
 
-/*** Shared system interrupt handling ***/
+/* Allocate 8-byte aligned non-freeable pre-malloc memory */
+void *bsp_early_malloc(int size);
 
 /* Interrupt Service Routine (ISR) pointer */
 typedef void (*bsp_shared_isr)(void *arg);
