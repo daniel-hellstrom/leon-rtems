@@ -349,8 +349,8 @@ greth_initialize_hardware (struct greth_softc *sc)
             }
             while (!(((phystatus = read_mii(phyaddr, 1)) >> 5) & 1)) {
                     if ( rtems_clock_get_tod_timeval(&tnow) != RTEMS_SUCCESSFUL )
-                      printk("rtems_clock_get_tod_timeval failed\n\r");
-                    msecs = (tnow.tv_sec-tstart.tv_sec)*1000+(tnow.tv_usec-tstart.tv_usec)/1000;
+                      printk("rtems_clock_get failed\n\r");
+                    msecs = (int)(tnow.tv_sec-tstart.tv_sec)*1000+((int)tnow.tv_usec-(int)tstart.tv_usec)/1000;
                     if ( msecs > GRETH_AUTONEGO_TIMEOUT_MS ){
                             sc->auto_neg_time = msecs;
                             sc->auto_neg = -1; /* Failed */
