@@ -47,13 +47,6 @@
 #undef free
 #endif
 
-#if defined(__m68k__)
-extern m68k_isr_entry set_vector( rtems_isr_entry, rtems_vector_number, int );
-#else
-extern rtems_isr_entry set_vector( rtems_isr_entry, rtems_vector_number, int );
-#endif
-
-
 /* #define GRETH_DEBUG */
 
 #ifdef CPU_U32_FIX
@@ -138,7 +131,7 @@ struct greth_softc
    greth_rxtxdesc *rxdesc;
    struct mbuf **rxmbuf;
    struct mbuf **txmbuf;
-   rtems_vector_number vector;
+   int irq;
 
    /* TX descriptor interrupt generation */
    int tx_int_gen;
@@ -191,8 +184,7 @@ static char *almalloc(int sz)
 
 /* GRETH interrupt handler */
 
-rtems_isr
-greth_interrupt_handler (rtems_vector_number v)
+void greth_interrupt_handler (void *arg)
 {
         uint32_t status;
         uint32_t ctrl;
@@ -502,8 +494,9 @@ auto_neg_done:
     /* clear all pending interrupts */
     regs->status = 0xffffffff;
     
-    /* install interrupt vector */
-    set_vector(greth_interrupt_handler, sc->vector, 1);
+    /* install interrupt handler */
+    rtems_interrupt_handler_install(sc->irq, "greth", RTEMS_INTERRUPT_SHARED,
+                                    greth_interrupt_handler, sc);
 
     regs->ctrl |= GRETH_CTRL_RXEN | (sc->fd << 4) | GRETH_CTRL_RXIRQ | (sc->sp << 7) | (sc->gb << 8);
 
@@ -1184,7 +1177,7 @@ rtems_greth_driver_attach (struct rtems_bsdnet_ifconfig *config,
 
     sc->acceptBroadcast = !config->ignore_broadcast;
     sc->regs = (void *) chip->base_address;
-    sc->vector = chip->vector;
+    sc->irq = chip->irq;
     sc->txbufs = chip->txd_count;
     sc->rxbufs = chip->rxd_count;
 
