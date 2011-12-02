@@ -12,9 +12,14 @@
  */
 
 #include <rtems.h>
-
-#define GRETH_SUPPORTED
 #include <bsp.h>
+
+/* This driver is only supported by the LEON BSPs */
+#if defined(LEON3) || defined(LEON2)
+  #define GRETH_SUPPORTED
+#endif
+
+#ifdef GRETH_SUPPORTED
 
 #include <inttypes.h>
 #include <errno.h>
@@ -54,6 +59,14 @@ extern rtems_isr_entry set_vector( rtems_isr_entry, rtems_vector_number, int );
 #ifdef CPU_U32_FIX
 extern void ipalign(struct mbuf *m);
 #endif
+
+static inline unsigned int sparc_load_no_cache(unsigned int addr)
+{
+	unsigned int tmp;
+	asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr) );
+	return tmp;
+}
+#define NO_CACHE_LOAD(addr) sparc_load_no_cache(addr)
 
 /*
  * Number of OCs supported by this driver
@@ -497,6 +510,47 @@ auto_neg_done:
     print_init_info(sc);
 }
 
+#ifdef CPU_U32_FIX
+
+/*
+ * Routine to align the received packet so that the ip header
+ * is on a 32-bit boundary. Necessary for cpu's that do not
+ * allow unaligned loads and stores and when the 32-bit DMA
+ * mode is used.
+ *
+ * Transfers are done on word basis to avoid possibly slow byte
+ * and half-word writes.
+ */
+
+void ipalign(struct mbuf *m)
+{
+  unsigned int *first, *last, data;
+  unsigned int tmp = 0;
+
+  if ((((int) m->m_data) & 2) && (m->m_len)) {
+    last = (unsigned int *) ((((int) m->m_data) + m->m_len + 8) & ~3);
+    first = (unsigned int *) (((int) m->m_data) & ~3);
+		/* tmp = *first << 16; */
+		asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(first) );
+		tmp = tmp << 16;
+    first++;
+    do {
+			/* When snooping is not available the LDA instruction must be used
+			 * to avoid the cache to return an illegal value.
+			 ** Load with forced cache miss
+			 * data = *first; 
+			 */
+      asm volatile (" lda [%1] 1, %0\n" : "=r"(data) : "r"(first) );
+      *first = tmp | (data >> 16);
+      tmp = data << 16;
+      first++;
+    } while (first <= last);
+
+    m->m_data = (caddr_t)(((int) m->m_data) + 2);
+  }
+}
+#endif
+
 void
 greth_Daemon (void *arg)
 {
@@ -508,6 +562,8 @@ greth_Daemon (void *arg)
     rtems_event_set events;
     rtems_interrupt_level level;
     int first;
+    int tmp;
+    unsigned int addr;
 
     for (;;)
       {
@@ -537,7 +593,7 @@ greth_Daemon (void *arg)
     /* Scan for Received packets */
 again:
     while (!((len_status =
-		    dp->rxdesc[dp->rx_ptr].ctrl) & GRETH_RXD_ENABLE))
+		    NO_CACHE_LOAD(&dp->rxdesc[dp->rx_ptr].ctrl)) & GRETH_RXD_ENABLE))
 	    {
                     bad = 0;
                     if (len_status & GRETH_RXD_TOOLONG)
@@ -581,12 +637,27 @@ again:
                                     len - sizeof (struct ether_header);
 
                             eh = mtod (m, struct ether_header *);
+
+                            /* OVERRIDE CACHED ETHERNET HEADER FOR NON-SNOOPING SYSTEMS */
+                            addr = (unsigned int)eh;
+                            asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr) );
+                            addr+=4;
+                            asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr) );
+                            addr+=4;
+                            asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr) );
+                            addr+=4;
+                            asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr) );
+
                             m->m_data += sizeof (struct ether_header);
 #ifdef CPU_U32_FIX
                             if(!(dp->gbit_mac))
                                     ipalign(m);	/* Align packet on 32-bit boundary */
 #endif
-
+/*
+                            if(!(dp->gbit_mac) && !CPU_SPARC_HAS_SNOOPING) {
+                                    rtems_cache_invalidate_entire_data();
+                            }
+*/
                             ether_input (ifp, eh, m);
                             MGETHDR (m, M_WAIT, MT_DATA);
                             MCLGET (m, M_WAIT);
@@ -639,7 +710,7 @@ sendpacket (struct ifnet *ifp, struct mbuf *m)
     /*
      * Is there a free descriptor available?
      */
-    if ( dp->txdesc[dp->tx_ptr].ctrl & GRETH_TXD_ENABLE ){
+    if ( NO_CACHE_LOAD(&dp->txdesc[dp->tx_ptr].ctrl) & GRETH_TXD_ENABLE ){
             /* No. */
             inside = 0;
             return 1;
@@ -649,7 +720,7 @@ sendpacket (struct ifnet *ifp, struct mbuf *m)
     n = m;
 
     len = 0;
-    temp = (unsigned char *) dp->txdesc[dp->tx_ptr].addr;
+    temp = (unsigned char *) NO_CACHE_LOAD(&dp->txdesc[dp->tx_ptr].addr);
 #ifdef GRETH_DEBUG
     printf("TXD: 0x%08x : BUF: 0x%08x\n", (int) m->m_data, (int) temp);
 #endif
@@ -812,7 +883,7 @@ int greth_process_tx_gbit(struct greth_softc *sc)
      */
     for (;;){
         /* Reap Sent packets */
-        while((sc->tx_cnt > 0) && !(sc->txdesc[sc->tx_dptr].ctrl) && !(sc->txdesc[sc->tx_dptr].ctrl & GRETH_TXD_ENABLE)) {
+        while((sc->tx_cnt > 0) && !(NO_CACHE_LOAD(&sc->txdesc[sc->tx_dptr].ctrl) & GRETH_TXD_ENABLE)) {
             m_free(sc->txmbuf[sc->tx_dptr]);
             sc->tx_dptr = (sc->tx_dptr + 1) % sc->txbufs;
             sc->tx_cnt--;
@@ -1144,3 +1215,4 @@ rtems_greth_driver_attach (struct rtems_bsdnet_ifconfig *config,
     return 1;
 };
 
+#endif
