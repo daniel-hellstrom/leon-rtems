@@ -12,9 +12,14 @@
  */
 
 #include <rtems.h>
-
-#define GRETH_SUPPORTED
 #include <bsp.h>
+
+/* This driver is only supported by the LEON BSPs */
+#if defined(LEON3) || defined(LEON2)
+  #define GRETH_SUPPORTED
+#endif
+
+#ifdef GRETH_SUPPORTED
 
 #include <inttypes.h>
 #include <errno.h>
@@ -41,13 +46,6 @@
 #ifdef free
 #undef free
 #endif
-
-#if defined(__m68k__)
-extern m68k_isr_entry set_vector( rtems_isr_entry, rtems_vector_number, int );
-#else
-extern rtems_isr_entry set_vector( rtems_isr_entry, rtems_vector_number, int );
-#endif
-
 
 /* #define GRETH_DEBUG */
 
@@ -133,7 +131,7 @@ struct greth_softc
    greth_rxtxdesc *rxdesc;
    struct mbuf **rxmbuf;
    struct mbuf **txmbuf;
-   rtems_vector_number vector;
+   int irq;
 
    /* TX descriptor interrupt generation */
    int tx_int_gen;
@@ -186,8 +184,7 @@ static char *almalloc(int sz)
 
 /* GRETH interrupt handler */
 
-rtems_isr
-greth_interrupt_handler (rtems_vector_number v)
+void greth_interrupt_handler (void *arg)
 {
         uint32_t status;
         uint32_t ctrl;
@@ -206,20 +203,20 @@ greth_interrupt_handler (rtems_vector_number v)
                 ctrl &= ~GRETH_CTRL_RXIRQ;
                 events |= INTERRUPT_EVENT;
         }
-
+        
         if ( (ctrl & GRETH_CTRL_TXIRQ) && (status & (GRETH_STATUS_TXERR | GRETH_STATUS_TXIRQ)) )
         {
                 greth.txInterrupts++;
                 ctrl &= ~GRETH_CTRL_TXIRQ;
                 events |= GRETH_TX_WAIT_EVENT;
         }
-
+        
         /* Clear interrupt sources */
         greth.regs->ctrl = ctrl;
-
+        
         /* Send the event(s) */
         if ( events )
-                rtems_event_send (greth.daemonTid, events);
+            rtems_event_send (greth.daemonTid, events);
 }
 
 static uint32_t read_mii(uint32_t phy_addr, uint32_t reg_addr)
@@ -344,8 +341,8 @@ greth_initialize_hardware (struct greth_softc *sc)
             }
             while (!(((phystatus = read_mii(phyaddr, 1)) >> 5) & 1)) {
                     if ( rtems_clock_get_tod_timeval(&tnow) != RTEMS_SUCCESSFUL )
-                      printk("rtems_clock_get_tod_timeval failed\n\r");
-                    msecs = (tnow.tv_sec-tstart.tv_sec)*1000+(tnow.tv_usec-tstart.tv_usec)/1000;
+                      printk("rtems_clock_get failed\n\r");
+                    msecs = (int)(tnow.seconds-tstart.seconds)*1000+((int)tnow.microseconds-(int)tstart.microseconds)/1000;
                     if ( msecs > GRETH_AUTONEGO_TIMEOUT_MS ){
                             sc->auto_neg_time = msecs;
                             sc->auto_neg = -1; /* Failed */
@@ -397,7 +394,7 @@ auto_neg_done:
     phystatus = read_mii(phyaddr, 1);
 
     /*Read out PHY info if extended registers are available */
-    if (phystatus & 1) {
+    if (phystatus & 1) {  
             tmp1 = read_mii(phyaddr, 2);
             tmp2 = read_mii(phyaddr, 3);
 
@@ -497,8 +494,9 @@ auto_neg_done:
     /* clear all pending interrupts */
     regs->status = 0xffffffff;
     
-    /* install interrupt vector */
-    set_vector(greth_interrupt_handler, sc->vector, 2);
+    /* install interrupt handler */
+    rtems_interrupt_handler_install(sc->irq, "greth", RTEMS_INTERRUPT_SHARED,
+                                    greth_interrupt_handler, sc);
 
     regs->ctrl |= GRETH_CTRL_RXEN | (sc->fd << 4) | GRETH_CTRL_RXIRQ | (sc->sp << 7) | (sc->gb << 8);
 
@@ -575,7 +573,7 @@ greth_Daemon (void *arg)
                 greth_process_tx_gbit(dp);
             else
                 greth_process_tx(dp);
-
+            
             /* If we didn't get a RX interrupt we don't process it */
             if ( (events & INTERRUPT_EVENT) == 0 )
                 continue;
@@ -633,15 +631,15 @@ again:
 
                             eh = mtod (m, struct ether_header *);
 
-														/* OVERRIDE CACHED ETHERNET HEADER FOR NON-SNOOPING SYSTEMS */
-														addr = (unsigned int)eh;
-														asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr) );
-														addr+=4;
-														asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr) );
-														addr+=4;
-														asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr) );
-														addr+=4;
-														asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr) );
+                            /* OVERRIDE CACHED ETHERNET HEADER FOR NON-SNOOPING SYSTEMS */
+                            addr = (unsigned int)eh;
+                            asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr) );
+                            addr+=4;
+                            asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr) );
+                            addr+=4;
+                            asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr) );
+                            addr+=4;
+                            asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr) );
 
                             m->m_data += sizeof (struct ether_header);
 #ifdef CPU_U32_FIX
@@ -674,7 +672,7 @@ again:
                     rtems_interrupt_enable(level);
                     dp->rx_ptr = (dp->rx_ptr + 1) % dp->rxbufs;
             }
-        
+
         /* Always scan twice to avoid deadlock */
         if ( first ){
             first=0;
@@ -701,7 +699,7 @@ sendpacket (struct ifnet *ifp, struct mbuf *m)
     /*printf("Send packet entered\n");*/
     if (inside) printf ("error: sendpacket re-entered!!\n");
     inside = 1;
-    
+
     /*
      * Is there a free descriptor available?
      */
@@ -710,7 +708,7 @@ sendpacket (struct ifnet *ifp, struct mbuf *m)
             inside = 0;
             return 1;
     }
-    
+
     /* Remember head of chain */
     n = m;
 
@@ -787,22 +785,23 @@ sendpacket_gbit (struct ifnet *ifp, struct mbuf *m)
             frags++;
             mtmp = mtmp->m_next;
         }
-
+        
         if ( frags > dp->max_fragsize ) 
             dp->max_fragsize = frags;
-
+        
         if ( frags > dp->txbufs ){
             inside = 0;
             printf("GRETH: MBUF-chain cannot be sent. Increase descriptor count.\n");
             return -1;
         }
-
+        
         if ( frags > (dp->txbufs-dp->tx_cnt) ){
             inside = 0;
             /* Return number of fragments */
             return frags;
         }
-
+        
+        
         /* Enable interrupt from descriptor every tx_int_gen
          * descriptor. Typically every 16 descriptor. This
          * is only to reduce the number of interrupts during
@@ -815,11 +814,11 @@ sendpacket_gbit (struct ifnet *ifp, struct mbuf *m)
         }else{
             int_en = 0;
         }
-
+        
         /* At this stage we know that enough descriptors are available */
         for (;;)
         {
-
+                
 #ifdef GRETH_DEBUG
             int i;
             printf("MBUF: 0x%08x, Len: %d : ", (int) m->m_data, m->m_len);
@@ -837,7 +836,7 @@ sendpacket_gbit (struct ifnet *ifp, struct mbuf *m)
                 ctrl = GRETH_TXD_ENABLE | GRETH_TXD_CS | GRETH_TXD_WRAP;
             }
 
-            /* Enable Descriptor */  
+            /* Enable Descriptor */
             if ((m->m_next) == NULL) {
                 dp->txdesc[dp->tx_ptr].ctrl = ctrl | int_en | m->m_len;
                 break;
@@ -851,10 +850,10 @@ sendpacket_gbit (struct ifnet *ifp, struct mbuf *m)
             dp->tx_cnt++;
             m = m->m_next;
         }
-
         dp->txmbuf[dp->tx_ptr] = m;
         dp->tx_ptr = (dp->tx_ptr + 1) % dp->txbufs;
         dp->tx_cnt++;
+
         /* Tell Hardware about newly enabled descriptor */
         rtems_interrupt_disable(level);
         dp->regs->ctrl = dp->regs->ctrl | GRETH_CTRL_TXEN;
@@ -914,7 +913,7 @@ int greth_process_tx_gbit(struct greth_softc *sc)
             sc->next_tx_mbuf = m;
 
             /* Not enough resources, enable interrupt for transmissions
-             * this way we will be informed when more TX-descriptors are
+             * this way we will be informed when more TX-descriptors are 
              * available.
              */
             if ( first ){
@@ -949,8 +948,7 @@ int greth_process_tx(struct greth_softc *sc)
     /*
      * Send packets till queue is empty
      */
-    for (;;)
-    {
+    for (;;){
         if ( sc->next_tx_mbuf ){
             /* Get packet we tried but failed to transmit last time */
             m = sc->next_tx_mbuf;
@@ -981,7 +979,7 @@ int greth_process_tx(struct greth_softc *sc)
             sc->next_tx_mbuf = m;
 
             /* Not enough resources, enable interrupt for transmissions
-             * this way we will be informed when more TX-descriptors are
+             * this way we will be informed when more TX-descriptors are 
              * available.
              */
             if ( first ){
@@ -990,7 +988,7 @@ int greth_process_tx(struct greth_softc *sc)
                 ifp->if_flags |= IFF_OACTIVE;
                 sc->regs->ctrl |= GRETH_CTRL_TXIRQ;
                 rtems_interrupt_enable(level);
-                
+
                 /* We must check again to be sure that we didn't 
                  * miss an interrupt (if a packet was sent just before
                  * enabling interrupts)
@@ -1012,7 +1010,7 @@ greth_start (struct ifnet *ifp)
     struct greth_softc *sc = ifp->if_softc;
 
     if ( ifp->if_flags & IFF_OACTIVE )
-        return;
+            return;
 
     if ( sc->gbit_mac ){
         /* No use trying to handle this if we are waiting on GRETH
@@ -1036,16 +1034,17 @@ greth_init (void *arg)
 
     if (sc->daemonTid == 0) {
 
-      /*
-       * Start driver tasks
-       */
-      sc->daemonTid = rtems_bsdnet_newproc ("DCrxtx", 4096,
-                                            greth_Daemon, sc);
+        /*
+         * Start driver tasks
+         */
+        sc->daemonTid = rtems_bsdnet_newproc ("DCrxtx", 4096,
+                                              greth_Daemon, sc);
 
-      /*
-       * Set up GRETH hardware
-       */
-      greth_initialize_hardware (sc);
+        /*
+         * Set up GRETH hardware
+         */
+        greth_initialize_hardware (sc);
+
     }
 
     /*
@@ -1178,7 +1177,7 @@ rtems_greth_driver_attach (struct rtems_bsdnet_ifconfig *config,
 
     sc->acceptBroadcast = !config->ignore_broadcast;
     sc->regs = (void *) chip->base_address;
-    sc->vector = chip->vector;
+    sc->irq = chip->irq;
     sc->txbufs = chip->txd_count;
     sc->rxbufs = chip->rxd_count;
 
@@ -1209,3 +1208,4 @@ rtems_greth_driver_attach (struct rtems_bsdnet_ifconfig *config,
     return 1;
 };
 
+#endif
