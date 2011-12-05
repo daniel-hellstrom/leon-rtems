@@ -36,12 +36,14 @@ void Signal_handler(
 )
 {
   Signal_count++;
+#if 0
   printf(
     "Signal: %d caught by 0x%" PRIxpthread_t " (%d)\n",
     signo,
     pthread_self(),
     Signal_count
   );
+#endif
   Signal_occurred = 1;
 }
 
