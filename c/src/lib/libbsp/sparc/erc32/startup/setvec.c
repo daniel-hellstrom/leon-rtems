@@ -40,7 +40,7 @@ rtems_isr_entry set_vector(                   /* returns old vector */
   uint32_t        real_trap;
   uint32_t        source;
 
-  if ( type )
+  if ( type == SET_VECTOR_INT )
     rtems_interrupt_catch( handler, vector, &previous_isr );
   else
     _CPU_ISR_install_raw_handler( vector, handler, (void *)&previous_isr );
