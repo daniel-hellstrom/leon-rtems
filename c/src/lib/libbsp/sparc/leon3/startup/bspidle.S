@@ -24,6 +24,7 @@
         PUBLIC(bsp_idle_thread)
 SYM(bsp_idle_thread):
 pwdloop:  mov   %g0, %asr19
+	  lda	[%sp] 1, %g0		! Needed for UT699 and GR712
           ba    pwdloop
           nop
           retl
