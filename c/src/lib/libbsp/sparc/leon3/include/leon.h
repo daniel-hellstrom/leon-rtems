@@ -134,8 +134,6 @@ typedef struct {
 #define LEON_REG_UART_STATUS_TF   0x00000200 /* FIFO Full */
 #define LEON_REG_UART_STATUS_ERR  0x00000078 /* Error Mask */
 
-
-
 /*
  *  The following defines the bits in the LEON UART Status Registers.
  */
