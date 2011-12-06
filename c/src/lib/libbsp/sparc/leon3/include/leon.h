@@ -46,10 +46,6 @@ extern "C" {
   ( (_trap) >= 0x11 && \
     (_trap) <= 0x1F )
 
-#define LEON_EINT_TRAP( _trap ) \
-  ( (_trap) >= 0x11 && \
-    (_trap) <= 0x2F )
-
 typedef struct {
   volatile unsigned int data;
   volatile unsigned int status;
