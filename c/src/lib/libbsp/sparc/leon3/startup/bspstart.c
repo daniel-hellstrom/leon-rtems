@@ -37,8 +37,8 @@ extern void bsp_debug_uart_init(void);
  * set_snooping
  *
  * Read the data cache configuration register to determine if
- * bus snooping is available. This is needed for some drivers so
- * that they can select the most efficient copy routines.
+ * bus snooping is available and enabled. This is needed for some
+ * drivers so that they can select the most efficient copy routines.
  *
  */
 
