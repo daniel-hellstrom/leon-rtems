@@ -57,7 +57,9 @@ struct drvmgr_bus_res leon2_amba_res __attribute__((weak)) =
  */
 void bsp_predriver_hook(void)
 {
-  /* Initialize shared interrupt handling */
+  /* Initialize shared interrupt handling, must be done after IRQ
+   * controller has been found and initialized.
+   */
   BSP_shared_interrupt_init();
 
 #ifdef RTEMS_DRVMGR_STARTUP
