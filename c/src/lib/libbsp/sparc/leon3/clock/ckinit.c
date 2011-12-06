@@ -71,7 +71,7 @@ extern int find_matching_adev(struct ambapp_dev *dev, int index, void *arg);
 #define Clock_driver_support_find_timer() \
   do { \
     int cnt; \
-		struct ambapp_dev *adev; \
+    struct ambapp_dev *adev; \
     \
     /* Find LEON3 GP Timer */ \
     cnt = ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), \
@@ -79,7 +79,7 @@ extern int find_matching_adev(struct ambapp_dev *dev, int index, void *arg);
     if ( cnt > 0 ){ \
       /* Found APB GPTIMER Timer */ \
       LEON3_Timer_Regs = (volatile LEON3_Timer_Regs_Map *) \
-			  ((struct ambapp_apb_info *)adev->devinfo)->start; \
+                         ((struct ambapp_apb_info *)adev->devinfo)->start; \
       clkirq = (LEON3_Timer_Regs->status & 0xf8) >> 3; \
       \
       Adjust_clkirq_for_node(); \
