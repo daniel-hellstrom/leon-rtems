@@ -32,9 +32,6 @@
 
 #include <bsp.h>
 
-#define SET_VECTOR_RAW  0  /* Raw trap handler */
-#define SET_VECTOR_INT  1  /* Trap handler with _ISR_Handler interrupt handler */
-
 rtems_isr_entry set_vector(                   /* returns old vector */
   rtems_isr_entry     handler,                /* isr routine        */
   rtems_vector_number vector,                 /* vector number      */
