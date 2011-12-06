@@ -132,7 +132,6 @@ typedef struct {
 #define LEON_REG_UART_STATUS_FE   0x00000040 /* RX Framing Error */
 #define LEON_REG_UART_STATUS_ERR  0x00000078 /* Error Mask */
 
-
 /*
  *  The following defines the bits in the LEON UART Status Registers.
  */
@@ -150,6 +149,7 @@ extern volatile LEON3_IrqCtrl_Regs_Map *LEON3_IrqCtrl_Regs;  /* LEON3 Interrupt 
 extern volatile LEON3_Timer_Regs_Map *LEON3_Timer_Regs; /* LEON3 GP Timer */
 extern volatile LEON3_UART_Regs_Map *LEON3_Console_Uart[LEON3_APBUARTS];
 
+/* LEON3 CPU Index of boot CPU */
 extern int LEON3_Cpu_Index;
 
 /* The external IRQ number, -1 if not external interrupts */
@@ -168,7 +168,6 @@ static __inline__ int leon_irq_fixup(int irq)
 
 	return irq;
 }
-
 
 /* Macros used for manipulating bits in LEON3 GP Timer Control Register */
 
@@ -208,7 +207,6 @@ static __inline__ int leon_irq_fixup(int irq)
   do {\
      (LEON3_IrqCtrl_Regs->mask[LEON3_Cpu_Index] & (1 << (_source))); \
    } while (0)
-
 
 #define LEON_Mask_interrupt( _source ) \
   do { \
