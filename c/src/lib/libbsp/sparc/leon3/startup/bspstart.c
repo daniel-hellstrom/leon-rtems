@@ -85,11 +85,3 @@ void bsp_start( void )
   /* find debug UART for printk() */
   bsp_debug_uart_init();
 }
-
-void bsp_predriver_hook( void )
-{
-  /* Initialize shared interrupt handling, must be done after extended 
-   * interrupt controller has been registered.
-   */
-  BSP_shared_interrupt_init();
-}

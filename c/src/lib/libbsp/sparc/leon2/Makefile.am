@@ -41,7 +41,7 @@ libbsp_a_SOURCES += \
 	../../shared/bspclean.c \
 	../../shared/bsplibc.c \
 	../../shared/bsppost.c \
-	startup/predriver.c \
+	startup/bsppredriver.c \
 	startup/bspstart.c \
 	../../sparc/shared/bsppretaskinghook.c \
 	../../sparc/shared/bspgetworkarea.c \
