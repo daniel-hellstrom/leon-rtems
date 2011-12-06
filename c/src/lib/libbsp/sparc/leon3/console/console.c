@@ -26,9 +26,6 @@
 
 #ifndef RTEMS_DRVMGR_STARTUP
 
-/* First UART found in AMBA Plug & Play used */
-#define LEON3_UART_INDEX 0
-
 #if CONSOLE_USE_INTERRUPTS && defined(RTEMS_MULTIPROCESSING)
 #error LEON3 console driver does not support interrupt mode in multi processor systems
 #endif
@@ -77,36 +74,28 @@ void console_isr_handler(struct apbuart_priv *uart)
 {
   unsigned int status;
   char data;
-  
+
   /* Clear interrupt */
   LEON_Clear_interrupt(uart->irq);
-  
+
   /* Get all received characters */
   while ( (status=uart->regs->status) & LEON_REG_UART_STATUS_DR ){
     /* Data has arrived, get new data */
     data = uart->regs->data;
-    
+
     /* Tell termios layer about new character */
     rtems_termios_enqueue_raw_characters(uart->cookie,&data,1);
   }
-  
+
   if ( status & LEON_REG_UART_STATUS_THE ){
     /* Sent the one char, we disable TX interrupts */
     uart->regs->ctrl &= ~LEON_REG_UART_CTRL_TI;
-    
+
     /* Tell close that we sent everything */
     uart->sending = 0;
-  
+
     /* write_interrupt will get called from this function */
     rtems_termios_dequeue_characters(uart->cookie,1);
-#if 0
-    /* More to transmit? */
-    if ( (left>0) ){
-      uart->regs->data = uart->buf;
-      uart->buf++;
-      uart->left--;
-    }
-#endif
   }
 }
 
@@ -132,27 +121,26 @@ int console_write_interrupt (int minor, const char *buf, int len)
 {
   struct apbuart_priv *uart;
   unsigned int oldLevel;
-  
-  uart = &apbuarts[minor+LEON3_Cpu_Index];
-  
+
+  if ( minor == 0 )
+    minor = LEON3_Cpu_Index;
+
+  uart = &apbuarts[minor];
+
   /* Remember what position in buffer */
-#if 0
-  uart->buf = buf+1;
-  uart->left = len-1;
-#endif
 
   rtems_interrupt_disable(oldLevel);
-  
+
   /* Enable TX interrupt */
   uart->regs->ctrl |= LEON_REG_UART_CTRL_TI;
 
   /* start UART TX, this will result in an interrupt when done */
   uart->regs->data = *buf;
-  
+
   uart->sending = 1;
-  
+
   rtems_interrupt_enable(oldLevel);
-  
+
   return 0;
 }
 #endif
@@ -166,7 +154,8 @@ ssize_t console_write_polled (int minor, const char *buf, size_t len)
   int nwrite = 0;
   struct apbuart_priv *uart;
 
-  minor += LEON3_Cpu_Index;
+  if ( minor == 0 )
+    minor = LEON3_Cpu_Index;
 
   if ( minor >= uarts )
     return -1;
@@ -198,41 +187,42 @@ int console_set_attributes(int minor, const struct termios *t)
       break;
   }
 
-  minor += LEON3_Cpu_Index;
+  if ( minor == 0 )
+    minor = LEON3_Cpu_Index;
 
   if ( minor >= uarts )
     return -1;
-  
+
   uart = &apbuarts[minor];
-  
+
   /* Read out current value */
   ctrl = uart->regs->ctrl;
-  
+
   switch(t->c_cflag & (PARENB|PARODD)){
     case (PARENB|PARODD):
       /* Odd parity */
       ctrl |= LEON_REG_UART_CTRL_PE|LEON_REG_UART_CTRL_PS;
       break;
-    
+
     case PARENB:
       /* Even parity */
       ctrl &= ~LEON_REG_UART_CTRL_PS;
       ctrl |= LEON_REG_UART_CTRL_PE;
       break;
-    
+
     default:
     case 0:
     case PARODD:
       /* No Parity */
       ctrl &= ~(LEON_REG_UART_CTRL_PS|LEON_REG_UART_CTRL_PE);
   }
-  
+
   if ( !(t->c_cflag & CLOCAL) ){
     ctrl |= LEON_REG_UART_CTRL_FL;
   }else{
     ctrl &= ~LEON_REG_UART_CTRL_FL;
   }
-  
+
   /* Update new settings */
   uart->regs->ctrl = ctrl;
 
@@ -271,10 +261,10 @@ int console_set_attributes(int minor, const struct termios *t)
   return 0;
 }
 
-/* AMBA PP find routine. Extract APBUART information into data structure. */
+/* AMBA PP find routine. Extract AMBA PnP information into data structure. */
 int find_matching_apbuart(struct ambapp_dev *dev, int index, void *arg)
 {
-  struct ambapp_apb_info *apb = (struct ambapp_common_info *)dev->devinfo;
+  struct ambapp_apb_info *apb = (struct ambapp_apb_info *)dev->devinfo;
 
   /* Extract needed information of one APBUART */
   apbuarts[uarts].regs = (ambapp_apb_uart *)apb->start;
@@ -410,7 +400,9 @@ rtems_device_driver console_open(
 
   sc = rtems_termios_open (major, minor, arg, &Callbacks);
 
-  uart = &apbuarts[minor+LEON3_Cpu_Index];
+  if ( minor == 0 )
+    minor = LEON3_Cpu_Index;
+  uart = &apbuarts[minor];
   if ( priv && priv->iop )
     uart->cookie = priv->iop->data1;
   else
@@ -433,16 +425,19 @@ rtems_device_driver console_close(
 {
 #if CONSOLE_USE_INTERRUPTS
   struct apbuart_priv *uart;
-  
+
+  if ( minor == 0)
+    minor = LEON3_Cpu_Index;
+
   /* Turn off RX interrupts */
-  uart = &apbuarts[minor+LEON3_Cpu_Index];
+  uart = &apbuarts[minor];
   uart->regs->ctrl &= ~(LEON_REG_UART_CTRL_RI);
-  
+
   /**** Flush device ****/
-  while ( uart->sending ){
+  while ( uart->sending ) {
     /* Wait until all data has been sent */
   }
-  
+
 #endif
   return rtems_termios_close (arg);
 }
