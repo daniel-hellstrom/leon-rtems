@@ -18,7 +18,7 @@
 
 typedef struct {
   uint32_t              base_address;
-  uint32_t              vector;
+  uint32_t              irq;
   uint32_t              txd_count;
   uint32_t              rxd_count;
 } greth_configuration_t;
