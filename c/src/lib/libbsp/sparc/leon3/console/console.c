@@ -70,8 +70,9 @@ int console_pollRead( int minor )
 #if CONSOLE_USE_INTERRUPTS
 
 /* Handle UART interrupts */
-void console_isr_handler(struct apbuart_priv *uart)
+void console_isr(void *arg)
 {
+  struct apbuart_priv *uart = arg;
   unsigned int status;
   char data;
 
@@ -97,24 +98,6 @@ void console_isr_handler(struct apbuart_priv *uart)
     /* write_interrupt will get called from this function */
     rtems_termios_dequeue_characters(uart->cookie,1);
   }
-}
-
-rtems_isr console_isr(rtems_vector_number vector)
-{
-  int i;
-
-  for(i=LEON3_Cpu_Index; i<uarts; i++){
-    if ( apbuarts[i].irq+0x10 == vector ){
-      console_isr_handler(&apbuarts[i]);
-      return;
-    }
-  }
-}
-
-void console_initialize_interrupts(struct apbuart_priv *uart)
-{
-  /* Install interrupt handler */
-  set_vector(console_isr,uart->irq+0x10,1);
 }
 
 int console_write_interrupt (int minor, const char *buf, int len)
@@ -336,25 +319,6 @@ rtems_device_driver console_initialize(
     }
   }
 
-  /*
-   *  Initialize Hardware if ONLY CPU or first CPU in MP system
-   */
-
-  #if defined(RTEMS_MULTIPROCESSING)
-    if (rtems_configuration_get_user_multiprocessing_table()->node == 1)
-  #endif
-  {
-    for (i = uart0; i < uarts; i++)
-    {
-      apbuarts[i].regs->ctrl |=
-        LEON_REG_UART_CTRL_RE | LEON_REG_UART_CTRL_TE;
-      apbuarts[i].regs->status = 0;
-#if CONSOLE_USE_INTERRUPTS
-      console_initialize_interrupts(&apbuarts[i]);
-#endif
-    }
-  }
-
   return RTEMS_SUCCESSFUL;
 }
 
@@ -399,22 +363,37 @@ rtems_device_driver console_open(
     return RTEMS_INVALID_NUMBER;
 
   sc = rtems_termios_open (major, minor, arg, &Callbacks);
+  if (sc != RTEMS_SUCCESSFUL)
+    return sc;
 
   if ( minor == 0 )
     minor = LEON3_Cpu_Index;
   uart = &apbuarts[minor];
+
   if ( priv && priv->iop )
     uart->cookie = priv->iop->data1;
   else
     uart->cookie = NULL;
 
 #if CONSOLE_USE_INTERRUPTS
-  uart->sending = 0;
-  /* Turn on RX interrupts */
-  uart->regs->ctrl |= LEON_REG_UART_CTRL_RI;
-#endif
+  /* Register Interrupt handler */
+  sc = rtems_interrupt_handler_install(uart->irq, "console",
+                                       RTEMS_INTERRUPT_SHARED, console_isr,
+				       uart);
+  if (sc != RTEMS_SUCCESSFUL)
+    return sc;
 
-  return sc;
+  uart->sending = 0;
+  /* Enable Receiver and transmitter and Turn on RX interrupts */
+  uart->regs->ctrl |= LEON_REG_UART_CTRL_RE | LEON_REG_UART_CTRL_TE |
+                      LEON_REG_UART_CTRL_RI;
+#else
+  /* Enable Receiver and transmitter */
+  uart->regs->ctrl |= LEON_REG_UART_CTRL_RE | LEON_REG_UART_CTRL_TE;
+#endif
+  uart->regs->status = 0;
+
+  return RTEMS_SUCCESSFUL;
 }
 
 rtems_device_driver console_close(
@@ -437,6 +416,9 @@ rtems_device_driver console_close(
   while ( uart->sending ) {
     /* Wait until all data has been sent */
   }
+
+  /* uninstall ISR */
+  rtems_interrupt_handler_remove(uart->irq, console_isr, uart);
 
 #endif
   return rtems_termios_close (arg);
