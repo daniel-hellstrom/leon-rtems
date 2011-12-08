@@ -1,4 +1,5 @@
-/*  AMBA Plug & Play Device and Vendor definitions.
+/*
+ *  AMBA Plug & Play Device and Vendor definitions.
  * 
  *  COPYRIGHT (c) 2009.
  *  Aeroflex Gaisler.
