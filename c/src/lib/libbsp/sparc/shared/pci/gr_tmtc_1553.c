@@ -198,14 +198,6 @@ void gr_tmtc_1553_isr (void *arg)
 	DBG("GR-TMTC-1553-IRQ: 0x%x\n", tmp);
 }
 
-/* AMBA PP find routines */
-int gr_tmtc_1553_dev_find(struct ambapp_dev *dev, int index, int maxdepth, void *arg)
-{
-	/* Found IRQ/GRPCI controller, stop */
-	*(struct ambapp_dev **)arg = dev;
-	return 1;
-}
-
 int gr_tmtc_1553_hw_init(struct gr_tmtc_1553_priv *priv)
 {
 	unsigned int *page0 = NULL;
@@ -260,9 +252,11 @@ int gr_tmtc_1553_hw_init(struct gr_tmtc_1553_priv *priv)
 	ambapp_freq_init(&priv->abus, NULL, pci_freq_hz);
 
 	/* Find IRQ controller */
-	tmp = NULL;
-	status = ambapp_for_each(&priv->abus, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER, GAISLER_IRQMP, gr_tmtc_1553_dev_find, &tmp);
-	if ( (status != 1) || !tmp ) {
+	tmp = (void *)ambapp_for_each(&priv->abus,
+					(OPTIONS_ALL|OPTIONS_APB_SLVS),
+					VENDOR_GAISLER, GAISLER_IRQMP,
+					ambapp_find_by_idx, NULL);
+	if ( !tmp ) {
 		return -4;
 	}
 	priv->irq = (LEON3_IrqCtrl_Regs_Map *)(((struct ambapp_apb_info *)tmp->devinfo)->start);

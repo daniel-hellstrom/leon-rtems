@@ -227,14 +227,6 @@ void gr_rasta_io_isr (void *arg)
 	DBG("RASTA-IO-IRQ: 0x%x\n", tmp);
 }
 
-/* AMBA PP find routines */
-int gr_rasta_io_dev_find(struct ambapp_dev *dev, int index, void *arg)
-{
-	/* Found IRQ/GRPCI controller, stop */
-	*(struct ambapp_dev **)arg = dev;
-	return 1;
-}
-
 int gr_rasta_io_hw_init(struct gr_rasta_io_priv *priv)
 {
 	unsigned int *page0 = NULL;
@@ -306,9 +298,11 @@ int gr_rasta_io_hw_init(struct gr_rasta_io_priv *priv)
 	*page0 = 0x80000000;	
 
 	/* Find GRPCI controller */
-	tmp = NULL;
-	status = ambapp_for_each(&priv->abus, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER, GAISLER_PCIFBRG, gr_rasta_io_dev_find, &tmp);
-	if ( (status != 1) || !tmp ) {
+	tmp = (void *)ambapp_for_each(&priv->abus,
+					(OPTIONS_ALL|OPTIONS_APB_SLVS),
+					VENDOR_GAISLER, GAISLER_PCIFBRG,
+					ambapp_find_by_idx, NULL);
+	if ( !tmp ) {
 		return -3;
 	}
 	priv->grpci = (struct grpci_regs *)((struct ambapp_apb_info *)tmp->devinfo)->start;
@@ -321,9 +315,11 @@ int gr_rasta_io_hw_init(struct gr_rasta_io_priv *priv)
 	priv->grpci->page1 = 0x40000000;
 
 	/* Find IRQ controller, Clear all current IRQs */
-	tmp = NULL;
-	status = ambapp_for_each(&priv->abus, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER, GAISLER_IRQMP, gr_rasta_io_dev_find, &tmp);
-	if ( (status != 1) || !tmp ) {
+	tmp = (void *)ambapp_for_each(&priv->abus,
+					(OPTIONS_ALL|OPTIONS_APB_SLVS),
+					VENDOR_GAISLER, GAISLER_IRQMP,
+					ambapp_find_by_idx, NULL);
+	if ( !tmp ) {
 		return -4;
 	}
 	priv->irq = (LEON3_IrqCtrl_Regs_Map *)(((struct ambapp_apb_info *)tmp->devinfo)->start);
@@ -347,9 +343,11 @@ int gr_rasta_io_hw_init(struct gr_rasta_io_priv *priv)
 	priv->bus_maps_down[2].size = 0;
 
 	/* Find GRPCI controller AHB Slave interface */
-	tmp = NULL;
-	status = ambapp_for_each(&priv->abus, (OPTIONS_ALL|OPTIONS_AHB_SLVS), VENDOR_GAISLER, GAISLER_PCIFBRG, gr_rasta_io_dev_find, &tmp);
-	if ( (status != 1) || !tmp ) {
+	tmp = (void *)ambapp_for_each(&priv->abus,
+					(OPTIONS_ALL|OPTIONS_AHB_SLVS),
+					VENDOR_GAISLER, GAISLER_PCIFBRG,
+					ambapp_find_by_idx, NULL);
+	if ( !tmp ) {
 		return -5;
 	}
 	ahb = (struct ambapp_ahb_info *)tmp->devinfo;

@@ -195,14 +195,6 @@ void *ambapp_rmap_memcpy(
 	return dest;
 }
 
-/* AMBA PP find routines */
-int ambapp_rmap_dev_find(struct ambapp_dev *dev, int index, void *arg)
-{
-	/* Found IRQ/GRPCI controller, stop */
-	*(struct ambapp_dev **)arg = dev;
-	return 1;
-}
-
 /* Function called from Driver Manager Initialization Stage 1 */
 int ambapp_rmap_init1(struct drvmgr_dev *dev)
 {
@@ -261,9 +253,10 @@ int ambapp_rmap_init1(struct drvmgr_dev *dev)
 		ambapp_print(&priv->abus, 10);
 
 	/* Find IRQ controller */
-	tmp = NULL;
-	status = ambapp_for_each(&priv->abus, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER, GAISLER_IRQMP, ambapp_rmap_dev_find, &tmp);
-	if ( (status != 1) || !tmp ) {
+	tmp = (void *)ambapp_for_each(&priv->abus, (OPTIONS_ALL|OPTIONS_APB_SLVS),
+					VENDOR_GAISLER, GAISLER_IRQMP,
+					ambapp_find_by_idx, NULL);
+	if ( !tmp ) {
 		/* Silent error if not IRQ controller is found and IRQ support
 		 * is disabled
 		 */
