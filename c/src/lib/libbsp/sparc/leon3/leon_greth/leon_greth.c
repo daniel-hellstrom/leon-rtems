@@ -26,25 +26,22 @@
 
 greth_configuration_t leon_greth_configuration;
 
-extern int find_matching_adev(struct ambapp_dev *dev, int index, void *arg);
-
 int rtems_leon_greth_driver_attach(
   struct rtems_bsdnet_ifconfig *config,
   int attach
 )
 {
-  int device_found = 0;
   unsigned int base_addr = 0; /* avoid warnings */
   unsigned int eth_irq = 0;   /* avoid warnings */
   struct ambapp_dev *adev;
   struct ambapp_common_info *apb;
 
   /* Scan for MAC AHB slave interface */
-  device_found = ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), 
+  adev = ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), 
                                  VENDOR_GAISLER, GAISLER_ETHMAC,
-                                 find_matching_adev, &adev);
-  if (device_found == 1) {
-    apb = (struct ambapp_common_info *)dev->devinfo;
+                                 ambapp_find_by_idx, NULL);
+  if (adev) {
+    apb = (struct ambapp_common_info *)adev->devinfo;
     base_addr = apb->start;
     eth_irq = apb->irq;
 

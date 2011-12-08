@@ -87,7 +87,7 @@ int find_matching_adev(struct ambapp_dev *dev, int index, void *arg)
 
 void amba_initialize(void)
 {
-  int i, icsel;
+  int icsel;
   struct ambapp_dev *adev;
 
   /* Scan AMBA Plug&Play information, assuming malloc() works.
@@ -98,9 +98,9 @@ void amba_initialize(void)
   ambapp_scan(&ambapp_plb, LEON3_IO_AREA, NULL, NULL);
 
   /* Find LEON3 Interrupt controller */
-  i = ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), 
-              VENDOR_GAISLER, GAISLER_IRQMP, find_matching_adev, &adev);
-  if ( i <= 0 ) {
+  adev = (void *)ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS),
+              VENDOR_GAISLER, GAISLER_IRQMP, ambapp_find_by_idx, NULL);
+  if (adev == NULL) {
     /* PANIC IRQ controller not found!
      *
      *  What else can we do but stop ...
@@ -135,9 +135,9 @@ void amba_initialize(void)
 #ifndef RTEMS_DRVMGR_STARTUP
 
   /* find GP Timer */
-  i = ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), 
-              VENDOR_GAISLER, GAISLER_GPTIMER, find_matching_adev, &adev);
-  if ( i > 0 ){
+  adev = (void *)ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), 
+              VENDOR_GAISLER, GAISLER_GPTIMER, ambapp_find_by_idx, NULL);
+  if ( adev ){
     LEON3_Timer_Regs = (volatile LEON3_Timer_Regs_Map *)
                         ((struct ambapp_apb_info *)adev->devinfo)->start;
 
