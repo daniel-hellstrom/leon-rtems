@@ -246,6 +246,19 @@ extern int ambapp_for_each(
 	ambapp_func_t func,
 	void *arg);
 
+/* Helper function for ambapp_for_each(), find a device by index. If pcount
+ * is NULL the first device is returned, else pcount is interpreted as index
+ * by decrementing the value until zero is reaced: *count=0 first device,
+ * *count=1 second device etc.
+ */
+extern int ambapp_find_by_idx(struct ambapp_dev *dev, int index, void *pcount);
+
+/* Get number of devices matching the options/vendor/device arguments, the
+ * arguments are passed onto ambapp_for_each().
+ */
+extern int ambapp_dev_count(struct ambapp_bus *abus, unsigned int options,
+				int vendor, int device);
+
 /* Print short information about devices on the AMBA bus onto the console */
 extern void ambapp_print(struct ambapp_bus *abus, int show_depth);
 
