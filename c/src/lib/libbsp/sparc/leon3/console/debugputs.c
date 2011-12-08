@@ -94,7 +94,13 @@ void apbuart_outbyte_polled(
   unsigned char ch
 )
 {
-  while ( (regs->status & LEON_REG_UART_STATUS_THE) == 0 );
+  while ( (regs->status & LEON_REG_UART_STATUS_THE) == 0 ) {
+    /* Lower bus utilization while waiting for UART */
+    asm volatile ("nop"::); asm volatile ("nop"::);
+    asm volatile ("nop"::); asm volatile ("nop"::);
+    asm volatile ("nop"::); asm volatile ("nop"::);
+    asm volatile ("nop"::); asm volatile ("nop"::);
+  }
   regs->data = (unsigned int) ch;
 }
 
