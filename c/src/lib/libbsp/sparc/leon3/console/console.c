@@ -102,6 +102,95 @@ int console_pollRead(int minor)
   return apbuart_inbyte_nonblocking(apbuarts[port].regs);
 }
 
+int console_set_attributes(int minor, const struct termios *t)
+{
+  unsigned int scaler;
+  unsigned int ctrl;
+  int baud;
+  struct apbuart_priv *uart;
+
+  switch(t->c_cflag & CSIZE) {
+    default:
+    case CS5:
+    case CS6:
+    case CS7:
+      /* Hardware doesn't support other than CS8 */
+      return -1;
+    case CS8:
+      break;
+  }
+
+  if (minor == 0)
+    uart = &apbuarts[syscon_uart_index];
+  else
+    uart = &apbuarts[minor - 1];
+
+  /* Read out current value */
+  ctrl = uart->regs->ctrl;
+
+  switch(t->c_cflag & (PARENB|PARODD)){
+    case (PARENB|PARODD):
+      /* Odd parity */
+      ctrl |= LEON_REG_UART_CTRL_PE|LEON_REG_UART_CTRL_PS;
+      break;
+
+    case PARENB:
+      /* Even parity */
+      ctrl &= ~LEON_REG_UART_CTRL_PS;
+      ctrl |= LEON_REG_UART_CTRL_PE;
+      break;
+
+    default:
+    case 0:
+    case PARODD:
+      /* No Parity */
+      ctrl &= ~(LEON_REG_UART_CTRL_PS|LEON_REG_UART_CTRL_PE);
+  }
+
+  if ( !(t->c_cflag & CLOCAL) ){
+    ctrl |= LEON_REG_UART_CTRL_FL;
+  }else{
+    ctrl &= ~LEON_REG_UART_CTRL_FL;
+  }
+
+  /* Update new settings */
+  uart->regs->ctrl = ctrl;
+
+  /* Baud rate */
+  switch(t->c_cflag & CBAUD){
+    default:      baud = -1;      break;
+    case B50:     baud = 50;      break;
+    case B75:     baud = 75;      break;
+    case B110:    baud = 110;     break;
+    case B134:    baud = 134;     break;
+    case B150:    baud = 150;     break;
+    case B200:    baud = 200;     break;
+    case B300:    baud = 300;     break;
+    case B600:    baud = 600;     break;
+    case B1200:   baud = 1200;    break;
+    case B1800:   baud = 1800;    break;
+    case B2400:   baud = 2400;    break;
+    case B4800:   baud = 4800;    break;
+    case B9600:   baud = 9600;    break;
+    case B19200:  baud = 19200;   break;
+    case B38400:  baud = 38400;   break;
+    case B57600:  baud = 57600;   break;
+    case B115200: baud = 115200;  break;
+    case B230400: baud = 230400;  break;
+    case B460800: baud = 460800;  break;
+  }
+
+  if ( baud > 0 ){
+    /* Calculate Baud rate generator "scaler" number */
+    scaler = (((uart->freq_hz * 10)/(baud * 8)) - 5) / 10;
+
+    /* Set new baud rate by setting scaler */
+    uart->regs->scaler = scaler;
+  }
+
+  return 0;
+}
+
 /* AMBA PP find routine. Extract AMBA PnP information into data structure. */
 int find_matching_apbuart(struct ambapp_dev *dev, int index, void *arg)
 {
@@ -208,7 +297,7 @@ rtems_device_driver console_open(
     NULL,                        /* lastClose */
     console_pollRead,            /* pollRead */
     console_write_support,       /* write */
-    NULL,                        /* setAttributes */
+    console_set_attributes,      /* setAttributes */
     NULL,                        /* stopRemoteTx */
     NULL,                        /* startRemoteTx */
     0                            /* outputUsesInterrupts */
