@@ -17,6 +17,17 @@
  *  $Id$
  */
 
+/* Define CONSOLE_USE_INTERRUPTS to enable APBUART interrupt handling instead
+ * of polling mode.
+ *
+ * Note that it is not possible to use the interrupt mode of the driver
+ * together with the "old" APBUART and -u to GRMON. However the new
+ * APBUART core (from GRLIB 1.0.17-b2710) has the GRMON debug bit and can 
+ * handle interrupts.
+ *
+ * NOTE: This can be defined in the make/custom/leon3.cfg file.
+ */
+
 #include <bsp.h>
 #include <rtems/libio.h>
 #include <stdlib.h>
@@ -26,46 +37,52 @@
 
 #ifndef RTEMS_DRVMGR_STARTUP
 
-#if CONSOLE_USE_INTERRUPTS && defined(RTEMS_MULTIPROCESSING)
-#error LEON3 console driver does not support interrupt mode in multi processor systems
-#endif
+/* Let user override which on-chip APBUART will be debug UART
+ * 0 = Default APBUART. On MP system CPU0=APBUART0, CPU1=APBUART1...
+ * 1 = APBUART[0]
+ * 2 = APBUART[1]
+ * 3 = APBUART[2]
+ * ...
+ */
+int syscon_uart_index __attribute__((weak)) = 0;
+
+/*
+ *  apbuart_outbyte_polled
+ *
+ *  This routine transmits a character using polling.
+ */
 
 extern void apbuart_outbyte_polled(
   ambapp_apb_uart *regs,
   unsigned char ch,
   int do_cr_on_newline,
   int wait_sent);
+
+
+/* body is in debugputs.c */
+
+/*
+ *  apbuart_inbyte_nonblocking
+ *
+ *  This routine polls for a character.
+ */
+
 extern int apbuart_inbyte_nonblocking(ambapp_apb_uart *regs);
 
-/* Note that it is not possible to use the interrupt mode of the driver
- * together with the "old" APBUART and -u to GRMON. However the new
- * APBUART core (from 1.0.17-b2710) has the GRMON debug bit and can 
- * handle interrupts.
- */
+/* body is in debugputs.c */
 
 struct apbuart_priv {
   ambapp_apb_uart *regs;
-  int irq;
-  void *cookie;
   unsigned int freq_hz;
 #if CONSOLE_USE_INTERRUPTS
+  int irq;
+  void *cookie;
   volatile int sending;
   char *buf;
 #endif
 };
 static struct apbuart_priv apbuarts[CONFIGURE_NUMBER_OF_TERMIOS_PORTS];
 static int uarts = 0;
-
-/*
- *  Should we use a polled or interrupt drived console?
- *
- *  NOTE: This is defined in the custom/leon.cfg file.
- */
-
-int console_pollRead( int minor )
-{
-  return apbuart_inbyte_nonblocking(apbuarts[minor+LEON3_Cpu_Index].regs);
-}
 
 #if CONSOLE_USE_INTERRUPTS
 
@@ -76,19 +93,16 @@ void console_isr(void *arg)
   unsigned int status;
   char data;
 
-  /* Clear interrupt */
-  LEON_Clear_interrupt(uart->irq);
-
   /* Get all received characters */
-  while ( (status=uart->regs->status) & LEON_REG_UART_STATUS_DR ){
+  while ((status=uart->regs->status) & LEON_REG_UART_STATUS_DR) {
     /* Data has arrived, get new data */
     data = uart->regs->data;
 
     /* Tell termios layer about new character */
-    rtems_termios_enqueue_raw_characters(uart->cookie,&data,1);
+    rtems_termios_enqueue_raw_characters(uart->cookie, &data, 1);
   }
 
-  if ( status & LEON_REG_UART_STATUS_THE ){
+  if (status & LEON_REG_UART_STATUS_THE) {
     /* Sent the one char, we disable TX interrupts */
     uart->regs->ctrl &= ~LEON_REG_UART_CTRL_TI;
 
@@ -96,19 +110,24 @@ void console_isr(void *arg)
     uart->sending = 0;
 
     /* write_interrupt will get called from this function */
-    rtems_termios_dequeue_characters(uart->cookie,1);
+    rtems_termios_dequeue_characters(uart->cookie, 1);
   }
 }
+
+/*
+ *  Console Termios Write-Buffer Support Entry Point
+ *
+ */
 
 int console_write_interrupt (int minor, const char *buf, int len)
 {
   struct apbuart_priv *uart;
   unsigned int oldLevel;
 
-  if ( minor == 0 )
-    minor = LEON3_Cpu_Index;
-
-  uart = &apbuarts[minor];
+  if (minor == 0)
+    uart = &apbuarts[syscon_uart_index];
+  else
+    uart = &apbuarts[minor - 1];
 
   /* Remember what position in buffer */
 
@@ -126,7 +145,9 @@ int console_write_interrupt (int minor, const char *buf, int len)
 
   return 0;
 }
-#endif
+
+#else
+
 /*
  *  Console Termios Support Entry Points
  *
@@ -134,23 +155,33 @@ int console_write_interrupt (int minor, const char *buf, int len)
 
 ssize_t console_write_polled (int minor, const char *buf, size_t len)
 {
-  int nwrite = 0;
-  struct apbuart_priv *uart;
+  int nwrite = 0, port;
 
-  if ( minor == 0 )
-    minor = LEON3_Cpu_Index;
-
-  if ( minor >= uarts )
-    return -1;
-
-  uart = &apbuarts[minor];
+  if (minor == 0)
+    port = syscon_uart_index;
+  else
+    port = minor - 1;
 
   while (nwrite < len) {
-    apbuart_outbyte_polled( uart->regs, *buf++, 1, 0 );
+    apbuart_outbyte_polled(apbuarts[port]->regs, *buf++, 1, 0 );
     nwrite++;
   }
   return nwrite;
 }
+
+int console_pollRead(int minor)
+{
+  int port;
+
+  if (minor == 0)
+    port = syscon_uart_index;
+  else
+    port = minor - 1;
+
+  return apbuart_inbyte_nonblocking(apbuarts[port]->regs);
+}
+
+#endif
 
 int console_set_attributes(int minor, const struct termios *t)
 {
@@ -170,13 +201,10 @@ int console_set_attributes(int minor, const struct termios *t)
       break;
   }
 
-  if ( minor == 0 )
-    minor = LEON3_Cpu_Index;
-
-  if ( minor >= uarts )
-    return -1;
-
-  uart = &apbuarts[minor];
+  if (minor == 0)
+    uart = &apbuarts[syscon_uart_index];
+  else
+    uart = &apbuarts[minor - 1];
 
   /* Read out current value */
   ctrl = uart->regs->ctrl;
@@ -251,7 +279,9 @@ int find_matching_apbuart(struct ambapp_dev *dev, int index, void *arg)
 
   /* Extract needed information of one APBUART */
   apbuarts[uarts].regs = (ambapp_apb_uart *)apb->start;
+#if CONSOLE_USE_INTERRUPTS
   apbuarts[uarts].irq = apb->irq;
+#endif
   /* Get APBUART core frequency, it is assumed that it is the same
    * as Bus frequency where the UART is situated
    */
@@ -264,23 +294,22 @@ int find_matching_apbuart(struct ambapp_dev *dev, int index, void *arg)
     return 0; /* Continue searching for more UARTs */
 }
 
+/* Find all UARTs */
+int console_scan_uarts(void)
+{
+  memset(apbuarts, 0, sizeof(apbuarts));
+
+  /* Find APBUART cores */
+  ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER,
+                  GAISLER_APBUART, find_matching_apbuart, NULL);
+
+  return uarts;
+}
+
 /*
  *  Console Device Driver Entry Points
  *
  */
-
-int scan_uarts(void)
-{
-  if (uarts == 0) {
-    memset(apbuarts, 0, sizeof(apbuarts));
-
-    /* Find APBUART cores */
-    ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), VENDOR_GAISLER,
-                    GAISLER_APBUART, find_matching_apbuart, NULL);
-  }
-
-  return uarts;
-}
 
 rtems_device_driver console_initialize(
   rtems_device_major_number  major,
@@ -289,34 +318,50 @@ rtems_device_driver console_initialize(
 )
 {
   rtems_status_code status;
-  int i, uart0;
+  int i;
   char console_name[16];
 
   rtems_termios_initialize();
 
   /* Find UARTs */
-  scan_uarts();
+  console_scan_uarts();
 
-  /* Let LEON3 CPU index select UART, this is useful in AMP
-   * systems. LEON3_Cpu_Index is zero for CPU0, one for CPU1...
-   * Note that looking at the RTEMS_MULTIPROCESSING macro
-   * does not work when different operating systems are used
-   * and RTEMS is configured non-MP.
+  /* Update syscon_uart_index to index used as /dev/console
+   * Let user select System console by setting syscon_uart_index. If the
+   * BSP is to provide the default UART (syscon_uart_index==0):
+   *   non-MP: APBUART[0] is system console
+   *   MP: LEON CPU index select UART
    */
-  uart0 = LEON3_Cpu_Index;
+  if (syscon_uart_index == 0) {
+#if defined(RTEMS_MULTIPROCESSING)
+    syscon_uart_index = LEON3_Cpu_Index;
+#else
+    syscon_uart_index = 0;
+#endif
+  } else {
+    syscon_uart_index = syscon_uart_index - 1; /* User selected sys-console */
+  }
 
-  /*  Register Device Names */
-  if (uarts && (uart0 < uarts)) 
-  {
+  /*  Register Device Names
+   *
+   *  0 /dev/console   - APBUART[USER-SELECTED, DEFAULT=APBUART[0]]
+   *  1 /dev/console_a - APBUART[0] (by default not present because is console)
+   *  2 /dev/console_b - APBUART[1]
+   *  ...
+   *
+   * On a MP system one should not open UARTs that other OS instances use.
+   */
+  if (syscon_uart_index < uarts) {
     status = rtems_io_register_name( "/dev/console", major, 0 );
     if (status != RTEMS_SUCCESSFUL)
       rtems_fatal_error_occurred(status);
-
-    strcpy(console_name,"/dev/console_a");
-    for (i = uart0+1; i < uarts; i++) {
-      console_name[13]++;
-      status = rtems_io_register_name( console_name, major, i);
-    }
+  }
+  strcpy(console_name,"/dev/console_a");
+  for (i = 0; i < uarts; i++) {
+    if (i == syscon_uart_index)
+      continue; /* skip UART that is registered as /dev/console */
+    console_name[13] = 'a' + i;
+    status = rtems_io_register_name( console_name, major, i+1);
   }
 
   return RTEMS_SUCCESSFUL;
@@ -330,9 +375,9 @@ rtems_device_driver console_open(
 {
   rtems_status_code sc;
   struct apbuart_priv *uart;
+#if CONSOLE_USE_INTERRUPTS
   rtems_libio_open_close_args_t *priv = arg;
 
-#if CONSOLE_USE_INTERRUPTS
   /* Interrupt mode routines */
   static const rtems_termios_callbacks Callbacks = {
     NULL,                        /* firstOpen */
@@ -358,28 +403,29 @@ rtems_device_driver console_open(
   };
 #endif
 
-  assert( minor < uarts );
-  if ( minor >= uarts )
+  assert(minor <= uarts);
+  if (minor > uarts || minor == (syscon_uart_index + 1))
     return RTEMS_INVALID_NUMBER;
 
   sc = rtems_termios_open (major, minor, arg, &Callbacks);
   if (sc != RTEMS_SUCCESSFUL)
     return sc;
 
-  if ( minor == 0 )
-    minor = LEON3_Cpu_Index;
-  uart = &apbuarts[minor];
+  if (minor == 0)
+    uart = &apbuarts[syscon_uart_index];
+  else
+    uart = &apbuarts[minor - 1];
 
-  if ( priv && priv->iop )
+#if CONSOLE_USE_INTERRUPTS
+  if (priv && priv->iop)
     uart->cookie = priv->iop->data1;
   else
     uart->cookie = NULL;
 
-#if CONSOLE_USE_INTERRUPTS
   /* Register Interrupt handler */
   sc = rtems_interrupt_handler_install(uart->irq, "console",
                                        RTEMS_INTERRUPT_SHARED, console_isr,
-				       uart);
+                                       uart);
   if (sc != RTEMS_SUCCESSFUL)
     return sc;
 
@@ -388,7 +434,7 @@ rtems_device_driver console_open(
   uart->regs->ctrl |= LEON_REG_UART_CTRL_RE | LEON_REG_UART_CTRL_TE |
                       LEON_REG_UART_CTRL_RI;
 #else
-  /* Enable Receiver and transmitter */
+  /* Initialize UART on opening */
   uart->regs->ctrl |= LEON_REG_UART_CTRL_RE | LEON_REG_UART_CTRL_TE;
 #endif
   uart->regs->status = 0;
@@ -405,21 +451,21 @@ rtems_device_driver console_close(
 #if CONSOLE_USE_INTERRUPTS
   struct apbuart_priv *uart;
 
-  if ( minor == 0)
-    minor = LEON3_Cpu_Index;
+  if (minor == 0)
+    uart = &apbuarts[syscon_uart_index];
+  else
+    uart = &apbuarts[minor - 1];
 
   /* Turn off RX interrupts */
-  uart = &apbuarts[minor];
   uart->regs->ctrl &= ~(LEON_REG_UART_CTRL_RI);
 
   /**** Flush device ****/
-  while ( uart->sending ) {
+  while (uart->sending) {
     /* Wait until all data has been sent */
   }
 
   /* uninstall ISR */
   rtems_interrupt_handler_remove(uart->irq, console_isr, uart);
-
 #endif
   return rtems_termios_close (arg);
 }
