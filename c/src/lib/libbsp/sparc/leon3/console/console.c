@@ -81,7 +81,7 @@ struct apbuart_priv {
   char *buf;
 #endif
 };
-static struct apbuart_priv apbuarts[CONFIGURE_NUMBER_OF_TERMIOS_PORTS];
+static struct apbuart_priv apbuarts[BSP_NUMBER_OF_TERMIOS_PORTS];
 static int uarts = 0;
 
 #if CONSOLE_USE_INTERRUPTS
@@ -288,7 +288,7 @@ int find_matching_apbuart(struct ambapp_dev *dev, int index, void *arg)
   apbuarts[uarts].freq_hz = ambapp_freq_get(&ambapp_plb, dev);
   uarts++;
 
-  if (uarts >= CONFIGURE_NUMBER_OF_TERMIOS_PORTS)
+  if (uarts >= BSP_NUMBER_OF_TERMIOS_PORTS)
     return 1; /* Satisfied number of UARTs, stop search */
   else
     return 0; /* Continue searching for more UARTs */
