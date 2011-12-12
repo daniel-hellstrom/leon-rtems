@@ -91,9 +91,12 @@ int bsp_debug_uart_init(void)
  */
 void apbuart_outbyte_polled(
   ambapp_apb_uart *regs,
-  unsigned char ch
+  unsigned char ch,
+  int do_cr_on_newline,
+  int wait_sent
 )
 {
+send:
   while ( (regs->status & LEON_REG_UART_STATUS_THE) == 0 ) {
     /* Lower bus utilization while waiting for UART */
     asm volatile ("nop"::); asm volatile ("nop"::);
@@ -102,6 +105,17 @@ void apbuart_outbyte_polled(
     asm volatile ("nop"::); asm volatile ("nop"::);
   }
   regs->data = (unsigned int) ch;
+
+  if ((ch == '\n') && do_cr_on_newline) {
+    ch = '\r';
+    goto send;
+  }
+
+  /* Wait until the character has been sent? */
+  if (wait_sent) {
+    while ((regs->status & LEON_REG_UART_STATUS_THE) == 0)
+      ;
+  }
 }
 
 /*
@@ -131,7 +145,7 @@ static void bsp_out_char(char c)
     return;
   }
 
-  apbuart_outbyte_polled(dbg_uart, c);
+  apbuart_outbyte_polled(dbg_uart, c, 1, 1);
 }
 
 /*
