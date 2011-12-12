@@ -3,8 +3,8 @@
  *
  *  This driver hook performs bus scanning.
  *
- *  COPYRIGHT (c) 2008.
- *  Gaisler Research
+ *  COPYRIGHT (c) 2011.
+ *  Aeroflex Gaisler
  *
  *  The license and distribution terms for this file may be
  *  found in the file LICENSE in this distribution or at
