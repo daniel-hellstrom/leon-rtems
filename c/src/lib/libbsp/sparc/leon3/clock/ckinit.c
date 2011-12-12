@@ -22,6 +22,15 @@
 
 #include <bsp.h>
 #include <bspopts.h>
+
+/* The LEON3 BSP Timer driver can rely on the Driver Manager if the
+ * DrvMgr is initialized during startup. Otherwise the classic driver
+ * must be used.
+ *
+ * The DrvMgr Clock driver is located in the shared/timer directory
+ */
+#ifndef RTEMS_DRVMGR_STARTUP
+
 #include <ambapp.h>
 
 #if SIMSPARC_FAST_IDLE==1
@@ -120,3 +129,5 @@ uint32_t bsp_clock_nanoseconds_since_last_tick(void)
         bsp_clock_nanoseconds_since_last_tick
 
 #include "../../../shared/clockdrv_shell.h"
+
+#endif
