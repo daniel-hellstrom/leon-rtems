@@ -68,13 +68,6 @@ extern void leon3_ext_irq_init(void);
 /* Pointers to Interrupt Controller configuration registers */
 volatile LEON3_IrqCtrl_Regs_Map *LEON3_IrqCtrl_Regs;
 
-/* AMBA PP find routines */
-int find_matching_adev(struct ambapp_dev *dev, int index, void *arg)
-{
-	*(struct ambapp_dev **)arg = dev;
-	return 1; /* Satisfied with first matching device, stop search */
-}
-
 /*
  *  amba_initialize
  *
