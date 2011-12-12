@@ -33,6 +33,8 @@
 #include <rtems/bspIo.h>
 #include <amba.h>
 
+#ifndef RTEMS_DRVMGR_STARTUP
+
 /* Let user override which on-chip APBUART will be debug UART
  * 0 = Default APBUART. On MP system CPU0=APBUART0, CPU1=APBUART1...
  * 1 = APBUART[0]
@@ -471,3 +473,4 @@ rtems_device_driver console_control(
   return rtems_termios_ioctl(arg);
 }
 
+#endif
