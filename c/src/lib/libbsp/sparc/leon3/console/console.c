@@ -163,7 +163,7 @@ ssize_t console_write_polled (int minor, const char *buf, size_t len)
     port = minor - 1;
 
   while (nwrite < len) {
-    apbuart_outbyte_polled(apbuarts[port]->regs, *buf++, 1, 0 );
+    apbuart_outbyte_polled(apbuarts[port].regs, *buf++, 1, 0 );
     nwrite++;
   }
   return nwrite;
@@ -178,7 +178,7 @@ int console_pollRead(int minor)
   else
     port = minor - 1;
 
-  return apbuart_inbyte_nonblocking(apbuarts[port]->regs);
+  return apbuart_inbyte_nonblocking(apbuarts[port].regs);
 }
 
 #endif
