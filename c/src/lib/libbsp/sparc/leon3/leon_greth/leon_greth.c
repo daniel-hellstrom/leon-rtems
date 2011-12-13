@@ -34,14 +34,14 @@ int rtems_leon_greth_driver_attach(
   unsigned int base_addr = 0; /* avoid warnings */
   unsigned int eth_irq = 0;   /* avoid warnings */
   struct ambapp_dev *adev;
-  struct ambapp_common_info *apb;
+  struct ambapp_apb_info *apb;
 
   /* Scan for MAC AHB slave interface */
-  adev = ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), 
+  adev = (void *)ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS),
                                  VENDOR_GAISLER, GAISLER_ETHMAC,
                                  ambapp_find_by_idx, NULL);
   if (adev) {
-    apb = (struct ambapp_common_info *)adev->devinfo;
+    apb = DEV_TO_APB(adev);
     base_addr = apb->start;
     eth_irq = apb->irq;
 
@@ -50,7 +50,7 @@ int rtems_leon_greth_driver_attach(
     *(volatile int *) base_addr = GRETH_CTRL_RST;
     *(volatile int *) base_addr = 0;
     leon_greth_configuration.base_address = base_addr;
-    leon_greth_configuration.vector = eth_irq + 0x10;
+    leon_greth_configuration.irq = eth_irq;
     leon_greth_configuration.txd_count = TDA_COUNT;
     leon_greth_configuration.rxd_count = RDA_COUNT;
     if (rtems_greth_driver_attach( config, &leon_greth_configuration )) {
