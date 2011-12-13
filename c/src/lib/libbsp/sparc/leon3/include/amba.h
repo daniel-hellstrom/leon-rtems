@@ -27,6 +27,7 @@
 #define LEON3_APB_SLAVES 16
 
 #include <ambapp.h>
+#include <grlib.h>
 
 #ifdef __cplusplus
 extern "C" {
