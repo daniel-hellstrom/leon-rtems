@@ -112,7 +112,7 @@ struct gr_rasta_spw_router_priv {
 
 	/* GR-RASTA-SPW-ROUTER */
 	struct gr_rasta_spw_router_ver	*version;
-	LEON3_IrqCtrl_Regs_Map	*irq;
+	struct irqmp_regs	*irq;
 	struct grpci2_regs	*grpci2;
 	struct drvmgr_map_entry	bus_maps_up[2];
 	struct drvmgr_map_entry	bus_maps_down[2];
@@ -323,7 +323,7 @@ int gr_rasta_spw_router_hw_init(struct gr_rasta_spw_router_priv *priv)
 	if ( !tmp ) {
 		return -4;
 	}
-	priv->irq = (LEON3_IrqCtrl_Regs_Map *)(((struct ambapp_apb_info *)tmp->devinfo)->start);
+	priv->irq = (struct irqmp_regs *)DEV_TO_APB(tmp)->start;
 	/* Set up GR-RASTA-SPW-ROUTER irq controller */
 	priv->irq->mask[0] = 0;
 	priv->irq->iclear = 0xffff;

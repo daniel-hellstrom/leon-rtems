@@ -66,7 +66,7 @@ struct grlib_config grlib_bus_config =
 extern void leon3_ext_irq_init(void);
 
 /* Pointers to Interrupt Controller configuration registers */
-volatile LEON3_IrqCtrl_Regs_Map *LEON3_IrqCtrl_Regs;
+volatile struct irqmp_regs *LEON3_IrqCtrl_Regs;
 
 /*
  *  amba_initialize
@@ -83,9 +83,9 @@ void amba_initialize(void)
   int icsel;
   struct ambapp_dev *adev;
 
-  /* Scan AMBA Plug&Play information, assuming malloc() works.
-   * The routine builds a PnP tree into ambapp_plb.root in RAM, so after this
-   * we never access PnP information in Hardware any more.
+  /* Scan AMBA Plug&Play read-only information. The routine builds a PnP
+   * tree into ambapp_plb in RAM, after this we never access the PnP
+   * information in hardware directly any more.
    * Since on Processor Local Bus (PLB) memory mapping is 1:1
    */
   ambapp_scan(&ambapp_plb, LEON3_IO_AREA, NULL, NULL);
@@ -101,9 +101,8 @@ void amba_initialize(void)
     asm volatile( "mov 1, %g1; ta 0x0" );
   }
 
-  LEON3_IrqCtrl_Regs = (volatile LEON3_IrqCtrl_Regs_Map *)
-                       ((struct ambapp_apb_info *)adev->devinfo)->start;
-  if ( (LEON3_IrqCtrl_Regs->ampctrl >> 28) > 0 ) {
+  LEON3_IrqCtrl_Regs = (volatile struct irqmp_regs *)DEV_TO_APB(adev)->start;
+  if ((LEON3_IrqCtrl_Regs->ampctrl >> 28) > 0) {
     /* IRQ Controller has support for multiple IRQ Controllers, each
      * CPU can be routed to different Controllers, we find out which
      * controller by looking at the IRQCTRL Select Register for this CPU.
@@ -130,12 +129,11 @@ void amba_initialize(void)
   /* find GP Timer */
   adev = (void *)ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_APB_SLVS), 
               VENDOR_GAISLER, GAISLER_GPTIMER, ambapp_find_by_idx, NULL);
-  if ( adev ){
-    LEON3_Timer_Regs = (volatile LEON3_Timer_Regs_Map *)
-                        ((struct ambapp_apb_info *)adev->devinfo)->start;
+  if (adev){
+    LEON3_Timer_Regs = (volatile struct gptimer_regs *)DEV_TO_APB(adev)->start;
 
     /* Register AMBA Bus Frequency */
-    ambapp_freq_init(&ambapp_plb, adev, 
+    ambapp_freq_init(&ambapp_plb, adev,
                      (LEON3_Timer_Regs->scaler_reload + 1) * 1000000);
   }
 

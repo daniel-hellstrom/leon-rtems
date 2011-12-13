@@ -43,7 +43,7 @@
 
 #if defined(LEON3) && defined(RTEMS_DRVMGR_STARTUP)
 #include <leon.h>
-volatile LEON3_Timer_Regs_Map *LEON3_Timer_Regs = 0;
+volatile struct gptimer_regs *LEON3_Timer_Regs = 0;
 #endif
 
 #ifdef GPTIMER_INFO_AVAIL

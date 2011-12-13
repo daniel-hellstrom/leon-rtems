@@ -73,7 +73,7 @@ struct gr_tmtc_1553_priv {
 	genirq_t			genirq;
 
 	struct gr_tmtc_1553_ver         *version;
-	LEON3_IrqCtrl_Regs_Map		*irq;
+	struct irqmp_regs		*irq;
 	struct drvmgr_map_entry		bus_maps_down[2];
 
 	struct ambapp_bus		abus;
@@ -259,7 +259,7 @@ int gr_tmtc_1553_hw_init(struct gr_tmtc_1553_priv *priv)
 	if ( !tmp ) {
 		return -4;
 	}
-	priv->irq = (LEON3_IrqCtrl_Regs_Map *)(((struct ambapp_apb_info *)tmp->devinfo)->start);
+	priv->irq = (struct irqmp_regs *)DEV_TO_APB(tmp)->start;
 	/* Set up irq controller */
 	priv->irq->mask[0] = 0;
 	priv->irq->iclear = 0xffff;

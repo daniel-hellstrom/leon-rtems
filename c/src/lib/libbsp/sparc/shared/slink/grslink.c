@@ -214,10 +214,10 @@ static int SLINK_calcscaler(int sysfreq)
 static int SLINK_getsysfreq(void)
 {
 	struct ambapp_apb_info t;
-	LEON3_Timer_Regs_Map *tregs;
+	struct gptimer_regs *tregs;
 		
 	if (ambapp_find_apbslv(&ambapp_plb,VENDOR_GAISLER,GAISLER_GPTIMER,&t)==1) {
-		tregs = (LEON3_Timer_Regs_Map *)t.start;
+		tregs = (struct gptimer_regs *)t.start;
 		DBG("SLINK_getsysfreq returning %d\n", 
 		    (tregs->scaler_reload+1)*1000*1000);
 		return (tregs->scaler_reload+1)*1000*1000;

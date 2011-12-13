@@ -1,5 +1,5 @@
 /*
- *  GRLIB AMBA Core Register definitions
+ *  Common GRLIB AMBA Core Register definitions
  *
  *  COPYRIGHT (c) 2008.
  *  Aeroflex Gaisler.
@@ -18,22 +18,22 @@ extern "C" {
 #endif
 
 /* ESA MEMORY CONTROLLER */
-typedef struct {
+struct mctrl_regs {
   unsigned int mcfg1;
   unsigned int mcfg2;
   unsigned int mcfg3;
-} ambapp_regmap_mctrl;
+};
 
 /* APB UART */
-typedef struct {
+struct apbuart_regs {
   volatile unsigned int data;
   volatile unsigned int status;
   volatile unsigned int ctrl;
   volatile unsigned int scaler;
-} ambapp_apb_uart;
+};
 
-/* IRQ MP */
-typedef struct {
+/* IRQMP and IRQAMP interrupt controllers */
+struct irqmp_regs {
   volatile unsigned int ilevel;      /* 0x00 */
   volatile unsigned int ipend;       /* 0x04 */
   volatile unsigned int iforce;      /* 0x08 */
@@ -55,7 +55,34 @@ typedef struct {
   volatile unsigned int intid[16];   /* 0xc0 */
   /* 0x100, align to 4Kb boundary */
   volatile unsigned int resv1[(0x1000-0x100)/4];
-} LEON3_IrqCtrl_Regs_Map;
+};
+
+/* GPTIMER Timer instance */
+struct gptimer_timer_regs {
+  volatile unsigned int value;
+  volatile unsigned int reload;
+  volatile unsigned int ctrl;
+  volatile unsigned int notused;
+};
+
+/* GPTIMER common registers */
+struct gptimer_regs {
+  volatile unsigned int scaler_value;   /* common timer registers */
+  volatile unsigned int scaler_reload;
+  volatile unsigned int cfg;
+  volatile unsigned int notused;
+  struct gptimer_timer_regs timer[7];
+};
+
+/* GRGPIO GPIO */
+struct grgpio_regs {
+  volatile unsigned int iodata;
+  volatile unsigned int ioout;
+  volatile unsigned int iodir;
+  volatile unsigned int irqmask;
+  volatile unsigned int irqpol;
+  volatile unsigned int irqedge;
+};
 
 #ifdef __cplusplus
 }

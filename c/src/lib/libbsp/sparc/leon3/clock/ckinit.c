@@ -49,7 +49,7 @@
 #endif
 
 
-volatile LEON3_Timer_Regs_Map *LEON3_Timer_Regs = 0;
+volatile struct gptimer_regs *LEON3_Timer_Regs = 0;
 static int clkirq;
 
 #define CLOCK_VECTOR LEON_TRAP_TYPE( clkirq )
@@ -76,8 +76,8 @@ static int clkirq;
               VENDOR_GAISLER, GAISLER_GPTIMER, ambapp_find_by_idx, NULL); \
     if ( adev ) { \
       /* Found APB GPTIMER Timer */ \
-      LEON3_Timer_Regs = (volatile LEON3_Timer_Regs_Map *) \
-                         ((struct ambapp_apb_info *)adev->devinfo)->start; \
+      LEON3_Timer_Regs = (volatile struct gptimer_regs *) \
+                         DEV_TO_APB(adev)->start; \
       clkirq = (LEON3_Timer_Regs->status & 0xf8) >> 3; \
       \
       Adjust_clkirq_for_node(); \

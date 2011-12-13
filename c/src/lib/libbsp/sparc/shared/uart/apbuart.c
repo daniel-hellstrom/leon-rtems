@@ -54,7 +54,7 @@ typedef struct {
 
 struct apbuart_priv {
 	struct drvmgr_dev	*dev;
-	ambapp_apb_uart		*regs;
+	struct apbuart_regs	*regs;
 	int			irq;
 	int			minor;
 	int			scaler;
@@ -310,7 +310,7 @@ int apbuart_device_init(struct apbuart_priv *priv)
 	}
 	pnpinfo = &ambadev->info;
 	priv->irq = pnpinfo->irq;
-	priv->regs = (ambapp_apb_uart *)pnpinfo->apb_slv->start;
+	priv->regs = (struct apbuart_regs *)pnpinfo->apb_slv->start;
 
 	/* Clear HW regs */
 	priv->regs->status = 0;

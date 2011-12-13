@@ -1,10 +1,10 @@
 #include <bsp.h>
 
-extern volatile LEON3_Timer_Regs_Map *LEON3_Timer_Regs;
+extern volatile gptimer_regs *LEON3_Timer_Regs;
 
 struct gptimer_watchdog_priv {
-	LEON3_Timer_Regs_Map *regs;
-	LEON3_Timer_SubType *timer;
+	struct gptimer_regs *regs;
+	struct gptimer_timer_regs *timer;
 	int timerno;
 };
 
@@ -18,12 +18,12 @@ void bsp_watchdog_init(void)
 	/* Get Watchdogs in system, this is implemented for one GPTIMER
 	 * core only.
 	 *
-	 * First watchdog is a special case, we can get the first tmer core by
+	 * First watchdog is a special case, we can get the first timer core by
 	 * looking at LEON3_Timer_Regs, the watchdog within a timer core is always
 	 * the last timer. Unfortunately we can not know it the watchdog functionality
 	 * is available or not, we assume that it is if we reached this function.
 	 */
-	bsp_watchdogs[0].regs = (LEON3_Timer_Regs_Map *)LEON3_Timer_Regs;
+	bsp_watchdogs[0].regs = (struct gptimer_regs *)LEON3_Timer_Regs;
 
 	/* Find Timer that has watchdog functionality */
 	timercnt = bsp_watchdogs[0].regs->status & 0x7;

@@ -46,17 +46,17 @@
 
 /* LEON3 Low level transmit/receive functions provided by debug-uart code */
 extern void apbuart_outbyte_polled(
-  ambapp_apb_uart *regs,
+  struct apbuart_regs *regs,
   unsigned char ch,
   int do_cr_on_newline,
   int wait_sent);
-extern int apbuart_inbyte_nonblocking(ambapp_apb_uart *regs);
-extern ambapp_apb_uart *dbg_uart; /* The debug UART */
+extern int apbuart_inbyte_nonblocking(struct apbuart_regs *regs);
+extern struct apbuart_regs *dbg_uart; /* The debug UART */
 
 struct apbuart_priv {
 	struct console_dev condev;
 	struct drvmgr_dev *dev;
-	ambapp_apb_uart *regs;
+	struct apbuart_regs *regs;
 	char devName[32];
 	void *cookie;
 	int sending;
@@ -197,7 +197,7 @@ int apbuart_init1(struct drvmgr_dev *dev)
 		return -1;
 	}
 	pnpinfo = &ambadev->info;
-	priv->regs = (ambapp_apb_uart *)pnpinfo->apb_slv->start;
+	priv->regs = (struct apbuart_regs *)pnpinfo->apb_slv->start;
 
 	/* Clear HW regs, leave baudrate register as it is */
 	priv->regs->status = 0;
@@ -317,7 +317,7 @@ static int apbuart_info(
  * fits in the APBUART Transmit FIFO
  */
 void apbuart_outbyte_polled(
-  ambapp_apb_uart *regs,
+  struct apbuart_regs *regs,
   unsigned char ch,
   int do_cr_on_newline,
   int wait_sent)
@@ -345,7 +345,7 @@ send:
 }
 
 /* This routine polls for one character, return EOF if no character is available */
-int apbuart_inbyte_nonblocking(ambapp_apb_uart *regs)
+int apbuart_inbyte_nonblocking(struct apbuart_regs *regs)
 {
 	if (regs->status & LEON_REG_UART_STATUS_ERR) {
 		regs->status = ~LEON_REG_UART_STATUS_ERR;

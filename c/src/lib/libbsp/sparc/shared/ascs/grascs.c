@@ -116,18 +116,18 @@ static int ASCS_calc_clkreg(int sysfreq, int etrfreq) {
 static int ASCS_get_sysfreq(void) {
 
   struct ambapp_apb_info gpt;
-  LEON3_Timer_Regs_Map *tregs;
+  struct gptimer_regs *tregs;
   int tmp;
-  
+
   if(ambapp_find_apbslv(&ambapp_plb, VENDOR_GAISLER, GAISLER_GPTIMER, &gpt) == 1) {
-    tregs = (LEON3_Timer_Regs_Map *) gpt.start;
+    tregs = (struct gptimer_regs *) gpt.start;
     tmp = (tregs->scaler_reload + 1)*1000;
     DBG("ASCS_get_sysfreq: Detected system frequency %i kHz\n",tmp);
     if((tmp < GRASCS_MIN_SFREQ) || (tmp > GRASCS_MAX_SFREQ)) {
       DBG("ASCS_get_sysfreq: System frequency is invalid for ASCS core\n");
       return -1;
     }
-    else    
+    else
       return (tregs->scaler_reload + 1)*1000;
   }
   DBG("ASCS_get_sysfreq: Failed to detect system frequency\n");

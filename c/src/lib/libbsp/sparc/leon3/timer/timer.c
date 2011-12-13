@@ -34,7 +34,7 @@ bool benchmark_timer_find_average_overhead;
 
 bool benchmark_timer_is_initialized = false;
 
-extern volatile LEON3_Timer_Regs_Map *LEON3_Timer_Regs;
+extern volatile struct gptimer_regs *LEON3_Timer_Regs;
 
 void benchmark_timer_initialize(void)
 {

@@ -75,7 +75,7 @@ struct ambapp_rmap_priv {
 	/* IRQ HANDLING */
 	int			irq_support;
 	genirq_t		genirq;
-	LEON3_IrqCtrl_Regs_Map	*irq;
+	struct irqmp_regs	*irq;
 
 	/* Access routines */
 	struct drvmgr_func	funcs[INHERIT_LENGTH+3];
@@ -263,8 +263,7 @@ int ambapp_rmap_init1(struct drvmgr_dev *dev)
 		if ( priv->irq_support )
 			return -4;
 	} else {
-		priv->irq = (LEON3_IrqCtrl_Regs_Map *)
-			(((struct ambapp_apb_info *)tmp->devinfo)->start);
+		priv->irq = (struct irqmp_regs *)DEV_TO_APB(tmp)->start;
 		/* Set up IRQ controller */
 		WRITE_REG(priv, &priv->irq->iclear, 0xffff);
 		WRITE_REG(priv, &priv->irq->ilevel, 0);

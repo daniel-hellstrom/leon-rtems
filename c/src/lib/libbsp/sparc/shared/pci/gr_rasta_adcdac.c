@@ -91,7 +91,7 @@ struct gr_rasta_adcdac_priv {
 
 	/* GR-RASTA-ADCDAC */
 	struct gr_rasta_adcdac_ver	*version;
-	LEON3_IrqCtrl_Regs_Map		*irq;
+	struct irqmp_regs		*irq;
 	struct grpci_regs		*grpci;
 	struct drvmgr_map_entry		bus_maps_down[3];
 	struct drvmgr_map_entry		bus_maps_up[2];
@@ -307,7 +307,7 @@ int gr_rasta_adcdac_hw_init1(struct gr_rasta_adcdac_priv *priv)
 	if ( !tmp ) {
 		return -4;
 	}
-	priv->irq = (LEON3_IrqCtrl_Regs_Map *)(((struct ambapp_apb_info *)tmp->devinfo)->start);
+	priv->irq = (struct irqmp_regs *)DEV_TO_APB(tmp)->start;
 	/* Set up GR-RASTA-ADCDAC irq controller */
 	priv->irq->iclear = 0xffff;
 	priv->irq->ilevel = 0;

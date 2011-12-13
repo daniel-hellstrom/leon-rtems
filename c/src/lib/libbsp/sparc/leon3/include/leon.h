@@ -46,37 +46,6 @@ extern "C" {
   ( (_trap) >= 0x11 && \
     (_trap) <= 0x1F )
 
-typedef struct {
-  volatile unsigned int data;
-  volatile unsigned int status;
-  volatile unsigned int ctrl;
-  volatile unsigned int scaler;
-} LEON3_UART_Regs_Map;
-
-typedef struct {
-  volatile unsigned int value;
-  volatile unsigned int reload;
-  volatile unsigned int conf;
-  volatile unsigned int notused;
-} LEON3_Timer_SubType;
-
-typedef struct {
-  volatile unsigned int scaler_value;   /* common timer registers */
-  volatile unsigned int scaler_reload;
-  volatile unsigned int status;
-  volatile unsigned int notused;
-  LEON3_Timer_SubType timer[8];
-} LEON3_Timer_Regs_Map;
-
-typedef struct {
-  volatile unsigned int iodata;
-  volatile unsigned int ioout;
-  volatile unsigned int iodir;
-  volatile unsigned int irqmask;
-  volatile unsigned int irqpol;
-  volatile unsigned int irqedge;
-} LEON3_IOPORT_Regs_Map;
-
 /* /\* */
 /*  *  This is used to manipulate the on-chip registers. */
 /*  * */
@@ -151,8 +120,8 @@ typedef struct {
 #define LEON_REG_UART_CTRL_FA     0x80000000 /* FIFO Available */
 #define LEON_REG_UART_CTRL_FA_BIT 31
 
-extern volatile LEON3_IrqCtrl_Regs_Map *LEON3_IrqCtrl_Regs;  /* LEON3 Interrupt Controller */
-extern volatile LEON3_Timer_Regs_Map *LEON3_Timer_Regs; /* LEON3 GP Timer */
+extern volatile struct irqmp_regs *LEON3_IrqCtrl_Regs;  /* LEON3 Interrupt Controller */
+extern volatile struct gptimer_regs *LEON3_Timer_Regs; /* LEON3 GP Timer */
 
 /* LEON3 CPU Index of boot CPU */
 extern int LEON3_Cpu_Index;
