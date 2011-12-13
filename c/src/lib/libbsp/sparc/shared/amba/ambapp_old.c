@@ -13,19 +13,17 @@ int ambapp_dev_find_match(struct ambapp_dev *dev, int index, void *arg)
 {
 	struct ambapp_dev_find_match_arg *p = arg;
 
-	if ( p->index == 0 ) {
+	if (p->index == 0) {
 		/* Found controller, stop */
-		if ( p->type == DEV_APB_SLV ) {
-			*(struct ambapp_apb_info *)p->dev = 
-				*(struct ambapp_apb_info *)&dev->devinfo[0];
+		if (p->type == DEV_APB_SLV) {
+			*(struct ambapp_apb_info *)p->dev = *DEV_TO_APB(dev);
 			p->dev = ((struct ambapp_apb_info *)p->dev)+1;
 		} else {
-			*(struct ambapp_ahb_info *)p->dev = 
-				*(struct ambapp_ahb_info *)&dev->devinfo[0];
+			*(struct ambapp_ahb_info *)p->dev = *DEV_TO_AHB(dev);
 			p->dev = ((struct ambapp_ahb_info *)p->dev)+1;
 		}
 		p->count--;
-		if ( p->count < 1 )
+		if (p->count < 1)
 			return 1;
 	} else {
 		p->index--;

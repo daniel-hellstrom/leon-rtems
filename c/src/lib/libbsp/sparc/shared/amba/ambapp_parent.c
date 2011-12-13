@@ -17,10 +17,9 @@
 
 struct ambapp_dev *ambapp_find_parent(struct ambapp_dev *dev)
 {
-	while( dev->prev ) {
-		if ( dev == dev->prev->children ) {
+	while (dev->prev) {
+		if (dev == dev->prev->children)
 			return dev->prev;
-		}
 		dev = dev->prev;
 	}
 	return NULL;

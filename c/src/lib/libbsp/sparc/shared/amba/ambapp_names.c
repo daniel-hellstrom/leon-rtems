@@ -1,10 +1,10 @@
 /*
- *  AMBA Plug & Play Device and Vendor definitions.
- * 
+ *  AMBA Plug & Play Device and Vendor name database
+ *
  *  COPYRIGHT (c) 2009.
  *  Aeroflex Gaisler.
  *
- *  The device and vendor definitions are extracted with a script from 
+ *  The device and vendor definitions are extracted with a script from
  *  GRLIB.
  *
  *  The license and distribution terms for this file may be
@@ -14,7 +14,6 @@
  *  2009-01-27, Daniel Hellstrom <daniel@gaisler.com>
  *    Created from GRLIB 3386.
  */
-
 
 #include <ambapp_ids.h>
 #include <string.h>
@@ -313,7 +312,7 @@ static ambapp_device_name ACTEL_devices[] =
   {0, NULL}
 };
 
-static ambapp_vendor_devnames vendors[] = 
+static ambapp_vendor_devnames vendors[] =
 {
   {VENDOR_GAISLER, "GAISLER", GAISLER_devices},
   {VENDOR_PENDER, "PENDER", PENDER_devices},
@@ -342,8 +341,8 @@ static ambapp_vendor_devnames vendors[] =
 
 static char *ambapp_get_devname(ambapp_device_name *devs, int id)
 {
-	while( devs->device_id > 0 ){
-		if ( devs->device_id == id )
+	while (devs->device_id > 0) {
+		if (devs->device_id == id)
 			return devs->name;
 		devs++;
 	}
@@ -353,11 +352,10 @@ static char *ambapp_get_devname(ambapp_device_name *devs, int id)
 char *ambapp_device_id2str(int vendor, int id)
 {
 	ambapp_vendor_devnames *ven = &vendors[0];
-	
-	while( ven->vendor_id > 0 ){
-		if ( ven->vendor_id == vendor ){
+
+	while (ven->vendor_id > 0) {
+		if (ven->vendor_id == vendor)
 			return ambapp_get_devname(ven->devices,id);
-		}
 		ven++;
 	}
 	return NULL;
@@ -366,11 +364,10 @@ char *ambapp_device_id2str(int vendor, int id)
 char *ambapp_vendor_id2str(int vendor)
 {
 	ambapp_vendor_devnames *ven = &vendors[0];
-	
-	while( ven->vendor_id > 0 ){
-		if ( ven->vendor_id == vendor ){
+
+	while (ven->vendor_id > 0) {
+		if (ven->vendor_id == vendor)
 			return ven->name;
-		}
 		ven++;
 	}
 	return NULL;

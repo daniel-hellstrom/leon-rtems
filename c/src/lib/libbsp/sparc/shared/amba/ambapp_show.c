@@ -1,5 +1,5 @@
 /*  AMBA Plug & Play device information printing.
- * 
+ *
  *  COPYRIGHT (c) 2009.
  *  Aeroflex Gaisler.
  *
@@ -33,8 +33,8 @@ int ambapp_dev_print(struct ambapp_dev *dev, int index, void *arg)
 	int i=0;
 	unsigned int basereg;
 
-	if ( p->show_depth ) {
-		for(i=0; i<ambapp_depth(dev)*2; i+=2){
+	if (p->show_depth) {
+		for (i=0; i<ambapp_depth(dev)*2; i+=2) {
 			dp[i] = ' ';
 			dp[i+1] = ' ';
 		}
@@ -42,21 +42,21 @@ int ambapp_dev_print(struct ambapp_dev *dev, int index, void *arg)
 	dp[i] = '\0';
 
 	ven_str = ambapp_vendor_id2str(dev->vendor);
-	if ( !ven_str ){
+	if (!ven_str) {
 		ven_str = unknown;
 		dev_str = unknown;
-	}else{
+	} else {
 		dev_str = ambapp_device_id2str(dev->vendor,dev->device);
-		if ( !dev_str )
+		if (!dev_str)
 			dev_str = unknown;
 	}
-	if ( dev->dev_type == DEV_APB_SLV) {
+	if (dev->dev_type == DEV_APB_SLV) {
 		/* APB */
-		basereg = ((struct ambapp_apb_info *)dev->devinfo)->start;
+		basereg = DEV_TO_APB(dev)->start;
 		type_str = "apb";
 	} else {
 		/* AHB */
-		basereg = ((struct ambapp_ahb_info *)dev->devinfo)->start[0];
+		basereg = DEV_TO_AHB(dev)->start[0];
 		type_str = "ahb";
 	}
 	printf("%s |-> 0x%x:0x%x:0x%x: %s_%s, %s: 0x%x, 0x%x (OWNER: 0x%x)\n",

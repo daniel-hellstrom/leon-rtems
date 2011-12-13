@@ -21,6 +21,7 @@
 extern "C" {
 #endif
 
+/* Max supported AHB buses */
 #define AHB_BUS_MAX 6
 
 struct ambapp_dev;
@@ -45,6 +46,10 @@ struct ambapp_dev {
 #define AMBAPP_FLAG_MBUS	0x00c
 #define AMBAPP_FLAG_SBUS	0x003
 
+/* Get APB or AHB information from a AMBA device */
+#define DEV_TO_APB(adev) ((struct ambapp_apb_info *)((adev)->devinfo))
+#define DEV_TO_AHB(adev) ((struct ambapp_ahb_info *)((adev)->devinfo))
+#define DEV_TO_COMMON(adev) ((struct ambapp_common_info *)((adev)->devinfo))
 /* Convert address of ambapp_apb_info/ambapp_ahb_info into ambapp_dev */
 #define APB_TO_DEV(apb_info) ((struct ambapp_dev *)(unsigned int(apb_info) - \
 				offsetof(struct ambapp_dev, devinfo)))
@@ -250,6 +255,10 @@ extern int ambapp_for_each(
  * is NULL the first device is returned, else pcount is interpreted as index
  * by decrementing the value until zero is reaced: *count=0 first device,
  * *count=1 second device etc.
+ *
+ * The matching device is returned, which will stop the ambapp_for_each search.
+ * If zero is returned from ambapp_for_each no device matching the index was
+ * found
  */
 extern int ambapp_find_by_idx(struct ambapp_dev *dev, int index, void *pcount);
 

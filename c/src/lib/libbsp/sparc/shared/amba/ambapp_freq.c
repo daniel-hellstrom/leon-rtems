@@ -37,26 +37,25 @@ unsigned int ambapp_freq_calc(
 
 	/* Found Bus0? */
 	bridge = abus->ahbs[ahbidx].bridge;
-	if ( !bridge )
+	if (!bridge)
 		return freq_hz;
 
 	/* Find this bus frequency relative to freq_hz */
-	if ( (bridge->vendor == VENDOR_GAISLER) && (
-	     (bridge->device == GAISLER_AHB2AHB) ||
-	     (bridge->device == GAISLER_L2CACHE)) ) {
-		ahb = (struct ambapp_ahb_info *)bridge->devinfo;
+	if ((bridge->vendor == VENDOR_GAISLER) &&
+	    ((bridge->device == GAISLER_AHB2AHB) ||
+	    (bridge->device == GAISLER_L2CACHE))) {
+		ahb = DEV_TO_AHB(bridge);
 		ffact = (ahb->custom[0] & AMBAPP_FLAG_FFACT) >> 4;
-		if ( ffact != 0 ) {
+		if (ffact != 0) {
 			dir = ahb->custom[0] & AMBAPP_FLAG_FFACT_DIR;
 
 			/* Calculate frequency by dividing or
 			 * multiplying system frequency
 			 */
-			if ( (dir && !inverse) || (!dir && inverse) ) {
+			if ((dir && !inverse) || (!dir && inverse))
 				freq_hz = freq_hz * ffact;
-			} else {
+			else
 				freq_hz = freq_hz / ffact;
-			}
 		}
 		return ambapp_freq_calc(abus, ahb->ahbidx, freq_hz, inverse);
 	} else {
@@ -82,8 +81,8 @@ void ambapp_freq_init(
 	/* Register Frequency at the AHB bus that the device the user gave us
 	 * is located at.
 	 */
-	if ( dev ) {
-		info = (struct ambapp_common_info *)dev->devinfo;
+	if (dev) {
+		info = DEV_TO_COMMON(dev);
 		abus->ahbs[info->ahbidx].freq_hz = freq_hz;
 
 		/* Find Frequency of Bus 0 */
@@ -97,12 +96,10 @@ void ambapp_freq_init(
 	 * was reported at
 	 */
 	for (i=1; i<AHB_BUS_MAX; i++) {
-		if ( abus->ahbs[i].ioarea == 0 ) {
+		if (abus->ahbs[i].ioarea == 0)
 			break;
-		}
-		if ( abus->ahbs[i].freq_hz != 0 ) {
+		if (abus->ahbs[i].freq_hz != 0)
 			continue;
-		}
 		abus->ahbs[i].freq_hz =
 			ambapp_freq_calc(abus, i, abus->ahbs[0].freq_hz, 0);
 	}
@@ -112,7 +109,6 @@ void ambapp_freq_init(
  * particular AHB/APB device */
 unsigned int ambapp_freq_get(struct ambapp_bus *abus, struct ambapp_dev *dev)
 {
-	struct ambapp_common_info *info = 
-		(struct ambapp_common_info *)dev->devinfo;
+	struct ambapp_common_info *info = DEV_TO_COMMON(dev);
 	return abus->ahbs[info->ahbidx].freq_hz;
 }
