@@ -197,6 +197,11 @@ extern void BSP_shared_interrupt_mask(int irq);
 #define BSP_PCI_shared_interrupt_mask        BSP_shared_interrupt_mask
 #define BSP_PCI_shared_interrupt_clear       BSP_shared_interrupt_clear
 
+/* Initialize BSP watchdog routines. Returns number of watchdog timers found.
+ * Currently only one is supported.
+ */
+extern int bsp_watchdog_init(void);
+
 /* Reload watchdog (last timer on the first GPTIMER core), all systems does not
  * feature a watchdog, it is expected that if this function is called the
  * user knows that there is a watchdog available.
@@ -213,6 +218,9 @@ extern void bsp_watchdog_reload(int watchdog, unsigned int reload_value);
 
 /* Stop watchdog timer */
 extern void bsp_watchdog_stop(int watchdog);
+
+/* Use watchdog0 timer to reset the system */
+extern void bsp_watchdog_system_reset(void);
 
 /* Common driver build-time configurations. On small systems undefine
  * [DRIVER]_INFO_AVIAL to avoid info routines get dragged in. It is good
