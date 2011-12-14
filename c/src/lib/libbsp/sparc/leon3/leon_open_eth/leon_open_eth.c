@@ -31,25 +31,27 @@ int rtems_leon_open_eth_driver_attach(
   int attach
 )
 {
-  int i;
   unsigned int base_addr = 0; /* avoid warnings */
   unsigned int eth_irq = 0;   /* avoid warnings */
-  struct ambapp_ahb_info dev;
-
+  struct ambapp_dev *adev;
+  struct ambapp_ahb_info *ahb;
 
   /* Scan for MAC AHB slave interface */
-  i = ambapp_find_ahbslv(&ambapp_plb, VENDOR_OPENCORES, OPENCORES_ETHMAC, &dev);
-  if ( i != 1 ) {
-    i = ambapp_find_ahbslv(&ambapp_plb, VENDOR_GAISLER, GAISLER_ETHAHB, &dev);
-    if ( i != 1 ) {
-      /* No Core found */
-      return 0;
-    }
+  adev = (void *)ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_AHB_SLVS),
+                                 VENDOR_OPENCORES, OPENCORES_ETHMAC,
+                                 ambapp_find_by_idx, NULL);
+  if (!adev) {
+    adev = (void *)ambapp_for_each(&ambapp_plb, (OPTIONS_ALL|OPTIONS_AHB_SLVS),
+                                   VENDOR_GAISLER, GAISLER_ETHAHB,
+                                   ambapp_find_by_idx, NULL);
   }
-  eth_irq = dev.irq; /* Calculate vector number from IRQ number */
-  base_addr = dev.start[0];
 
+  if (adev)
   {
+    ahb = DEV_TO_AHB(adev);
+    base_addr = ahb->start[0];
+    eth_irq = ahb->irq;
+
     /* clear control register and reset NIC */
     *(volatile int *) base_addr = 0;
     *(volatile int *) base_addr = 0x800;
@@ -59,7 +61,7 @@ int rtems_leon_open_eth_driver_attach(
     leon_open_eth_configuration.txd_count = TDA_COUNT;
     leon_open_eth_configuration.rxd_count = RDA_COUNT;
     /* enable 100 MHz operation only if cpu frequency >= 50 MHz */
-    if (LEON3_Timer_Regs->scaler_reload >= 49) 
+    if (LEON3_Timer_Regs->scaler_reload >= 49)
       leon_open_eth_configuration.en100MHz = 1;
     if (rtems_open_eth_driver_attach( config, &leon_open_eth_configuration )) {
       LEON_Clear_interrupt(eth_irq);
