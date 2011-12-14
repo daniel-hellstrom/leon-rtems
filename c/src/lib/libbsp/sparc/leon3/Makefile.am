@@ -111,6 +111,8 @@ libbsp_a_SOURCES += ../../sparc/shared/i2c/i2cmst.c
 
 # timer
 libbsp_a_SOURCES += timer/timer.c
+libbsp_a_SOURCES += timer/watchdog.c
+include_HEADERS += include/watchdog.h
 
 if HAS_SMP
 libbsp_a_SOURCES += smp/getcpuid.c
