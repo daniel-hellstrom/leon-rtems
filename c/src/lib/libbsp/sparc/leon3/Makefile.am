@@ -114,6 +114,7 @@ libbsp_a_SOURCES += ../../sparc/shared/i2c/i2cmst.c
 
 # timer
 libbsp_a_SOURCES += timer/timer.c
+libbsp_a_SOURCES += timer/watchdog.c
 
 if HAS_NETWORKING
 noinst_PROGRAMS += leon_smc91111.rel

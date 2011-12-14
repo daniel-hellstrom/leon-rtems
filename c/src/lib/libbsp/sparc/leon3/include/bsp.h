@@ -188,6 +188,31 @@ extern void BSP_shared_interrupt_unmask(int irq);
  */
 extern void BSP_shared_interrupt_mask(int irq);
 
+/* Initialize BSP watchdog routines. Returns number of watchdog timers found.
+ * Currently only one is supported.
+ */
+extern int bsp_watchdog_init(void);
+
+/* Reload watchdog (last timer on the first GPTIMER core), all systems does not
+ * feature a watchdog, it is expected that if this function is called the
+ * user knows that there is a watchdog available.
+ *
+ * The prescaler is normally set to number of MHz of system, this is to
+ * make the system clock tick be stable.
+ *
+ * Arguments
+ *  watchdog       - Always 0 for now
+ *  reload_value   - Number of timer clocks (after prescaler) to count before 
+ *                   watchdog is woken.
+ */
+extern void bsp_watchdog_reload(int watchdog, unsigned int reload_value);
+
+/* Stop watchdog timer */
+extern void bsp_watchdog_stop(int watchdog);
+
+/* Use watchdog0 timer to reset the system */
+extern void bsp_watchdog_system_reset(void);
+
 #ifdef __cplusplus
 }
 #endif
