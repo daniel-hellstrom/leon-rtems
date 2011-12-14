@@ -45,7 +45,7 @@ libbsp_a_SOURCES += ../../shared/bspclean.c ../../shared/bsplibc.c \
     ../../sparc/shared/bsppretaskinghook.c startup/bsppredriver.c \
     ../../sparc/shared/bspgetworkarea.c ../../shared/sbrk.c startup/setvec.c \
     \
-    startup/spurious.c startup/bspidle.S startup/watchdog.c \
+    startup/spurious.c startup/bspidle.S \
 	../../sparc/shared/startup/early_malloc.c
 # gnatsupp
 libbsp_a_SOURCES += gnatsupp/gnatsupp.c ../../sparc/shared/gnatcommon.c
@@ -179,6 +179,7 @@ libbsp_a_SOURCES += ../../sparc/shared/mem/mctrl_rmap.c
 
 # timer
 libbsp_a_SOURCES += timer/timer.c
+libbsp_a_SOURCES += timer/watchdog.c
 
 # IRQ
 include_HEADERS += ../../sparc/shared/include/genirq.h
