@@ -1,3 +1,15 @@
+/*  Installs the BSP pre-driver hook
+ *
+ *  COPYRIGHT (c) 2011
+ *  Aeroflex Gaisler
+ *
+ *  The license and distribution terms for this file may be
+ *  found in the file LICENSE in this distribution or at
+ *  http://www.rtems.com/license/LICENSE.
+ *
+ *  $Id$
+ */
+
 #include <bsp.h>
 
 /* If RTEMS_DRVMGR_STARTUP is defined extra code is added that
@@ -16,7 +28,7 @@
  */
 struct drvmgr_drv_reg_func drvmgr_drivers[] __attribute__((weak)) =
 {
-          {NULL} /* End array with NULL */
+  {NULL} /* End array with NULL */
 };
 
 /* Defines what cores are avilable on the bus in addition to the standard
@@ -24,16 +36,16 @@ struct drvmgr_drv_reg_func drvmgr_drivers[] __attribute__((weak)) =
  */
 struct leon2_core leon2_amba_custom_cores[] __attribute__((weak)) =
 {
-        EMPTY_LEON2_CORE
+  EMPTY_LEON2_CORE
 };
 
 /* Configure LEON2 Root bus driver */
 struct leon2_bus leon2_bus_config __attribute__((weak)) =
 {
-        &leon2_std_cores[0], /* The standard cores, defined by driver */
-        &leon2_amba_custom_cores[0],   /* custom cores, defined by us */
-        DRVMGR_TRANSLATE_ONE2ONE,
-	DRVMGR_TRANSLATE_ONE2ONE,
+  &leon2_std_cores[0], /* The standard cores, defined by driver */
+  &leon2_amba_custom_cores[0],   /* custom cores, defined by us */
+  DRVMGR_TRANSLATE_ONE2ONE,
+  DRVMGR_TRANSLATE_ONE2ONE,
 };
 
 /* Driver resources on LEON2 AMBA bus. Used to set options for particular
@@ -42,20 +54,20 @@ struct leon2_bus leon2_bus_config __attribute__((weak)) =
  */
 struct drvmgr_bus_res leon2_amba_res __attribute__((weak)) =
 {
-	.next = NULL,
-	.resource = {
-	        RES_EMPTY
-	},
+  .next = NULL,
+  .resource = {
+    RES_EMPTY
+  },
 };
 #endif
 
 /*
  *  bsp_predriver_hook
  *
- *  BSP predriver hook.  Called just before drivers are initialized.
+ *  BSP predriver hook. Called just before drivers are initialized.
  *  Is used to initialize shared interrupt handling.
  */
-void bsp_predriver_hook(void)
+void bsp_predriver_hook( void )
 {
   /* Initialize shared interrupt handling, must be done after IRQ
    * controller has been found and initialized.
