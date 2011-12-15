@@ -183,6 +183,16 @@ extern void BSP_shared_interrupt_unmask(int irq);
  */
 extern void BSP_shared_interrupt_mask(int irq);
 
+/* BSP PCI Interrupt support */
+#define BSP_PCI_shared_interrupt_register    BSP_shared_interrupt_register
+#define BSP_PCI_shared_interrupt_unregister  BSP_shared_interrupt_unregister
+#define BSP_PCI_shared_interrupt_unmask      BSP_shared_interrupt_unmask
+#define BSP_PCI_shared_interrupt_mask        BSP_shared_interrupt_mask
+#define BSP_PCI_shared_interrupt_clear       BSP_shared_interrupt_clear
+
+/* AT697 has PCI defined as big endian */
+#define BSP_PCI_BIG_ENDIAN
+
 #ifdef __cplusplus
 }
 #endif
