@@ -119,6 +119,13 @@ libbsp_a_SOURCES += ../../sparc/shared/i2c/i2cmst.c
 libbsp_a_SOURCES += timer/timer.c
 libbsp_a_SOURCES += timer/watchdog.c
 
+# Driver Manager 
+include_drvmgrdir = $(includedir)/drvmgr
+include_drvmgr_HEADERS = ../../sparc/shared/include/drvmgr/ambapp_bus_grlib.h
+include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/ambapp_bus.h
+libbsp_a_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus.c
+libbsp_a_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus_grlib.c
+
 if HAS_NETWORKING
 noinst_PROGRAMS += leon_smc91111.rel
 leon_smc91111_rel_SOURCES = leon_smc91111/leon_smc91111.c

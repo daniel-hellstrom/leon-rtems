@@ -224,6 +224,13 @@ extern void bsp_watchdog_stop(int watchdog);
 /* Use watchdog0 timer to reset the system */
 extern void bsp_watchdog_system_reset(void);
 
+/* Common driver build-time configurations. On small systems undefine
+ * [DRIVER]_INFO_AVAIL to avoid info routines get dragged in. It is good
+ * for debugging and printing information about the system, but makes the
+ * image bigger.
+ */
+#define AMBAPPBUS_INFO_AVAIL          /* AMBAPP Bus driver */
+
 #ifdef __cplusplus
 }
 #endif
