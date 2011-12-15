@@ -117,6 +117,13 @@ libbsp_a_SOURCES += timer/timer.c
 libbsp_a_SOURCES += timer/watchdog.c
 include_HEADERS += include/watchdog.h
 
+# Driver Manager 
+include_drvmgrdir = $(includedir)/drvmgr
+include_drvmgr_HEADERS = ../../sparc/shared/include/drvmgr/ambapp_bus_grlib.h
+include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/ambapp_bus.h
+libbsp_a_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus.c
+libbsp_a_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus_grlib.c
+
 if HAS_SMP
 libbsp_a_SOURCES += smp/getcpuid.c
 libbsp_a_SOURCES += smp/smp_leon3.c
