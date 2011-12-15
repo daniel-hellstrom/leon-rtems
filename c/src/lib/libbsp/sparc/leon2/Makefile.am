@@ -118,6 +118,13 @@ libbsp_a_SOURCES += ../../sparc/shared/i2c/i2cmst.c
 # timer
 libbsp_a_SOURCES += timer/timer.c
 
+# Driver Manager
+include_drvmgrdir = $(includedir)/drvmgr
+include_drvmgr_HEADERS = ../../sparc/shared/include/drvmgr/ambapp_bus.h
+include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/leon2_amba_bus.h
+libbsp_a_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus.c
+libbsp_a_SOURCES += ../../sparc/shared/drvmgr/leon2_amba_bus.c
+
 if HAS_SMP
 libbsp_a_SOURCES += ../../shared/smp/getcpuid.c ../../shared/smp/smp_stub.c \
     ../../shared/smp/bspsmp_wait_for.c
