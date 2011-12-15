@@ -32,9 +32,9 @@ libbspstart_a_SOURCES = ../../sparc/shared/start.S
 project_lib_DATA = start.$(OBJEXT)
 
 dist_project_lib_DATA += \
-	startup/linkcmds \
-	startup/linkcmds_ngmp \
-	../shared/startup/linkcmds.base
+    startup/linkcmds \
+    startup/linkcmds_ngmp \
+    ../shared/startup/linkcmds.base
 
 noinst_LIBRARIES += libbsp.a
 libbsp_a_SOURCES =
@@ -44,9 +44,8 @@ libbsp_a_SOURCES += ../../shared/bspclean.c ../../shared/bsplibc.c \
     ../../shared/bsppost.c ../../shared/bootcard.c startup/bspstart.c \
     ../../sparc/shared/bsppretaskinghook.c startup/bsppredriver.c \
     ../../sparc/shared/bspgetworkarea.c ../../shared/sbrk.c startup/setvec.c \
-    \
-    startup/spurious.c startup/bspidle.S \
-	../../sparc/shared/startup/early_malloc.c
+    ../../sparc/shared/startup/early_malloc.c \
+    startup/spurious.c startup/bspidle.S
 # gnatsupp
 libbsp_a_SOURCES += gnatsupp/gnatsupp.c ../../sparc/shared/gnatcommon.c
 # console
@@ -268,8 +267,9 @@ libbsp_a_SOURCES += shmsupp/addrconv.c shmsupp/getcfg.c shmsupp/lock.c \
     shmsupp/mpisr.c
 endif
 
-libbsp_a_LIBADD = ../../../libcpu/@RTEMS_CPU@/cache.rel \
+libbsp_a_LIBADD = \
     ../../../libcpu/@RTEMS_CPU@/access.rel \
+    ../../../libcpu/@RTEMS_CPU@/cache.rel \
     ../../../libcpu/@RTEMS_CPU@/reg_win.rel \
     ../../../libcpu/@RTEMS_CPU@/syscall.rel
 
