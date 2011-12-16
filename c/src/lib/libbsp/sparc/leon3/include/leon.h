@@ -98,6 +98,7 @@ extern "C" {
 #define LEON_REG_UART_STATUS_OE   0x00000010 /* RX Overrun Error */
 #define LEON_REG_UART_STATUS_PE   0x00000020 /* RX Parity Error */
 #define LEON_REG_UART_STATUS_FE   0x00000040 /* RX Framing Error */
+#define LEON_REG_UART_STATUS_TF   0x00000200 /* FIFO Full */
 #define LEON_REG_UART_STATUS_ERR  0x00000078 /* Error Mask */
 
 /*
@@ -112,6 +113,10 @@ extern "C" {
 #define LEON_REG_UART_CTRL_PE     0x00000020 /* Parity enable */
 #define LEON_REG_UART_CTRL_FL     0x00000040 /* Flow control enable */
 #define LEON_REG_UART_CTRL_LB     0x00000080 /* Loop Back enable */
+#define LEON_REG_UART_CTRL_DB     0x00000800 /* Debug FIFO enable */
+#define LEON_REG_UART_CTRL_SI     0x00004000 /* TX shift register empty IRQ enable */
+#define LEON_REG_UART_CTRL_FA     0x80000000 /* FIFO Available */
+#define LEON_REG_UART_CTRL_FA_BIT 31
 
 extern volatile struct irqmp_regs *LEON3_IrqCtrl_Regs;  /* LEON3 Interrupt Controller */
 extern volatile struct gptimer_regs *LEON3_Timer_Regs; /* LEON3 GP Timer */
