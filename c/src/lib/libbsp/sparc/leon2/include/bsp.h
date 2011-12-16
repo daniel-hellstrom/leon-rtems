@@ -194,6 +194,7 @@ extern void BSP_shared_interrupt_mask(int irq);
  * image bigger.
  */
 #define AMBAPPBUS_INFO_AVAIL          /* AMBAPP Bus driver */
+#define GPTIMER_INFO_AVAIL            /* GPTIMER Timer driver */
 
 #ifdef __cplusplus
 }

@@ -230,6 +230,7 @@ extern void bsp_watchdog_system_reset(void);
  * image bigger.
  */
 #define AMBAPPBUS_INFO_AVAIL          /* AMBAPP Bus driver */
+#define GPTIMER_INFO_AVAIL            /* GPTIMER Timer driver */
 
 #ifdef __cplusplus
 }
