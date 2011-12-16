@@ -94,9 +94,14 @@ libbsp_a_SOURCES += \
     ../../shared/src/irq-info.c \
     ../../shared/src/irq-shell.c \
     ../../shared/src/irq-server.c
+
 # PCI
-include_HEADERS += ../../sparc/shared/include/pci.h
-libbsp_a_SOURCES += pci/pci.c ../../sparc/shared/pci/pcifinddevice.c
+include_HEADERS += ../../sparc/shared/include/grpci2.h
+libbsp_a_SOURCES += ../../sparc/shared/pci/grpci.c
+libbsp_a_SOURCES += ../../sparc/shared/pci/grpci2.c
+libbsp_a_SOURCES +=  ../../sparc/shared/pci/pcif.c
+libbsp_a_SOURCES +=  ../../sparc/shared/pci/pci_memreg_sparc_le.c
+libbsp_a_SOURCES +=  ../../sparc/shared/pci/pci_memreg_sparc_be.c
 
 # B1553BRM
 include_HEADERS += ../../sparc/shared/include/b1553brm.h \
