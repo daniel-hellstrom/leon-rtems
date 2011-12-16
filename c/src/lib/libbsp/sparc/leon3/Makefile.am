@@ -75,6 +75,9 @@ libbsp_a_SOURCES += clock/ckinit.c ../../../shared/clockdrv_shell.h
 
 # console
 libbsp_a_SOURCES += console/console.c
+libbsp_a_SOURCES += ../../sparc/shared/uart/cons.c
+libbsp_a_SOURCES += ../../sparc/shared/uart/apbuart_cons.c
+include_HEADERS += ../../sparc/shared/include/cons.h
 # debugio
 libbsp_a_SOURCES += console/debugputs.c
 
