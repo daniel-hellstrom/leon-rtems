@@ -1,11 +1,16 @@
-/*
+/*  Console driver interface to UART drivers
  *
- * - First console device that has System Console flag set will be
- *   system console.
- * - Last console device that has Debug Console flag set will be
- *   debug console.
- * - If none of the registered console devices has system console set,
- *   the first is registered device is used, unless it has 
+ *  - First console device that has System Console flag set will be
+ *    system console.
+ *  - If none of the registered console devices has system console set,
+ *    the first is registered device is used, unless it has 
+ *
+ *  COPYRIGHT (c) 2010.
+ *  Aeroflex Gaisler.
+ *
+ *  The license and distribution terms for this file may be
+ *  found in the file LICENSE in this distribution or at
+ *  http://www.rtems.com/license/LICENSE.
  */
 
 #ifndef __CONS_H__

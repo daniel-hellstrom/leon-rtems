@@ -45,7 +45,7 @@ void console_dev_init(struct console_priv *con, int minor)
 	char name[16], *fsname;
 	rtems_status_code status;
 
-	if ( !con->dev->fsname ) {
+	if (!con->dev->fsname) {
 		strcpy(name, "/dev/console_a");
 		/* Special console name and MINOR for SYSTEM CONSOLE */
 		if (minor == 0)
@@ -56,9 +56,8 @@ void console_dev_init(struct console_priv *con, int minor)
 		fsname = con->dev->fsname;
 	}
 	status = rtems_io_register_name(fsname, console_major, minor);
-	if ( (minor == 0) && (status != RTEMS_SUCCESSFUL) ) {
+	if ((minor == 0) && (status != RTEMS_SUCCESSFUL))
 		rtems_fatal_error_occurred(status);
-	}
 }
 
 void console_dev_register(struct console_dev *dev)
@@ -66,12 +65,12 @@ void console_dev_register(struct console_dev *dev)
 	int i, minor = 0;
 	struct console_priv *con = NULL;
 
-	if ( (dev->flags & CONSOLE_FLAG_SYSCON) && !cons[0].dev ) {
+	if ((dev->flags & CONSOLE_FLAG_SYSCON) && !cons[0].dev) {
 		con = &cons[0];
 		con->flags = FLAG_SYSCON;
 	} else {
 		for (i=1; i<CONSOLE_MAX; i++) {
-			if ( !cons[i].dev ) {
+			if (!cons[i].dev) {
 				con = &cons[i];
 				con->flags = 0;
 				minor = i;
@@ -79,7 +78,7 @@ void console_dev_register(struct console_dev *dev)
 			}
 		}
 	}
-	if ( con == NULL ) {
+	if (con == NULL) {
 		/* Not enough console structures */
 		return;
 	}
@@ -91,7 +90,7 @@ void console_dev_register(struct console_dev *dev)
 	/* Console layer is already initialized, that means that we can
 	 * register termios interface directly.
 	 */
-	if ( console_initialized )
+	if (console_initialized)
 		console_dev_init(con, minor);
 }
 
@@ -115,9 +114,8 @@ rtems_device_driver console_initialize(
 
 	/* Register all Console a file system device node */
 	for (i=0; i<CONSOLE_MAX; i++) {
-		if ( cons[i].dev ) {
+		if (cons[i].dev)
 			console_dev_init(&cons[i], i);
-		}
 	}
 
 	console_initialized = 1;
@@ -133,7 +131,7 @@ rtems_device_driver console_open(
 	rtems_status_code status;
 	struct termios term;
 
-	if ( (minor >= CONSOLE_MAX) || !cons[minor].dev )
+	if ((minor >= CONSOLE_MAX) || !cons[minor].dev)
 		return RTEMS_INVALID_NUMBER;
 
 	status = rtems_termios_open(

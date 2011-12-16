@@ -1,13 +1,19 @@
 /*
- * Timer Library
+ *  Timer Library (TLIB)
  *
- * The Library rely on timer drivers, the timer presented by the
- * timer driver must look like a down-counter timer, which generates
- * interrupt (if configured) when underflown.
+ *  The Library rely on timer drivers, the timer presented by the
+ *  timer driver must look like a down-counter timer, which generates
+ *  interrupt (if configured) when underflown.
  *
- * If Timer hardware is an up-counter the Timer driver must recalculate
- * into values that would match as if it was a down-counter.
+ *  If Timer hardware is an up-counter the Timer driver must recalculate
+ *  into values that would match as if it was a down-counter.
  *
+ *  COPYRIGHT (c) 2011.
+ *  Aeroflex Gaisler.
+ *
+ *  The license and distribution terms for this file may be
+ *  found in the file LICENSE in this distribution or at
+ *  http://www.rtems.com/license/LICENSE.
  */
 
 struct tlib_dev;
@@ -42,7 +48,8 @@ struct tlib_dev {
 
 #ifdef RTEMS_DRVMGR_STARTUP
 /* Clock Driver Timer register function. Only used when the TLIB-Clock
- * driver is used. A specific Timer is 
+ * driver is used. A specific Timer is registered as the System Clock
+ * timer.
  */
 extern void Clock_timer_register(int timer_number);
 #endif

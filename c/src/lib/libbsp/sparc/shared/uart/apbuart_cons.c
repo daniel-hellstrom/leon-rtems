@@ -8,7 +8,7 @@
  *  The BSP define APBUART_INFO_AVAIL in order to add the info routine
  *  used for debugging.
  *
- *  COPYRIGHT (c) 2008.
+ *  COPYRIGHT (c) 2010.
  *  Aeroflex Gaisler.
  *
  *  The license and distribution terms for this file may be
@@ -126,7 +126,7 @@ void apbuart_cons_register_drv (void)
 /* Interrupt mode routines */
 static const rtems_termios_callbacks Callbacks_intr = {
     apbuart_firstOpen,           /* firstOpen */
-    NULL,                        /* lastClose */
+    apbuart_lastClose,           /* lastClose */
     NULL,                        /* pollRead */
     apbuart_write_intr,          /* write */
     apbuart_set_attributes,      /* setAttributes */
@@ -138,7 +138,7 @@ static const rtems_termios_callbacks Callbacks_intr = {
 /* Polling mode routines */
 static const rtems_termios_callbacks Callbacks_task = {
     apbuart_firstOpen,           /* firstOpen */
-    NULL,                        /* lastClose */
+    apbuart_lastClose,           /* lastClose */
     apbuart_pollRead_task,       /* pollRead */
     apbuart_write_intr,          /* write */
     apbuart_set_attributes,      /* setAttributes */
@@ -150,7 +150,7 @@ static const rtems_termios_callbacks Callbacks_task = {
 /* Polling mode routines */
 static const rtems_termios_callbacks Callbacks_poll = {
     apbuart_firstOpen,           /* firstOpen */
-    NULL,                        /* lastClose */
+    apbuart_lastClose,           /* lastClose */
     apbuart_pollRead,            /* pollRead */
     apbuart_write_polled,        /* write */
     apbuart_set_attributes,      /* setAttributes */
@@ -193,9 +193,8 @@ int apbuart_init1(struct drvmgr_dev *dev)
 
 	/* Get device information from AMBA PnP information */
 	ambadev = (struct amba_dev_info *)priv->dev->businfo;
-	if ( ambadev == NULL ) {
+	if (ambadev == NULL)
 		return -1;
-	}
 	pnpinfo = &ambadev->info;
 	priv->regs = (struct apbuart_regs *)pnpinfo->apb_slv->start;
 
@@ -222,7 +221,7 @@ int apbuart_init1(struct drvmgr_dev *dev)
 	 * We default to have System Console on first APBUART, user may override
 	 * this behaviour by setting the syscon option to 0.
 	 */
-	if ( drvmgr_on_rootbus(dev) && first_uart ) {
+	if (drvmgr_on_rootbus(dev) && first_uart) {
 		priv->condev.flags = CONSOLE_FLAG_SYSCON;
 		first_uart = 0;
 	} else {
@@ -230,8 +229,8 @@ int apbuart_init1(struct drvmgr_dev *dev)
 	}
 
 	value = drvmgr_dev_key_get(priv->dev, "syscon", KEY_TYPE_INT);
-	if ( value ) {
-		if ( value->i )
+	if (value) {
+		if (value->i)
 			priv->condev.flags |= CONSOLE_FLAG_SYSCON;
 		else
 			priv->condev.flags &= ~CONSOLE_FLAG_SYSCON;
@@ -242,13 +241,13 @@ int apbuart_init1(struct drvmgr_dev *dev)
 
 	/* Select 0=Polled, 1=IRQ, 2=Task-Driven UART Mode */
 	value = drvmgr_dev_key_get(priv->dev, "mode", KEY_TYPE_INT);
-	if ( value )
+	if (value)
 		priv->mode = value->i;
 	else
 		priv->mode = TERMIOS_POLLED;
-	if ( priv->mode == TERMIOS_IRQ_DRIVEN ) {
+	if (priv->mode == TERMIOS_IRQ_DRIVEN) {
 		priv->condev.callbacks = &Callbacks_intr;
-	} else if ( priv->mode == TERMIOS_TASK_DRIVEN ) {
+	} else if (priv->mode == TERMIOS_TASK_DRIVEN) {
 		priv->condev.callbacks = &Callbacks_task;
 	} else {
 		priv->condev.callbacks = &Callbacks_poll;
@@ -256,7 +255,7 @@ int apbuart_init1(struct drvmgr_dev *dev)
 
 	/* Get Filesystem name prefix */
 	prefix[0] = '\0';
-	if ( drvmgr_get_dev_prefix(dev, prefix) ) {
+	if (drvmgr_get_dev_prefix(dev, prefix)) {
 		/* Got special prefix, this means we have a bus prefix
 		 * And we should use our "bus minor"
 		 */
@@ -323,7 +322,7 @@ void apbuart_outbyte_polled(
   int wait_sent)
 {
 send:
-	while ( (regs->status & LEON_REG_UART_STATUS_THE) == 0 ) {
+	while ((regs->status & LEON_REG_UART_STATUS_THE) == 0) {
 		/* Lower bus utilization while waiting for UART */
 		asm volatile ("nop"::);	asm volatile ("nop"::);
 		asm volatile ("nop"::);	asm volatile ("nop"::);
@@ -338,7 +337,7 @@ send:
 	}
 
 	/* Wait until the character has been sent? */
-	if ( wait_sent ) {
+	if (wait_sent) {
 		while ((regs->status & LEON_REG_UART_STATUS_THE) == 0)
 			;
 	}
@@ -371,7 +370,7 @@ int apbuart_firstOpen(int major, int minor, void *arg)
 	/* Enable TX/RX */
 	uart->regs->ctrl |= LEON_REG_UART_CTRL_RE | LEON_REG_UART_CTRL_TE;
 
-	if ( uart->mode != TERMIOS_POLLED ) {
+	if (uart->mode != TERMIOS_POLLED) {
 		/* Register interrupt and enable it */
 		drvmgr_interrupt_register(uart->dev, 0, "apbuart",
 						apbuart_isr, uart);
@@ -388,12 +387,12 @@ int apbuart_lastClose(int major, int minor, void *arg)
 {
 	struct apbuart_priv *uart = (struct apbuart_priv *)minor;
 
-	if ( uart->mode != TERMIOS_POLLED ) {
+	if (uart->mode != TERMIOS_POLLED) {
 		/* Turn off RX interrupts */
 		uart->regs->ctrl &= ~(LEON_REG_UART_CTRL_RI);
 
 		/**** Flush device ****/
-		while ( uart->sending ){
+		while (uart->sending) {
 			/* Wait until all data has been sent */
 		}
 
@@ -424,17 +423,17 @@ int apbuart_pollRead_task(int minor)
 	char buf[32];
 
 	tot = 0;
-	while ( (c=apbuart_inbyte_nonblocking(uart->regs)) != EOF ) {
+	while ((c=apbuart_inbyte_nonblocking(uart->regs)) != EOF) {
 		buf[tot] = c;
 		tot++;
-		if ( tot > 31 ) {
+		if (tot > 31) {
 			rtems_termios_enqueue_raw_characters(uart->cookie, buf, tot);
 			tot = 0;
 		}
 	}
-	if ( tot > 0 ) {
+	if (tot > 0)
 		rtems_termios_enqueue_raw_characters(uart->cookie, buf, tot);
-	}
+
 	return EOF;
 }
 
@@ -549,18 +548,17 @@ int apbuart_set_attributes(int minor, const struct termios *t)
 			ctrl &= ~(LEON_REG_UART_CTRL_PS|LEON_REG_UART_CTRL_PE);
 	}
 
-	if ( !(t->c_cflag & CLOCAL) ){
+	if (!(t->c_cflag & CLOCAL))
 		ctrl |= LEON_REG_UART_CTRL_FL;
-	}else{
+	else
 		ctrl &= ~LEON_REG_UART_CTRL_FL;
-	}
 
 	/* Update new settings */
 	uart->regs->ctrl = ctrl;
 
 	/* Baud rate */
 	baud = apbuart_baud_num2baud(t->c_cflag & CBAUD);
-	if ( baud > 0 ){
+	if (baud > 0){
 		/* Get APBUART core frequency */
 		drvmgr_freq_get(uart->dev, DEV_APB_SLV, &core_clk_hz);
 
@@ -655,12 +653,11 @@ void apbuart_isr(void *arg)
 	int cnt;
 
 	/* Get all received characters */
-	if ( uart->mode == TERMIOS_TASK_DRIVEN ) {
-		if ( (status=uart->regs->status) & LEON_REG_UART_STATUS_DR ) {
+	if (uart->mode == TERMIOS_TASK_DRIVEN) {
+		if ((status=uart->regs->status) & LEON_REG_UART_STATUS_DR)
 			rtems_termios_rxirq_occured(uart->cookie);
-		}
 	} else {
-		while ( (status=uart->regs->status) & LEON_REG_UART_STATUS_DR ) {
+		while ((status=uart->regs->status) & LEON_REG_UART_STATUS_DR) {
 			/* Data has arrived, get new data */
 			data = uart->regs->data;
 
@@ -669,7 +666,7 @@ void apbuart_isr(void *arg)
 		}
 	}
 
-	if ( uart->sending && (status & LEON_REG_UART_STATUS_THE) ) {
+	if (uart->sending && (status & LEON_REG_UART_STATUS_THE)) {
 		/* Sent the one char, we disable TX interrupts */
 		uart->regs->ctrl &= ~LEON_REG_UART_CTRL_TI;
 
