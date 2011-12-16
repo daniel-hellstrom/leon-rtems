@@ -223,7 +223,7 @@ extern void bsp_watchdog_stop(int watchdog);
 extern void bsp_watchdog_system_reset(void);
 
 /* Common driver build-time configurations. On small systems undefine
- * [DRIVER]_INFO_AVIAL to avoid info routines get dragged in. It is good
+ * [DRIVER]_INFO_AVAIL to avoid info routines get dragged in. It is good
  * for debugging and printing information about the system, but makes the
  * image bigger.
  */

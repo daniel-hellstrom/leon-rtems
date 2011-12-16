@@ -186,7 +186,7 @@ extern void BSP_shared_interrupt_mask(int irq);
 #define BSP_PCI_BIG_ENDIAN
 
 /* Common driver build-time configurations. On small systems undefine
- * [DRIVER]_INFO_AVIAL to avoid info routines get dragged in. It is good
+ * [DRIVER]_INFO_AVAIL to avoid info routines get dragged in. It is good
  * for debugging and printing information about the system, but makes the
  * image bigger.
  */
