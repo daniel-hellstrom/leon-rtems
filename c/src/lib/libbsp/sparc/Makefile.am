@@ -14,9 +14,17 @@ EXTRA_DIST += shared/bspstart.c
 EXTRA_DIST += shared/gnatcommon.c
 EXTRA_DIST += shared/start.S
 
+# Interrupt
+EXTRA_DIST += shared/irq/irq-shared.c
+EXTRA_DIST += shared/irq/genirq.c
+EXTRA_DIST += shared/include/genirq.h
+
 # AMBA Plug&Play bus
+EXTRA_DIST += shared/include/ahbstat.h
 EXTRA_DIST += shared/include/ambapp.h
 EXTRA_DIST += shared/include/ambapp_ids.h
+EXTRA_DIST += shared/include/grlib.h
+EXTRA_DIST += shared/amba/ahbstat.c
 EXTRA_DIST += shared/amba/ambapp.c
 EXTRA_DIST += shared/amba/ambapp_alloc.c
 EXTRA_DIST += shared/amba/ambapp_count.c
@@ -25,15 +33,14 @@ EXTRA_DIST += shared/amba/ambapp_find_by_idx.c
 EXTRA_DIST += shared/amba/ambapp_freq.c
 EXTRA_DIST += shared/amba/ambapp_parent.c
 EXTRA_DIST += shared/amba/ambapp_names.c
+EXTRA_DIST += shared/amba/ambapp_old.c
 EXTRA_DIST += shared/amba/ambapp_show.c
-EXTRA_DIST += shared/include/grlib.h
-EXTRA_DIST += shared/amba/ahbstat.c
-EXTRA_DIST += shared/include/ahbstat.h
 
-# IRQ
-EXTRA_DIST += shared/irq/irq-shared.c
-EXTRA_DIST += shared/irq/genirq.c
-EXTRA_DIST += shared/include/genirq.h
+# Clock Driver and Timer Library
+EXTRA_DIST += shared/include/tlib.h
+EXTRA_DIST += shared/timer/gptimer.c
+EXTRA_DIST += shared/timer/tlib.c
+EXTRA_DIST += shared/timer/tlib_ckinit.c
 
 # PCI bus
 EXTRA_DIST += shared/include/grpci2.h
@@ -44,30 +51,35 @@ EXTRA_DIST += shared/pci/pci_memreg_sparc_le.c
 EXTRA_DIST += shared/pci/pci_memreg_sparc_be.c
 
 # PCI target boards
+EXTRA_DIST += shared/include/gr_701.h
 EXTRA_DIST += shared/include/gr_rasta_adcdac.h
 EXTRA_DIST += shared/include/gr_rasta_io.h
-EXTRA_DIST += shared/include/gr_701.h
+EXTRA_DIST += shared/include/gr_rasta_tmtc.h
 EXTRA_DIST += shared/include/gr_tmtc_1553.h
+EXTRA_DIST += shared/pci/gr_701.c
 EXTRA_DIST += shared/pci/gr_rasta_adcdac.c
 EXTRA_DIST += shared/pci/gr_rasta_io.c
-EXTRA_DIST += shared/pci/gr_701.c
-EXTRA_DIST += shared/pci/gr_tmtc_1553.c
 EXTRA_DIST += shared/pci/gr_rasta_spw_router.c
+EXTRA_DIST += shared/pci/gr_rasta_tmtc.c
+EXTRA_DIST += shared/pci/gr_tmtc_1553.c
 
 # DEBUG
 EXTRA_DIST += shared/include/debug_defs.h
 
-# SpaceWire (GRSPW, RMAP)
+# SpaceWire
 EXTRA_DIST += shared/spw/grspw.c
 EXTRA_DIST += shared/spw/grspw_router.c
+EXTRA_DIST += shared/spw/rmap.c
+EXTRA_DIST += shared/spw/rmap_drv_grspw.c
 EXTRA_DIST += shared/include/grspw.h
 EXTRA_DIST += shared/include/grspw_router.h
-EXTRA_DIST += shared/spw/rmap.c
 EXTRA_DIST += shared/include/rmap.h
-EXTRA_DIST += shared/spw/rmap_drv_grspw.c
 EXTRA_DIST += shared/include/rmap_drv_grspw.h
 
-# UART  (APBUART)
+# UART
+EXTRA_DIST += shared/uart/cons.c
+EXTRA_DIST += shared/uart/apbuart_cons.c
+EXTRA_DIST += shared/include/cons.h
 EXTRA_DIST += shared/uart/apbuart.c
 EXTRA_DIST += shared/include/apbuart.h
 
@@ -158,8 +170,6 @@ EXTRA_DIST += shared/slink/grslink.c
 EXTRA_DIST += shared/include/grslink.h
 
 # TMTC
-EXTRA_DIST += shared/pci/gr_rasta_tmtc.c
-EXTRA_DIST += shared/include/gr_rasta_tmtc.h
 EXTRA_DIST += shared/tmtc/grtc.c
 EXTRA_DIST += shared/tmtc/grtc_rmap.c
 EXTRA_DIST += shared/include/grtc.h

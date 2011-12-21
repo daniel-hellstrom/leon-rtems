@@ -77,6 +77,22 @@ $(PROJECT_LIB)/linkcmds.base: ../shared/startup/linkcmds.base $(PROJECT_LIB)/$(d
 	$(INSTALL_DATA) $< $(PROJECT_LIB)/linkcmds.base
 PREINSTALL_FILES += $(PROJECT_LIB)/linkcmds.base
 
+$(PROJECT_INCLUDE)/genirq.h: ../../sparc/shared/include/genirq.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/genirq.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/genirq.h
+
+$(PROJECT_INCLUDE)/bsp/irq-generic.h: ../../shared/include/irq-generic.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/irq-generic.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/irq-generic.h
+
+$(PROJECT_INCLUDE)/bsp/irq-info.h: ../../shared/include/irq-info.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/irq-info.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/irq-info.h
+
+$(PROJECT_INCLUDE)/bsp/irq.h: include/bsp/irq.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/irq.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/irq.h
+
 $(PROJECT_INCLUDE)/ambapp.h: ../../sparc/shared/include/ambapp.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/ambapp.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/ambapp.h
@@ -101,6 +117,10 @@ $(PROJECT_INCLUDE)/grpci2.h: ../../sparc/shared/include/grpci2.h $(PROJECT_INCLU
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grpci2.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/grpci2.h
 
+$(PROJECT_INCLUDE)/gr_701.h: ../../sparc/shared/include/gr_701.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr_701.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr_701.h
+
 $(PROJECT_INCLUDE)/gr_rasta_adcdac.h: ../../sparc/shared/include/gr_rasta_adcdac.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr_rasta_adcdac.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr_rasta_adcdac.h
@@ -109,9 +129,9 @@ $(PROJECT_INCLUDE)/gr_rasta_io.h: ../../sparc/shared/include/gr_rasta_io.h $(PRO
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr_rasta_io.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr_rasta_io.h
 
-$(PROJECT_INCLUDE)/gr_701.h: ../../sparc/shared/include/gr_701.h $(PROJECT_INCLUDE)/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr_701.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr_701.h
+$(PROJECT_INCLUDE)/gr_rasta_tmtc.h: ../../sparc/shared/include/gr_rasta_tmtc.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr_rasta_tmtc.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr_rasta_tmtc.h
 
 $(PROJECT_INCLUDE)/b1553brm.h: ../../sparc/shared/include/b1553brm.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/b1553brm.h
@@ -200,26 +220,6 @@ PREINSTALL_FILES += $(PROJECT_INCLUDE)/grpwm.h
 $(PROJECT_INCLUDE)/gradcdac.h: ../../sparc/shared/include/gradcdac.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gradcdac.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/gradcdac.h
-
-$(PROJECT_INCLUDE)/genirq.h: ../../sparc/shared/include/genirq.h $(PROJECT_INCLUDE)/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/genirq.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/genirq.h
-
-$(PROJECT_INCLUDE)/bsp/irq-generic.h: ../../shared/include/irq-generic.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/irq-generic.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/irq-generic.h
-
-$(PROJECT_INCLUDE)/bsp/irq-info.h: ../../shared/include/irq-info.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/irq-info.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/irq-info.h
-
-$(PROJECT_INCLUDE)/bsp/irq.h: include/bsp/irq.h $(PROJECT_INCLUDE)/bsp/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/bsp/irq.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/bsp/irq.h
-
-$(PROJECT_INCLUDE)/gr_rasta_tmtc.h: ../../sparc/shared/include/gr_rasta_tmtc.h $(PROJECT_INCLUDE)/$(dirstamp)
-	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/gr_rasta_tmtc.h
-PREINSTALL_FILES += $(PROJECT_INCLUDE)/gr_rasta_tmtc.h
 
 $(PROJECT_INCLUDE)/grtc.h: ../../sparc/shared/include/grtc.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grtc.h

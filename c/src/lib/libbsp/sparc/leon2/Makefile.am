@@ -37,29 +37,34 @@ noinst_LIBRARIES += libbsp.a
 libbsp_a_SOURCES =
 
 # startup
-libbsp_a_SOURCES += \
-	../../shared/bspclean.c \
-	../../shared/bsplibc.c \
-	../../shared/bsppost.c \
-	startup/bsppredriver.c \
-	startup/bspstart.c \
-	../../sparc/shared/bsppretaskinghook.c \
-	../../sparc/shared/bspgetworkarea.c \
-	../../shared/bootcard.c \
-	../../shared/sbrk.c \
-	startup/setvec.c \
-	startup/spurious.c \
-	startup/bspidle.c \
-	../../sparc/shared/startup/early_malloc.c
-
+libbsp_a_SOURCES += ../../shared/bspclean.c ../../shared/bsplibc.c \
+    ../../shared/bsppost.c startup/bsppredriver.c \
+    startup/bspstart.c ../../sparc/shared/bsppretaskinghook.c \
+    ../../sparc/shared/bspgetworkarea.c ../../shared/bootcard.c \
+    ../../shared/sbrk.c startup/setvec.c startup/spurious.c startup/bspidle.c \
+    ../../sparc/shared/startup/early_malloc.c
 # gnatsupp
 libbsp_a_SOURCES += gnatsupp/gnatsupp.c ../../sparc/shared/gnatcommon.c
 # console
 libbsp_a_SOURCES += console/console.c console/debugputs.c
 # clock
 libbsp_a_SOURCES += clock/ckinit.c ../../../shared/clockdrv_shell.h
+# IRQ
+include_HEADERS += ../../sparc/shared/include/genirq.h
+libbsp_a_SOURCES += ../../sparc/shared/irq/genirq.c
+include_bsp_HEADERS = \
+    ../../shared/include/irq-generic.h \
+    ../../shared/include/irq-info.h \
+    include/bsp/irq.h
+libbsp_a_SOURCES += \
+    ../../sparc/shared/irq/irq-shared.c \
+    ../../shared/src/irq-generic.c \
+    ../../shared/src/irq-legacy.c \
+    ../../shared/src/irq-info.c \
+    ../../shared/src/irq-shell.c \
+    ../../shared/src/irq-server.c
 
-# AMBA Bus
+# AMBA bus
 include_HEADERS += ../../sparc/shared/include/ambapp.h
 include_HEADERS += ../../sparc/shared/include/ambapp_ids.h
 include_HEADERS += ../../sparc/shared/include/grlib.h
@@ -81,30 +86,30 @@ include_HEADERS += ../../sparc/shared/include/tlib.h
 libbsp_a_SOURCES += ../../sparc/shared/timer/gptimer.c
 libbsp_a_SOURCES += ../../sparc/shared/timer/tlib.c
 
-### PCI ###
+# PCI
 include_HEADERS += ../../sparc/shared/include/grpci2.h
 libbsp_a_SOURCES += ../../sparc/shared/pci/grpci2.c
 libbsp_a_SOURCES += ../../sparc/shared/pci/grpci.c
-libbsp_a_SOURCES += ../../sparc/shared/pci/pcif.c
 libbsp_a_SOURCES +=  ../../sparc/shared/pci/pci_memreg_sparc_le.c
 libbsp_a_SOURCES +=  ../../sparc/shared/pci/pci_memreg_sparc_be.c
 libbsp_a_SOURCES +=  pci/at697_pci.c
 
-
 # PCI target devices
+include_HEADERS += ../../sparc/shared/include/gr_701.h
 include_HEADERS += ../../sparc/shared/include/gr_rasta_adcdac.h
 include_HEADERS += ../../sparc/shared/include/gr_rasta_io.h
-include_HEADERS += ../../sparc/shared/include/gr_701.h
+include_HEADERS += ../../sparc/shared/include/gr_rasta_tmtc.h
+libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_701.c
 libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_rasta_adcdac.c
 libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_rasta_io.c
-libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_701.c
 libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_rasta_spw_router.c
+libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_rasta_tmtc.c
 
 # B1553BRM
-libbsp_a_SOURCES += ../../sparc/shared/1553/b1553brm.c
-libbsp_a_SOURCES += ../../sparc/shared/1553/b1553rt.c
 include_HEADERS += ../../sparc/shared/include/b1553brm.h
 include_HEADERS += ../../sparc/shared/include/b1553rt.h
+libbsp_a_SOURCES += ../../sparc/shared/1553/b1553brm.c
+libbsp_a_SOURCES += ../../sparc/shared/1553/b1553rt.c
 
 # GR1553B
 include_HEADERS += ../../sparc/shared/include/gr1553b.h
@@ -118,17 +123,19 @@ libbsp_a_SOURCES += ../../sparc/shared/1553/gr1553bm.c
 libbsp_a_SOURCES += ../../sparc/shared/1553/gr1553rt.c
 
 # CAN
-include_HEADERS += ../../sparc/shared/include/occan.h  ../../sparc/shared/include/grcan.h
-libbsp_a_SOURCES += ../../sparc/shared/can/occan.c  ../../sparc/shared/can/grcan.c
+include_HEADERS += ../../sparc/shared/include/occan.h
+include_HEADERS += ../../sparc/shared/include/grcan.h
+libbsp_a_SOURCES += ../../sparc/shared/can/occan.c \
+    ../../sparc/shared/can/grcan.c
 
 # SpaceWire
 include_HEADERS += ../../sparc/shared/include/grspw.h
 include_HEADERS += ../../sparc/shared/include/grspw_router.h
+include_HEADERS += ../../sparc/shared/include/rmap.h
+include_HEADERS += ../../sparc/shared/include/rmap_drv_grspw.h
 libbsp_a_SOURCES += ../../sparc/shared/spw/grspw.c
 libbsp_a_SOURCES += ../../sparc/shared/spw/grspw_router.c
-include_HEADERS += ../../sparc/shared/include/rmap.h
 libbsp_a_SOURCES += ../../sparc/shared/spw/rmap.c
-include_HEADERS += ../../sparc/shared/include/rmap_drv_grspw.h
 libbsp_a_SOURCES += ../../sparc/shared/spw/rmap_drv_grspw.c
 
 # UART (RAW)
@@ -170,26 +177,9 @@ libbsp_a_SOURCES += ../../sparc/shared/mem/mctrl_rmap.c
 # timer
 libbsp_a_SOURCES += timer/timer.c
 
-# IRQ
-include_HEADERS += ../../sparc/shared/include/genirq.h
-include_bsp_HEADERS = \
-	../../shared/include/irq-generic.h \
-        ../../shared/include/irq-info.h \
-	include/bsp/irq.h
-libbsp_a_SOURCES += \
-	../../sparc/shared/irq/genirq.c \
-	../../sparc/shared/irq/irq-shared.c \
-        ../../shared/src/irq-generic.c \
-        ../../shared/src/irq-legacy.c \
-        ../../shared/src/irq-info.c \
-        ../../shared/src/irq-shell.c \
-        ../../shared/src/irq-server.c
-
 # TM/TC
-include_HEADERS += ../../sparc/shared/include/gr_rasta_tmtc.h
 include_HEADERS += ../../sparc/shared/include/grtc.h
 include_HEADERS += ../../sparc/shared/include/grtm.h
-libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_rasta_tmtc.c
 libbsp_a_SOURCES += ../../sparc/shared/tmtc/grtc.c
 libbsp_a_SOURCES += ../../sparc/shared/tmtc/grtc_rmap.c
 libbsp_a_SOURCES += ../../sparc/shared/tmtc/grtm.c
@@ -203,8 +193,8 @@ include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/leon2_amba_bus.h
 include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/spw_bus.h
 include_drvmgr_HEADERS += ../../sparc/shared/include/drvmgr/spw_bus_ids.h
 libbsp_a_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus.c
-libbsp_a_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus_rmap.c
 libbsp_a_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus_leon2.c
+libbsp_a_SOURCES += ../../sparc/shared/drvmgr/ambapp_bus_rmap.c
 libbsp_a_SOURCES += ../../sparc/shared/drvmgr/leon2_amba_bus.c
 libbsp_a_SOURCES += ../../sparc/shared/drvmgr/spw_bus.c
 

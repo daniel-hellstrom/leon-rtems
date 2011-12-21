@@ -48,16 +48,7 @@ libbsp_a_SOURCES += ../../shared/bspclean.c ../../shared/bsplibc.c \
     startup/spurious.c startup/bspidle.S
 # gnatsupp
 libbsp_a_SOURCES += gnatsupp/gnatsupp.c ../../sparc/shared/gnatcommon.c
-# console
-libbsp_a_SOURCES += console/console.c
-libbsp_a_SOURCES += console/debugputs.c
-libbsp_a_SOURCES += ../../sparc/shared/uart/cons.c
-libbsp_a_SOURCES += ../../sparc/shared/uart/apbuart_cons.c
-include_HEADERS += ../../sparc/shared/include/cons.h
-# non-Driver Manager Clock Implementation
-libbsp_a_SOURCES += clock/ckinit.c ../../../shared/clockdrv_shell.h
-
-# AMBA Bus
+# AMBA bus
 include_HEADERS += include/amba.h
 include_HEADERS += ../../sparc/shared/include/ambapp.h
 include_HEADERS += ../../sparc/shared/include/ambapp_ids.h
@@ -81,8 +72,34 @@ include_HEADERS += ../../sparc/shared/include/tlib.h
 libbsp_a_SOURCES += ../../sparc/shared/timer/gptimer.c
 libbsp_a_SOURCES += ../../sparc/shared/timer/tlib.c
 libbsp_a_SOURCES += ../../sparc/shared/timer/tlib_ckinit.c
+# non-Driver Manager Clock Implementation
+libbsp_a_SOURCES += clock/ckinit.c ../../../shared/clockdrv_shell.h
 
-### PCI ###
+# console
+libbsp_a_SOURCES += console/console.c
+libbsp_a_SOURCES += ../../sparc/shared/uart/cons.c
+libbsp_a_SOURCES += ../../sparc/shared/uart/apbuart_cons.c
+include_HEADERS += ../../sparc/shared/include/cons.h
+# debugio
+libbsp_a_SOURCES += console/debugputs.c
+
+# IRQ
+include_HEADERS += ../../sparc/shared/include/genirq.h
+include_bsp_HEADERS = \
+    ../../shared/include/irq-generic.h \
+    ../../shared/include/irq-info.h \
+    include/bsp/irq.h
+libbsp_a_SOURCES += \
+    startup/eirq.c \
+    ../../sparc/shared/irq/genirq.c  \
+    ../../sparc/shared/irq/irq-shared.c \
+    ../../shared/src/irq-generic.c \
+    ../../shared/src/irq-legacy.c \
+    ../../shared/src/irq-info.c \
+    ../../shared/src/irq-shell.c \
+    ../../shared/src/irq-server.c
+
+# PCI
 include_HEADERS += ../../sparc/shared/include/grpci2.h
 libbsp_a_SOURCES += ../../sparc/shared/pci/grpci.c
 libbsp_a_SOURCES += ../../sparc/shared/pci/grpci2.c
@@ -91,15 +108,17 @@ libbsp_a_SOURCES +=  ../../sparc/shared/pci/pci_memreg_sparc_le.c
 libbsp_a_SOURCES +=  ../../sparc/shared/pci/pci_memreg_sparc_be.c
 
 # PCI target devices
+include_HEADERS += ../../sparc/shared/include/gr_701.h
 include_HEADERS += ../../sparc/shared/include/gr_rasta_adcdac.h
 include_HEADERS += ../../sparc/shared/include/gr_rasta_io.h
-include_HEADERS += ../../sparc/shared/include/gr_701.h
+include_HEADERS += ../../sparc/shared/include/gr_rasta_tmtc.h
 include_HEADERS += ../../sparc/shared/include/gr_tmtc_1553.h
+libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_701.c
 libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_rasta_adcdac.c
 libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_rasta_io.c
-libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_701.c
-libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_tmtc_1553.c
 libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_rasta_spw_router.c
+libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_rasta_tmtc.c
+libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_tmtc_1553.c
 
 # B1553BRM
 include_HEADERS += ../../sparc/shared/include/b1553brm.h
@@ -119,20 +138,22 @@ libbsp_a_SOURCES += ../../sparc/shared/1553/gr1553bm.c
 libbsp_a_SOURCES += ../../sparc/shared/1553/gr1553rt.c
 
 # CAN
-include_HEADERS += ../../sparc/shared/include/occan.h  ../../sparc/shared/include/grcan.h
-libbsp_a_SOURCES += ../../sparc/shared/can/occan.c  ../../sparc/shared/can/grcan.c
+include_HEADERS += ../../sparc/shared/include/occan.h \
+    ../../sparc/shared/include/grcan.h
+libbsp_a_SOURCES += ../../sparc/shared/can/occan.c \
+    ../../sparc/shared/can/grcan.c
 
 # SpaceWire
 include_HEADERS += ../../sparc/shared/include/grspw.h
 include_HEADERS += ../../sparc/shared/include/grspw_router.h
+include_HEADERS += ../../sparc/shared/include/rmap.h
+include_HEADERS += ../../sparc/shared/include/rmap_drv_grspw.h
 libbsp_a_SOURCES += ../../sparc/shared/spw/grspw.c
 libbsp_a_SOURCES += ../../sparc/shared/spw/grspw_router.c
-include_HEADERS += ../../sparc/shared/include/rmap.h
 libbsp_a_SOURCES += ../../sparc/shared/spw/rmap.c
-include_HEADERS += ../../sparc/shared/include/rmap_drv_grspw.h
 libbsp_a_SOURCES += ../../sparc/shared/spw/rmap_drv_grspw.c
 
-# UART (RAW)
+# UART
 include_HEADERS += ../../sparc/shared/include/apbuart.h
 libbsp_a_SOURCES += ../../sparc/shared/uart/apbuart.c
 
@@ -180,23 +201,6 @@ libbsp_a_SOURCES += ../../sparc/shared/mem/mctrl_rmap.c
 libbsp_a_SOURCES += timer/timer.c
 libbsp_a_SOURCES += timer/watchdog.c
 
-# IRQ
-include_HEADERS += ../../sparc/shared/include/genirq.h
-include_bsp_HEADERS = \
-	../../shared/include/irq-generic.h \
-        ../../shared/include/irq-info.h \
-	include/bsp/irq.h
-
-libbsp_a_SOURCES += \
-	startup/eirq.c \
-	../../sparc/shared/irq/genirq.c \
-	../../sparc/shared/irq/irq-shared.c \
-        ../../shared/src/irq-generic.c \
-        ../../shared/src/irq-legacy.c \
-        ../../shared/src/irq-info.c \
-        ../../shared/src/irq-shell.c \
-        ../../shared/src/irq-server.c
-
 # GR712
 include_HEADERS += ../../sparc/shared/include/grascs.h
 include_HEADERS += ../../sparc/shared/include/satcan.h 
@@ -208,10 +212,8 @@ libbsp_a_SOURCES += ../../sparc/shared/can/canmux.c
 libbsp_a_SOURCES += ../../sparc/shared/slink/grslink.c
 
 # TM/TC
-include_HEADERS += ../../sparc/shared/include/gr_rasta_tmtc.h
 include_HEADERS += ../../sparc/shared/include/grtc.h
 include_HEADERS += ../../sparc/shared/include/grtm.h
-libbsp_a_SOURCES +=  ../../sparc/shared/pci/gr_rasta_tmtc.c
 libbsp_a_SOURCES += ../../sparc/shared/tmtc/grtc.c
 libbsp_a_SOURCES += ../../sparc/shared/tmtc/grtc_rmap.c
 libbsp_a_SOURCES += ../../sparc/shared/tmtc/grtm.c
@@ -247,6 +249,7 @@ endif
 
 if HAS_NETWORKING
 noinst_PROGRAMS += leon_greth.rel
+leon_greth_rel_SOURCES = leon_greth/leon_greth.c
 leon_greth_rel_SOURCES = ../../sparc/shared/net/greth.c
 include_HEADERS += ../../sparc/shared/include/greth.h
 leon_greth_rel_CPPFLAGS = $(AM_CPPFLAGS)
