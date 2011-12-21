@@ -211,6 +211,8 @@ extern void BSP_shared_interrupt_mask(int irq);
 #define AMBAPPBUS_INFO_AVAIL          /* AMBAPP Bus driver */
 #define APBUART_INFO_AVAIL            /* APBUART Console driver */
 #define GPTIMER_INFO_AVAIL            /* GPTIMER Timer driver */
+#define GRETH_INFO_AVAIL              /* GRETH Ethernet driver */
+#define GRTC_RMAP_INFO_AVAIL          /* GRTC over SpaceWire/RMAP driver */
 
 #ifdef __cplusplus
 }
