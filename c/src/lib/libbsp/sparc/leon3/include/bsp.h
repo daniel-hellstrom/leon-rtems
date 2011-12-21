@@ -115,8 +115,6 @@ void bsp_spurious_initialize( void );
 /* Allocate 8-byte aligned non-freeable pre-malloc memory */
 void *bsp_early_malloc(int size);
 
-/*** Shared system interrupt handling ***/
-
 /* Interrupt Service Routine (ISR) pointer */
 typedef void (*bsp_shared_isr)(void *arg);
 
@@ -227,11 +225,11 @@ extern void bsp_watchdog_system_reset(void);
  * for debugging and printing information about the system, but makes the
  * image bigger.
  */
+#define AMBAPPBUS_INFO_AVAIL          /* AMBAPP Bus driver */
 #define APBUART_INFO_AVAIL            /* APBUART Console driver */
 #define GPTIMER_INFO_AVAIL            /* GPTIMER Timer driver */
-#define GRTC_RMAP_INFO_AVAIL          /* GRTC over SpaceWire/RMAP driver */
-#define AMBAPPBUS_INFO_AVAIL          /* AMBAPP Bus driver */
 #define GRETH_INFO_AVAIL              /* GRETH Ethernet driver */
+#define GRTC_RMAP_INFO_AVAIL          /* GRTC over SpaceWire/RMAP driver */
 
 #ifdef __cplusplus
 }

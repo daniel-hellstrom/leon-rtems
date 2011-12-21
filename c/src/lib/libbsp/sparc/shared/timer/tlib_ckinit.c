@@ -88,7 +88,7 @@ void Clock_isr(void *arg_unused)
 
 #else
 
-  /* 
+  /*
    * Add custom handling at every tick from bsp.h
    */
   Clock_driver_support_at_tick();
@@ -236,7 +236,7 @@ rtems_device_driver Clock_initialize(
   /*
    *  Register function called at system shutdown
    */
-  atexit( Clock_exit ); 
+  atexit( Clock_exit );
 
   /*
    * make major/minor avail to others such as shared memory driver

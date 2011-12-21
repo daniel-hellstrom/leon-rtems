@@ -8,7 +8,6 @@
  *  http://www.rtems.com/license/LICENSE.
  *
  *  Author: Daniel Hellström, Gaisler Research AB, www.gaisler.com
- *
  */
 
 

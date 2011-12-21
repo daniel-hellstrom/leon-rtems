@@ -4,4 +4,4 @@ version requires the driver manager.
 network_interface_add is used to assign IP/NETMASK and MAC address to
 GRETH interfaces dynamically according to in which order devices are
 registered. The function takes the settings from the user defined
-interface_configs[] array, normally defined in the project configuration.
+interface_configs[] array, defined in the project configuration.

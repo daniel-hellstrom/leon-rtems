@@ -76,8 +76,7 @@ struct ambapp_ops ambapp_leon2_ops = {
 	.get_params = ambapp_leon2_get_params
 };
 
-struct drvmgr_func ambapp_leon2_funcs[] =
-{
+struct drvmgr_func ambapp_leon2_funcs[] = {
 	DRVMGR_FUNC(AMBAPP_RW_ARG, ambapp_leon2_rw_arg),
 
 	DRVMGR_FUNC(AMBAPP_R8,  _ld8),
@@ -96,21 +95,18 @@ struct drvmgr_func ambapp_leon2_funcs[] =
 	DRVMGR_FUNC_END
 };
 
-struct drvmgr_drv_ops ambapp_ops = 
-{
+struct drvmgr_drv_ops ambapp_ops = {
 	.init = {ambapp_leon2_init1, ambapp_leon2_init2, NULL, NULL},
 	.remove = ambapp_leon2_remove,
 	.info = NULL,
 };
 
-struct leon2_amba_dev_id ambapp_leon2_ids[] = 
-{
+struct leon2_amba_dev_id ambapp_leon2_ids[] = {
 	{LEON2_AMBA_AMBAPP_ID},
 	{0}
 };
 
-struct leon2_amba_drv_info ambapp_bus_drv_leon2 = 
-{
+struct leon2_amba_drv_info ambapp_bus_drv_leon2 = {
 	{
 		DRVMGR_OBJ_DRV,			/* Driver */
 		NULL,				/* Next driver */
@@ -144,7 +140,7 @@ int ambapp_leon2_init1(struct drvmgr_dev *dev)
 
 	dev->name = "LEON2 AMBA PnP";
 
-	if ( !priv )
+	if (!priv)
 		return DRVMGR_NOMEM;
 
 	config = &priv->config;
@@ -164,7 +160,7 @@ int ambapp_leon2_init1(struct drvmgr_dev *dev)
 	/* Try to get Configuration from resource configuration */
 
 	value = drvmgr_dev_key_get(dev, "busFreq", KEY_TYPE_INT);
-	if ( value ) {
+	if (value) {
 		/* Set frequency of AMBA bus if specified by user. The frequency
 		 * must be for AHB bus which IOAREA matches (AHB bus 0).
 		 */
@@ -180,7 +176,7 @@ int ambapp_leon2_init1(struct drvmgr_dev *dev)
 	ambapp_freq_init(&priv->abus, NULL, freq_hz);
 
 	value = drvmgr_dev_key_get(dev, "drvRes", KEY_TYPE_POINTER);
-	if ( !value ) {
+	if (!value) {
 		DBG("ambapp_leon2_init1: Failed getting resource drvRes\n");
 		config->resources = NULL;
 	} else {

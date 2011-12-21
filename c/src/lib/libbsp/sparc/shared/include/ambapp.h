@@ -326,6 +326,11 @@ extern int ambapp_find_apbslvs(
 	struct ambapp_apb_info *dev,
 	int maxno);
 
+extern int ambapp_get_number_apbslv_devices(
+	struct ambapp_bus *abus,
+	int vendor,
+	int device);
+
 extern int ambapp_find_ahbslv(
 	struct ambapp_bus *abus,
 	int vendor,
@@ -353,6 +358,11 @@ extern int ambapp_find_ahbslvs(
 	int device,
 	struct ambapp_ahb_info *dev,
 	int maxno);
+
+extern int ambapp_get_number_ahbslv_devices(
+	struct ambapp_bus *abus,
+	int vendor,
+	int device);
 
 #ifdef __cplusplus
 }

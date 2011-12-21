@@ -61,6 +61,13 @@ int ambapp_find_apbslvs(struct ambapp_bus *abus, int vendor, int device, struct 
 	return ambapp_find_apbslvs_next(abus, vendor, device, dev, 0, maxno);
 }
 
+int ambapp_get_number_apbslv_devices(struct ambapp_bus *abus, int vendor, int device)
+{
+	return ambapp_dev_count(abus,
+			(OPTIONS_ALL|OPTIONS_APB_SLVS),
+			vendor, device);
+}
+
 int ambapp_find_ahbslvs_next(struct ambapp_bus *abus, int vendor, int device, struct ambapp_ahb_info *dev, int index, int maxno)
 {
 	struct ambapp_dev_find_match_arg arg;
@@ -89,4 +96,11 @@ int ambapp_find_ahbslv(struct ambapp_bus *abus, int vendor, int device, struct a
 int ambapp_find_ahbslvs(struct ambapp_bus *abus, int vendor, int device, struct ambapp_ahb_info *dev, int maxno)
 {
 	return ambapp_find_ahbslvs_next(abus, vendor, device, dev, 0, maxno);
+}
+
+int ambapp_get_number_ahbslv_devices(struct ambapp_bus *abus, int vendor, int device)
+{
+	return ambapp_dev_count(abus,
+			(OPTIONS_ALL|OPTIONS_AHB_SLVS),
+			vendor, device);
 }
