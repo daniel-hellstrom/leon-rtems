@@ -9,6 +9,7 @@
  *
  */
 
+#include <string.h>
 #include <drvmgr/drvmgr.h>
 #include <drvmgr/drvmgr_list.h>
 #include "drvmgr_internal.h"

@@ -9,6 +9,7 @@
  *
  */
 
+#include <string.h>
 #include <drvmgr/drvmgr.h>
 
 /* Find all the resource keys for a device among all bus resources */

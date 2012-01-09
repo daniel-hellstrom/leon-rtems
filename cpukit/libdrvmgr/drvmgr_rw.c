@@ -9,6 +9,7 @@
  *
  */
 
+#include <string.h>
 #include <drvmgr/drvmgr.h>
 
 /* Set a range of memory in 128 byte chunks.
