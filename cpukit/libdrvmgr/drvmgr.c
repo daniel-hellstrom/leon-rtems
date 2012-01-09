@@ -387,8 +387,6 @@ static void drvmgr_insert_dev_into_drv(
 	struct drvmgr_dev *curr, **pprevnext;
 	int minor;
 
-	DRVMGR_LOCK_WRITE();
-
 	minor = 0;
 	pprevnext = &drv->dev;
 	curr = drv->dev;
@@ -409,8 +407,6 @@ static void drvmgr_insert_dev_into_drv(
 	/* Set minor */
 	dev->minor_drv = minor;
 	drv->dev_cnt++;
-
-	DRVMGR_UNLOCK();
 }
 
 /* Insert a device into a bus device list and assign a bus minor number to the
