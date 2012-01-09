@@ -87,7 +87,7 @@ int drvmgr_topo_func(struct drvmgr_dev *dev, void *arg)
 	memset(prefix, ' ', depth + 1);
 	prefix[depth + 1] = '\0';
 
-	printf(" %s|-> DEV  0x%x  %s\n", prefix, (unsigned int)dev,
+	printf(" %s|-> DEV  %p  %s\n", prefix, dev,
 		dev->name ? dev->name :  "NO_NAME");
 	return 0;
 }
