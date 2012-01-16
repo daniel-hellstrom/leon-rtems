@@ -25,7 +25,7 @@ static int drvmgr_for_each_dev_breadth(
 	struct drvmgr_dev *dev;
 
 	pos = 0;
-	memset(buses[0], 0, sizeof(buses));
+	memset(&buses[0], 0, sizeof(buses));
 	buses[pos++] = drv_mgr.root_dev.bus; 	/* Get root bus */
 
 	for (i = 0, bus = buses[0]; buses[i]; i++, bus = buses[i]) {
