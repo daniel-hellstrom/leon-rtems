@@ -201,19 +201,17 @@ int pcibus_int_register(
 	void *arg)
 {
 	struct drvmgr_dev *busdev;
-	struct ambapp_priv *priv;
 	int irq;
 
 	busdev = dev->parent->dev;
-	priv = dev->parent->priv;
 
 	/* Get IRQ number from index and device information */
 	irq = pcibus_int_get(dev, index);
 	if (irq < 0)
 		return -1;
 
-	DBG("Register PCI interrupt on 0x%x for dev 0x%x (IRQ: %d)\n",
-		(unsigned int)busdev, (unsigned int)dev, irq);
+	DBG("Register PCI interrupt on %p for dev %p (IRQ: %d)\n",
+		busdev, dev, irq);
 
 	return pci_interrupt_register(irq, info, isr, arg);
 }
@@ -226,19 +224,17 @@ int pcibus_int_unregister(
 	void *arg)
 {
 	struct drvmgr_dev *busdev;
-	struct ambapp_priv *priv;
 	int irq;
 
 	busdev = dev->parent->dev;
-	priv = dev->parent->priv;
 
 	/* Get IRQ number from index and device information */
 	irq = pcibus_int_get(dev, index);
 	if (irq < 0)
 		return -1;
 
-	DBG("Unregister PCI interrupt on 0x%x for dev 0x%x (IRQ: %d)\n",
-		(unsigned int)busdev, (unsigned int)dev, irq);
+	DBG("Unregister PCI interrupt on %p for dev %p (IRQ: %d)\n",
+		busdev, dev, irq);
 
 	return pci_interrupt_unregister(irq, isr, arg);
 }
