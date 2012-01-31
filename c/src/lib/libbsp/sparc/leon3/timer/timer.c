@@ -49,7 +49,7 @@ void benchmark_timer_initialize(void)
     } else {
       benchmark_timer_is_initialized = true;
     }
-    LEON3_Timer_Regs->timer[LEON3_TIMER_INDEX].conf = LEON3_GPTIMER_EN | LEON3_GPTIMER_LD;
+    LEON3_Timer_Regs->timer[LEON3_TIMER_INDEX].ctrl = LEON3_GPTIMER_EN | LEON3_GPTIMER_LD;
   }
 }
 
