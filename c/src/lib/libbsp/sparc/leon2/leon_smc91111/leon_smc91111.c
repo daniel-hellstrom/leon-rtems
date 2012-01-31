@@ -55,7 +55,7 @@ int rtems_smc91111_driver_attach_leon2(struct rtems_bsdnet_ifconfig *config)
   *((volatile unsigned int *)0x80000000) |= 0x10f80000;
   *((volatile unsigned int *)0x800000A8) |=
     (0xe0 | leon_scmv91111_configuration.pio)
-      << (8 * ((leon_scmv91111_configuration.vector & 0x0f) - 4));
+      << (8 * (leon_scmv91111_configuration.irq - 4));
 
   return _rtems_smc91111_driver_attach(config,&leon_scmv91111_configuration);
 
