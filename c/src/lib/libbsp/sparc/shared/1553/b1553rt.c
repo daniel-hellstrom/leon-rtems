@@ -81,6 +81,7 @@ typedef struct {
     char devName[32];     /* Device Name */
 
     struct rt_reg *regs;
+    unsigned int ctrl_copy; /* Local copy of config register */
 
     unsigned int cfg_freq;
 
@@ -410,8 +411,9 @@ static void stop_operation(rt_priv *rt)
 static void set_extmdata_en(rt_priv *rt, int extmdata)
 {
     if ( extmdata )
-        extmdata = 1;
-    rt->regs->ctrl = (rt->regs->ctrl & ~(1<<16)) | (extmdata<<16);
+        extmdata = 1;    
+    rt->ctrl_copy = (rt->ctrl_copy & ~(1<<16)) | (extmdata<<16);
+    rt->regs->ctrl = rt->ctrl_copy;
 }
 
 static void set_vector_word(rt_priv *rt, unsigned short vword)
@@ -422,22 +424,22 @@ static void set_vector_word(rt_priv *rt, unsigned short vword)
 /* Set clock speed */
 static void set_clkspd(rt_priv *rt, int spd)
 {
-    rt->regs->ctrl = (rt->regs->ctrl & ~0xC0) | (spd<<6);
+    rt->ctrl_copy = (rt->ctrl_copy & ~0xC0) | (spd<<6);
+    rt->regs->ctrl = rt->ctrl_copy;
     asm volatile("nop"::);
-    rt->regs->ctrl = rt->regs->ctrl | (1<<20);
+    rt->regs->ctrl = rt->ctrl_copy | (1<<20);
 }
 
 static void set_rtaddr(rt_priv *rt, int addr)
 {
-
-    rt->regs->ctrl = (rt->regs->ctrl & ~0x1F00) | (addr<<8);
-    rt->regs->ctrl = (rt->regs->ctrl & ~0x2000) | (odd_parity(addr)<<13);
+    rt->ctrl_copy = (rt->ctrl_copy & ~0x3F00) | (addr << 8) | (odd_parity(addr)<<13);
+    rt->regs->ctrl = rt->ctrl_copy;
 }
 
 static void set_broadcast_en(rt_priv *rt, int data)
 {
-
-    rt->regs->ctrl = (rt->regs->ctrl & ~0x40000) | (data<<18);
+    rt->ctrl_copy = (rt->ctrl_copy & ~0x40000) | (data<<18);
+    rt->regs->ctrl = rt->ctrl_copy;
 }
 
 static rtems_device_driver rt_init(rt_priv *rt)
@@ -456,7 +458,7 @@ static rtems_device_driver rt_init(rt_priv *rt)
         return RTEMS_NO_MEMORY;
     }
 
-    rt->regs->ctrl = 0x3C1D0; /* RT address 1, broadcast disabled, extmdata=1, writetsw = writecmd = 1 */
+    rt->regs->ctrl = rt->ctrl_copy = 0x3C1D0; /* RT address 1, broadcast disabled, extmdata=1, writetsw = writecmd = 1 */
 
     /* Set Clock speed */
     set_clkspd(rt, rt->cfg_freq);
@@ -689,6 +691,23 @@ static void b1553rt_interrupt(void *arg)
 
     #define SET_ERROR_DESCRIPTOR(descriptor) (event_status = (event_status & 0x0000ffff) | descriptor<<16)
     ipend = rt->regs->ipm;
+
+    if (ipend == 0) {
+      /* IRQ mask has been cleared, we must have been reset */
+      /* Restore ctrl registers */
+      rt->regs->ctrl = rt->ctrl_copy;
+      rt->regs->addr = rt->memarea_base_remote;
+      rt->regs->ipm = 0x70000;
+      /* Send reset mode code event */
+      if (rt->head - rt->tail != EVENT_QUEUE_SIZE) {
+	miw = (8<<11);
+	descriptor = 64 + 32 + 8;
+	rt->rt_event[INDEX(rt->head)].miw = miw;
+	rt->rt_event[INDEX(rt->head)].time = 0;
+	rt->rt_event[INDEX(rt->head)].desc = descriptor;
+	rt->head++;
+      }
+    }
 
     if ( ipend & 0x1 ) {
       /* RT IRQ */
