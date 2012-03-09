@@ -70,16 +70,6 @@ struct grpci_regs {
 	volatile unsigned int stat_cmd;
 };
 
-struct grgpio_regs {
-	volatile unsigned int io_data;		/* 0x00 I/O port data register */
-	volatile unsigned int io_output;	/* 0x04 I/O port output register */
-	volatile unsigned int io_dir;		/* 0x08 I/O port direction register */
-	volatile unsigned int imask;		/* 0x0C Interrupt mask register */
-	volatile unsigned int ipol;		/* 0x10 Interrupt polarity register */
-	volatile unsigned int iedge;		/* 0x14 Interrupt edge register */
-	volatile unsigned int ibypass;		/* 0x18 Bypass register */
-};
-
 struct gr_rasta_tmtc_ver {
 	const unsigned int	amba_freq_hz;	/* The frequency */
 	const unsigned int	amba_ioarea;	/* The address where the PnP IOAREA starts at */
@@ -233,7 +223,6 @@ int gr_rasta_tmtc_hw_init(struct gr_rasta_tmtc_priv *priv)
 {
 	unsigned int *page0 = NULL;
 	struct ambapp_dev *tmp;
-	int status;
 	struct ambapp_ahb_info *ahb;
 	unsigned int pci_freq_hz;
 	pci_dev_t pcidev = priv->pcidev;
@@ -345,10 +334,10 @@ int gr_rasta_tmtc_hw_init(struct gr_rasta_tmtc_priv *priv)
 	priv->gpio->imask = 0;
 	priv->gpio->ipol = 0;
 	priv->gpio->iedge = 0;
-	priv->gpio->ibypass = 0;
+	priv->gpio->bypass = 0;
 	/* Set up GR-RASTA-TMTC GPIO controller to select GRTM and GRTC */
-	priv->gpio->io_output = (GR_TMTC_GPIO_GRTM_SEL|GR_TMTC_GPIO_TRANSP_CLK) | (GR_TMTC_GPIO_TC_BIT_LOCK|GR_TMTC_GPIO_TC_RF_AVAIL|GR_TMTC_GPIO_TC_ACTIVE_HIGH|GR_TMTC_GPIO_TC_RISING_CLK);
-	priv->gpio->io_dir = 0xffffffff;
+	priv->gpio->output = (GR_TMTC_GPIO_GRTM_SEL|GR_TMTC_GPIO_TRANSP_CLK) | (GR_TMTC_GPIO_TC_BIT_LOCK|GR_TMTC_GPIO_TC_RF_AVAIL|GR_TMTC_GPIO_TC_ACTIVE_HIGH|GR_TMTC_GPIO_TC_RISING_CLK);
+	priv->gpio->dir = 0xffffffff;
 	DBG("GR-TMTC GPIO: 0x%x\n", (unsigned int)priv->gpio);
 
 	/* Enable DMA by enabling PCI target as master */
@@ -369,7 +358,7 @@ int gr_rasta_tmtc_hw_init(struct gr_rasta_tmtc_priv *priv)
 	priv->bus_maps_down[2].size = 0;
 
 	/* Find GRPCI controller AHB Slave interface */
-	tmp = ambapp_for_each(&priv->abus,
+	tmp = (struct ambapp_dev *)ambapp_for_each(&priv->abus,
 				(OPTIONS_ALL|OPTIONS_AHB_SLVS),
 				VENDOR_GAISLER, GAISLER_PCIFBRG,
 				ambapp_find_by_idx, NULL);

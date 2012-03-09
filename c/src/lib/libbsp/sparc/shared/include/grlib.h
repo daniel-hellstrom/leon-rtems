@@ -76,12 +76,13 @@ struct gptimer_regs {
 
 /* GRGPIO GPIO */
 struct grgpio_regs {
-  volatile unsigned int iodata;
-  volatile unsigned int ioout;
-  volatile unsigned int iodir;
-  volatile unsigned int irqmask;
-  volatile unsigned int irqpol;
-  volatile unsigned int irqedge;
+  volatile unsigned int data;        /* 0x00 I/O port data register */
+  volatile unsigned int output;      /* 0x04 I/O port output register */
+  volatile unsigned int dir;         /* 0x08 I/O port direction register */
+  volatile unsigned int imask;       /* 0x0C Interrupt mask register */
+  volatile unsigned int ipol;        /* 0x10 Interrupt polarity register */
+  volatile unsigned int iedge;       /* 0x14 Interrupt edge register */
+  volatile unsigned int bypass;      /* 0x18 Bypass register */
 };
 
 #ifdef __cplusplus

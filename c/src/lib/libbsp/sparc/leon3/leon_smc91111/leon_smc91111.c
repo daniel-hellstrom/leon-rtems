@@ -63,10 +63,10 @@ rtems_smc91111_driver_attach_leon3 (struct rtems_bsdnet_ifconfig *config,
         (unsigned int)addr_mctrl);
 
   /* Setup PIO IRQ */
-  io->irqmask |= (1 << leon_scmv91111_configuration.pio);
-  io->irqpol |= (1 << leon_scmv91111_configuration.pio);
-  io->irqedge |= (1 << leon_scmv91111_configuration.pio);
-  io->iodir &= ~(1 << leon_scmv91111_configuration.pio);
+  io->imask |= (1 << leon_scmv91111_configuration.pio);
+  io->ipol |= (1 << leon_scmv91111_configuration.pio);
+  io->iedge |= (1 << leon_scmv91111_configuration.pio);
+  io->dir &= ~(1 << leon_scmv91111_configuration.pio);
 
   /* Setup memory controller I/O waitstates */
   *((volatile unsigned int *) addr_mctrl) |= 0x10f80000;	/* enable I/O area access */

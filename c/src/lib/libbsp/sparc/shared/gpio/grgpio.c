@@ -26,6 +26,7 @@
 #include <grgpio.h>
 #include <gpiolib.h>
 #include <ambapp.h>
+#include <grlib.h>
 
 /*#define DEBUG 1*/
 
@@ -36,17 +37,6 @@
 #define DBG(x...) 
 #define STATIC static
 #endif
-
-/*** REGISTER LAYOUT ***/
-struct grgpio_regs {
-	volatile unsigned int data;		/* 0x00 */
-	volatile unsigned int output;		/* 0x04 */
-	volatile unsigned int dir;		/* 0x08 */
-	volatile unsigned int imask;		/* 0x0c */
-	volatile unsigned int ipol;		/* 0x10 */
-	volatile unsigned int iedge;		/* 0x14 */
-	volatile unsigned int bypass;		/* 0x18 */
-};
 
 struct grgpio_isr {
 	drvmgr_isr isr;

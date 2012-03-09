@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <drvmgr/drvmgr.h>
 #include <drvmgr/ambapp_bus.h>
+#include <grlib.h>
 #include "tlib.h"
 
 #if defined(LEON3) && defined(RTEMS_DRVMGR_STARTUP)
@@ -49,21 +50,6 @@ volatile struct gptimer_regs *LEON3_Timer_Regs = 0;
 #ifdef GPTIMER_INFO_AVAIL
 #include <stdio.h>
 #endif
-
-struct gptimer_timer_regs {
-  volatile unsigned int value;
-  volatile unsigned int reload;
-  volatile unsigned int ctrl;
-  volatile unsigned int notused;
-};
-
-struct gptimer_regs {
-  volatile unsigned int scaler_value;   /* common timer registers */
-  volatile unsigned int scaler_reload;
-  volatile unsigned int cfg;
-  volatile unsigned int notused;
-  struct gptimer_timer_regs timer[7];
-};
 
 /* GPTIMER Core Configuration Register (READ-ONLY) */
 #define GPTIMER_CFG_TIMERS_BIT	0
