@@ -35,7 +35,7 @@ static int drvmgr_for_each_dev_breadth(
 			if (ret != 0)
 				break;
 			if (dev->bus && pos < 31)
-				buses[pos++] = bus;
+				buses[pos++] = dev->bus;
 
 			dev = dev->next_in_bus;
 		}
