@@ -250,7 +250,7 @@ endif
 if HAS_NETWORKING
 noinst_PROGRAMS += leon_greth.rel
 leon_greth_rel_SOURCES = leon_greth/leon_greth.c
-leon_greth_rel_SOURCES = ../../sparc/shared/net/greth.c
+leon_greth_rel_SOURCES += ../../sparc/shared/net/greth.c
 include_HEADERS += ../../sparc/shared/include/greth.h
 leon_greth_rel_CPPFLAGS = $(AM_CPPFLAGS)
 leon_greth_rel_CPPFLAGS += -D__INSIDE_RTEMS_BSD_TCPIP_STACK__
