@@ -36,7 +36,7 @@ struct console_priv {
 	struct console_dev *dev;
 };
 
-#define CONSOLE_MAX CONFIGURE_NUMBER_OF_TERMIOS_PORTS
+#define CONSOLE_MAX BSP_NUMBER_OF_TERMIOS_PORTS
 struct console_priv cons[CONSOLE_MAX] = {{0,0},};
 
 /* Register Console to TERMIOS layer and initialize it */
