@@ -14,11 +14,6 @@
 #include <rtems.h>
 #include <bsp.h>
 
-/* This driver is only supported by the LEON BSPs */
-#if defined(LEON3) || defined(LEON2)
-  #define GRETH_SUPPORTED
-#endif
-
 #ifdef GRETH_SUPPORTED
 
 #include <inttypes.h>
@@ -53,13 +48,10 @@
 extern void ipalign(struct mbuf *m);
 #endif
 
-static inline unsigned int sparc_load_no_cache(unsigned int addr)
-{
-	unsigned int tmp;
-	asm volatile (" lda [%1] 1, %0\n" : "=r"(tmp) : "r"(addr) );
-	return tmp;
-}
-#define NO_CACHE_LOAD(addr) sparc_load_no_cache(addr)
+/* Used when reading from memory written by GRETH DMA unit */
+#ifndef GRETH_MEM_LOAD
+#define GRETH_MEM_LOAD(addr) (*(volatile unsigned int *)(addr))
+#endif
 
 /*
  * Number of OCs supported by this driver
@@ -575,7 +567,7 @@ greth_Daemon (void *arg)
     /* Scan for Received packets */
 again:
     while (!((len_status =
-		    NO_CACHE_LOAD(&dp->rxdesc[dp->rx_ptr].ctrl)) & GRETH_RXD_ENABLE))
+		    GRETH_MEM_LOAD(&dp->rxdesc[dp->rx_ptr].ctrl)) & GRETH_RXD_ENABLE))
 	    {
                     bad = 0;
                     if (len_status & GRETH_RXD_TOOLONG)
@@ -692,7 +684,7 @@ sendpacket (struct ifnet *ifp, struct mbuf *m)
     /*
      * Is there a free descriptor available?
      */
-    if ( NO_CACHE_LOAD(&dp->txdesc[dp->tx_ptr].ctrl) & GRETH_TXD_ENABLE ){
+    if (GRETH_MEM_LOAD(&dp->txdesc[dp->tx_ptr].ctrl) & GRETH_TXD_ENABLE){
             /* No. */
             inside = 0;
             return 1;
@@ -702,7 +694,7 @@ sendpacket (struct ifnet *ifp, struct mbuf *m)
     n = m;
 
     len = 0;
-    temp = (unsigned char *) NO_CACHE_LOAD(&dp->txdesc[dp->tx_ptr].addr);
+    temp = (unsigned char *) GRETH_MEM_LOAD(&dp->txdesc[dp->tx_ptr].addr);
 #ifdef GRETH_DEBUG
     printf("TXD: 0x%08x : BUF: 0x%08x\n", (int) m->m_data, (int) temp);
 #endif
@@ -865,7 +857,7 @@ int greth_process_tx_gbit(struct greth_softc *sc)
      */
     for (;;){
         /* Reap Sent packets */
-        while((sc->tx_cnt > 0) && !(NO_CACHE_LOAD(&sc->txdesc[sc->tx_dptr].ctrl) & GRETH_TXD_ENABLE)) {
+        while((sc->tx_cnt > 0) && !(GRETH_MEM_LOAD(&sc->txdesc[sc->tx_dptr].ctrl) & GRETH_TXD_ENABLE)) {
             m_free(sc->txmbuf[sc->tx_dptr]);
             sc->tx_dptr = (sc->tx_dptr + 1) % sc->txbufs;
             sc->tx_cnt--;

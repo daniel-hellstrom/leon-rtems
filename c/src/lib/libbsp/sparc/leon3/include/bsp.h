@@ -75,6 +75,10 @@ extern int rtems_leon_greth_driver_attach(
 #define RTEMS_BSP_NETWORK_DRIVER_ATTACH RTEMS_BSP_NETWORK_DRIVER_ATTACH_GRETH
 #endif
 
+/* Configure GRETH driver */
+#define GRETH_SUPPORTED
+#define GRETH_MEM_LOAD(addr) leon_r32_no_cache(addr)
+
 extern int   CPU_SPARC_HAS_SNOOPING;
 
 
