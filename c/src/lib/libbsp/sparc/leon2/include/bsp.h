@@ -59,6 +59,9 @@ extern int rtems_smc91111_driver_attach_leon2(
 #define RTEMS_BSP_NETWORK_DRIVER_ATTACH_SMC91111 \
           rtems_smc91111_driver_attach_leon2
 
+#define GRETH_SUPPORTED
+#define GRETH_MEM_LOAD(addr) leon_r32_no_cache(addr)
+
 /*
  *  The synchronous trap is an arbitrarily chosen software trap.
  */
