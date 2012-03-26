@@ -149,6 +149,7 @@ int ambapp_leon2_init1(struct drvmgr_dev *dev)
 	config->maps_up = DRVMGR_TRANSLATE_ONE2ONE;
 	config->maps_down = DRVMGR_TRANSLATE_ONE2ONE;
 	config->funcs = ambapp_leon2_funcs;
+	config->bus_type = DRVMGR_BUS_TYPE_LEON2_AMBA;
 
 	/* Get AMBA PnP Area from REG0 */
 	devinfo = (struct leon2_amba_dev_info *)dev->businfo;

@@ -154,6 +154,7 @@ int ambapp_grlib_init1(struct drvmgr_dev *dev)
 	config->abus = drv_mgr_grlib_config->abus;
 	config->resources = drv_mgr_grlib_config->resources;
 	config->funcs = ambapp_grlib_funcs;
+	config->bus_type = DRVMGR_BUS_TYPE_AMBAPP;
 
 	/* Initialize the generic part of the AMBA Bus */
 	return ambapp_bus_register(dev, config);
