@@ -444,7 +444,6 @@ static void set_broadcast_en(rt_priv *rt, int data)
 
 static rtems_device_driver rt_init(rt_priv *rt)
 {
-
     rt->rx_blocking = 1;
 
     if ( rt->rt_event )
@@ -458,7 +457,9 @@ static rtems_device_driver rt_init(rt_priv *rt)
         return RTEMS_NO_MEMORY;
     }
 
-    rt->regs->ctrl = rt->ctrl_copy = 0x3C1D0; /* RT address 1, broadcast disabled, extmdata=1, writetsw = writecmd = 1 */
+    rt->ctrl_copy = rt->regs->ctrl & 0x3F00; /* Keep rtaddr and rtaddrp */
+    rt->ctrl_copy |= 0x3C0D0; /* broadcast disabled, extmdata=1, writetsw = writecmd = 1 */
+    rt->regs->ctrl = rt->ctrl_copy; 
 
     /* Set Clock speed */
     set_clkspd(rt, rt->cfg_freq);
