@@ -490,7 +490,7 @@ int drvmgr_dev_register(struct drvmgr_dev *dev)
 		DBG("CUSTOM ASSOCIATION (%s to %s)\n", dev->name, drv->name);
 	} else {
 		/* Try to find a driver that can handle this device */
-		drv = drvmgr_dev_find_drv(dev);
+		dev->drv = drv = drvmgr_dev_find_drv(dev);
 	}
 
 	DRVMGR_LOCK_WRITE();
@@ -501,7 +501,6 @@ int drvmgr_dev_register(struct drvmgr_dev *dev)
 	if (bus)
 		drvmgr_insert_dev_into_bus(bus, dev);
 
-	dev->drv = drv;
 	if (!drv) {
 		/* No driver found that can handle this device, put into
 		 * inactive list
