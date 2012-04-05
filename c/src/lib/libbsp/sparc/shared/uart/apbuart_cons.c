@@ -499,7 +499,7 @@ int apbuart_get_baud(struct apbuart_priv *uart)
 	drvmgr_freq_get(uart->dev, DEV_APB_SLV, &core_clk_hz);
 
 	/* Calculate baud rate from generator "scaler" number */
-	return core_clk_hz / (scaler * 8);
+	return core_clk_hz / ((scaler + 1) * 8);
 }
 
 struct apbuart_baud *apbuart_get_baud_closest(struct apbuart_priv *uart)
