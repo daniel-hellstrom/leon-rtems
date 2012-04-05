@@ -281,20 +281,6 @@ static rtems_driver_address_table occan_driver = OCCAN_DRIVER_TABLE_ENTRY;
 
 
 /* Bypass cache */
-#if 0
-#define READ_REG(address) _OCCAN_REG_READ((unsigned int)(address))
-static __inline__ unsigned char _OCCAN_REG_READ(unsigned int addr) {
-	unsigned char tmp;
-	__asm__ (" lduba [%1]1, %0 "
-	    : "=r"(tmp)
-	    : "r"(addr)
-	   );
-	return tmp;
-	}
-#endif
-
-/*#define WRITE_REG(address,data) (*(volatile unsigned char *)(address) = (data))*/
-
 #define READ_REG(priv, address) occan_reg_read(priv, (unsigned int)address)
 #define WRITE_REG(priv, address, data) occan_reg_write(priv, (unsigned int)address, data)
 
@@ -808,7 +794,7 @@ static void pelican_open(occan_priv *priv){
 	WRITE_REG(priv, &priv->regs->inten, 0);
 
 	/* clear pending interrupts by reading */
-	READ_REG(&priv->regs->intflags);
+	READ_REG(priv, &priv->regs->intflags);
 }
 
 static int pelican_start(occan_priv *priv){
