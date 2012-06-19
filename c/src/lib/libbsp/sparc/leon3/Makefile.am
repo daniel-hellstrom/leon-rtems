@@ -145,10 +145,12 @@ libbsp_a_SOURCES += ../../sparc/shared/can/occan.c \
 
 # SpaceWire
 include_HEADERS += ../../sparc/shared/include/grspw.h
+include_HEADERS += ../../sparc/shared/include/grspw_pkt.h
 include_HEADERS += ../../sparc/shared/include/grspw_router.h
 include_HEADERS += ../../sparc/shared/include/rmap.h
 include_HEADERS += ../../sparc/shared/include/rmap_drv_grspw.h
 libbsp_a_SOURCES += ../../sparc/shared/spw/grspw.c
+libbsp_a_SOURCES += ../../sparc/shared/spw/grspw_pkt.c
 libbsp_a_SOURCES += ../../sparc/shared/spw/grspw_router.c
 libbsp_a_SOURCES += ../../sparc/shared/spw/rmap.c
 libbsp_a_SOURCES += ../../sparc/shared/spw/rmap_drv_grspw.c
