@@ -95,10 +95,10 @@ extern int grspw_work_task_priority;
 /*** General packet flag options ***/
 
 /* Translate Hdr and/or Payload address */
-#define PKT_FLAG_TR_DATA 0x10000
-#define PKT_FLAG_TR_HDR 0x20000
+#define PKT_FLAG_TR_DATA 0x1000
+#define PKT_FLAG_TR_HDR 0x2000
 /* All General options */
-#define PKT_FLAG_MASK 0x30000
+#define PKT_FLAG_MASK 0x3000
 
 #endif
 /* GRSPW RX/TX Packet structure.
