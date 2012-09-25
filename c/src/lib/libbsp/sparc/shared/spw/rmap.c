@@ -79,7 +79,8 @@ struct rmap_priv {
 	char			running;		/* 1 is started, 0 if stopped */
 	unsigned char		blocking;		/* Blocking mode */
 	unsigned char		tx_pkt_hdr[256+9];	/* Packet header used for transmission, last 9 bytes is for RMW commands */
-	unsigned int		*rx_pkt_buf;		/* RX packet Buffer */
+	unsigned int		_rx_pkt_buf;		/* RX packet Buffer */
+	unsigned int		*rx_pkt_buf;		/* RX packet Buffer aligned to 64b*/
 	unsigned int		rx_pkt_buf_len;		/* RX packet Buffer length */
 	struct rmap_spw_pkt	rxpkt;			/* RX packet */
 	struct rmap_spw_pkt	txpkt;			/* TX packet */
@@ -135,12 +136,14 @@ void rmap_init_rxpkt(struct rmap_priv *priv, struct rmap_spw_pkt *pkt)
 int rmap_start(struct rmap_priv *priv)
 {
 	if ( priv->running == 0 ) {
-		if ( !priv->rx_pkt_buf ) {
+		if ( !priv->_rx_pkt_buf ) {
 			/* Header length + Data CRC + 4 extra */
 			priv->rx_pkt_buf_len = priv->config->max_rx_len + 16 + 1 + 4;
-			priv->rx_pkt_buf = malloc(priv->rx_pkt_buf_len);
+			priv->_rx_pkt_buf = (unsigned int)malloc(priv->rx_pkt_buf_len+4);
+			priv->rx_pkt_buf = (unsigned int*)((priv->_rx_pkt_buf+7)&~7);
 			if ( priv->rx_pkt_buf == NULL )
 				return -1;
+
 		}
 
 		/* Set blocking mode */
@@ -365,7 +368,7 @@ int rmap_build(struct rmap_priv *priv, struct rmap_command *cmd, struct rmap_spw
 	if ( priv->drv_cap & DRV_CAP_HDR_CRC ) {
 		options |= PKT_OPTION_HDR_CRC;
 	} else {
-		/* Generate CRC and put it at the end of data buffer, Donät calculate 
+		/* Generate CRC and put it at the end of data buffer, Don't calculate
 		 * CRC on Destination Path address. 
 		 */
 		unsigned char crc;
