@@ -76,6 +76,7 @@ struct ambapp_rmap_priv {
 	int			irq_support;
 	genirq_t		genirq;
 	struct irqmp_regs	*irq;
+	unsigned int mask;
 
 	/* Access routines */
 	struct drvmgr_func	funcs[INHERIT_LENGTH+3];
@@ -366,8 +367,7 @@ void ambapp_rmap_isr (void *arg)
 	struct ambapp_rmap_priv *priv = arg;
 	unsigned int status, tmp;
 	int irq;
-	tmp = status = READ_REG(priv, &priv->irq->ipend);
-
+	tmp = status = READ_REG(priv, &priv->irq->ipend) & priv->mask;
 	/* DBG("AMBAPP-RMAP-ISR: IRQ 0x%x\n",status); */
 
 	/* Clear handled IRQs at remote IRQ controller, These IRQs are not
@@ -452,8 +452,9 @@ int ambapp_rmap_int_register(
 		/* Enable IRQ for first enabled handler only */
 
 		/* unmask interrupt source */
-		tmp = READ_REG(priv, &priv->irq->mask[0]);
-		WRITE_REG(priv, &priv->irq->mask[0], tmp | (1<<irq)); 
+		priv->mask = READ_REG(priv, &priv->irq->mask[0]);
+		priv->mask |= (1<<irq);
+		WRITE_REG(priv, &priv->irq->mask[0], priv->mask);
 	} else if ( status == 1 )
 		status = DRVMGR_OK;
 
@@ -480,8 +481,9 @@ int ambapp_rmap_int_unregister(
 		/* Disable IRQ only when no enabled handler exists */
 
 		/* mask interrupt source */
-		tmp = READ_REG(priv, &priv->irq->mask[0]);
-		WRITE_REG(priv, &priv->irq->mask[0], tmp & ~(1<<irq));
+		priv->mask = READ_REG(priv, &priv->irq->mask[0]);
+		priv->mask &= ~(1<<irq);
+		WRITE_REG(priv, &priv->irq->mask[0], priv->mask);
 	}
 
 	status = genirq_unregister(priv->genirq, irq, isr, arg);
@@ -494,7 +496,6 @@ int ambapp_rmap_int_unregister(
 int ambapp_rmap_int_unmask(struct drvmgr_dev *dev, int irq)
 {
 	struct ambapp_rmap_priv *priv = dev->parent->dev->priv;
-	unsigned int tmp;
 
 	DBG("AMBAPP-RMAP-INT_UNMASK: %d\n", irq);
 
@@ -505,8 +506,9 @@ int ambapp_rmap_int_unmask(struct drvmgr_dev *dev, int irq)
 		return DRVMGR_FAIL;
 
 	/* unmask interrupt source */
-	tmp = READ_REG(priv, &priv->irq->mask[0]);
-	WRITE_REG(priv, &priv->irq->mask[0], tmp | (1<<irq)); 
+	priv->mask = READ_REG(priv, &priv->irq->mask[0]);
+	priv->mask |= (1<<irq);
+	WRITE_REG(priv, &priv->irq->mask[0], priv->mask);
 
 	return DRVMGR_OK;
 }
@@ -514,7 +516,6 @@ int ambapp_rmap_int_unmask(struct drvmgr_dev *dev, int irq)
 int ambapp_rmap_int_mask(struct drvmgr_dev *dev, int irq)
 {
 	struct ambapp_rmap_priv *priv = dev->parent->dev->priv;
-	unsigned int tmp;
 
 	DBG("AMBAPP-RMAP-INT_MASK: %d\n", irq);
 
@@ -525,8 +526,9 @@ int ambapp_rmap_int_mask(struct drvmgr_dev *dev, int irq)
 		return DRVMGR_FAIL;
 
 	/* mask interrupt source */
-	tmp = READ_REG(priv, &priv->irq->mask[0]);
-	WRITE_REG(priv, &priv->irq->mask[0], tmp & ~(1<<irq)); 
+	priv->mask = READ_REG(priv, &priv->irq->mask[0]);
+	priv->mask &= (1<<irq);
+	WRITE_REG(priv, &priv->irq->mask[0], priv->mask);
 
 	return DRVMGR_OK;
 }
