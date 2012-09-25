@@ -18,6 +18,7 @@ libdrvmgr_a_SOURCES += drvmgr_confdefs.h
 libdrvmgr_a_SOURCES += drvmgr_for_each_dev.c
 libdrvmgr_a_SOURCES += drvmgr_for_each_list_dev.c
 libdrvmgr_a_SOURCES += drvmgr_func.c
+libdrvmgr_a_SOURCES += drvmgr_func_call.c
 libdrvmgr_a_SOURCES += drvmgr_list.c
 libdrvmgr_a_SOURCES += drvmgr_list.h
 libdrvmgr_a_SOURCES += drvmgr_lock.c

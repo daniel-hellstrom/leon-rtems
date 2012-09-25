@@ -41,13 +41,3 @@ int drvmgr_func_get(void *obj, int funcid, void **func)
 
 	return DRVMGR_FAIL;
 }
-
-/* Lookup function from function ID and call it using given arguments */
-int drvmgr_func_call(void *obj, int funcid, void *a, void *b, void *c, void *d)
-{
-	int (*func)(void *arg1, void *arg2, void *arg3, void *arg4) = NULL;
-
-	if (drvmgr_func_get(obj, funcid, (void *)&func) != DRVMGR_OK)
-		return DRVMGR_FAIL;
-	return func(a, b, c, d);
-}
