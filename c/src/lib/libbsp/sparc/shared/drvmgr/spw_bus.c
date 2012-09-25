@@ -203,7 +203,7 @@ int spw_bus_dev_register(struct drvmgr_bus *bus, struct spw_node *node, int inde
  *  2. unmask IRQ again.
  *
  *  wakes */
-void spw_bus_isr(int irq, void *arg)
+void spw_bus_isr(void *arg)
 {
 	struct spw_bus_priv *priv;
 	unsigned int old_irq_mask;
