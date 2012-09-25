@@ -449,7 +449,6 @@ int spw_bus_int_get(struct drvmgr_dev *dev, int index)
 		virq = ((struct spw_bus_dev_info *)dev->businfo)->virqs[index];
 		if ( virq <= 0 )
 			return -1;
-		virq += index;
 	} else {
 		/* Absolute IRQ number */
 		virq = -index;
