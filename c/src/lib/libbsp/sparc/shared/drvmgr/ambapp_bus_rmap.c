@@ -447,7 +447,7 @@ int ambapp_rmap_int_register(
 	if (status != 0)
 		return DRVMGR_FAIL;
 
-	status = genirq_disable(priv->genirq, irq, isr, arg);
+	status = genirq_enable(priv->genirq, irq, isr, arg);
 	if ( status == 0 ) {
 		/* Enable IRQ for first enabled handler only */
 
