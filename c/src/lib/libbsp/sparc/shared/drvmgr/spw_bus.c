@@ -67,6 +67,8 @@ int spw_bus_init1(struct drvmgr_bus *bus);
 int spw_bus_unite(struct drvmgr_drv *drv, struct drvmgr_dev *dev);
 int spw_bus_int_register(struct drvmgr_dev *dev, int index, const char *info, drvmgr_isr handler, void *arg);
 int spw_bus_int_unregister(struct drvmgr_dev *dev, int index, drvmgr_isr isr, void *arg);
+int spw_bus_int_mask(struct drvmgr_dev *dev, int index);
+int spw_bus_int_unmask(struct drvmgr_dev *dev, int index);
 int spw_bus_int_clear(struct drvmgr_dev *dev, int index);
 
 int spw_bus_freq_get(
@@ -102,6 +104,8 @@ struct drvmgr_bus_ops spw_bus_ops =
 	.unite		= spw_bus_unite,
 	.int_register	= spw_bus_int_register,
 	.int_unregister	= spw_bus_int_unregister,
+	.int_mask	= spw_bus_int_mask,
+	.int_unmask	= spw_bus_int_unmask,
 	.int_clear	= spw_bus_int_clear,
 	.get_params	= spw_bus_get_params,
 	.freq_get	= spw_bus_freq_get,
@@ -194,7 +198,8 @@ int spw_bus_dev_register(struct drvmgr_bus *bus, struct spw_node *node, int inde
 }
 
 /* Interrupt Service Routine, executes in interrupt context. This ISR:
- *  1. Disable/Mask IRQ on IRQ controller, this disables further interrupts on this IRQ number
+ *  1. Disable/Mask IRQ on IRQ controller, this disables further interrupts on
+       this IRQ number
  *  2. Mark in the private struct that the IRQ has happened
  *  3. Wake ISR TASK that will handle each marked IRQ
  *
@@ -212,8 +217,7 @@ void spw_bus_isr(void *arg)
 
 	priv = (struct spw_bus_priv *)(pvirq - offsetof(struct spw_bus_priv, virqs) - (virq-1));
 
-	/*drvmgr_interrupt_mask(priv->bus->dev, -irq);*/
-	gpiolib_irq_disable(priv->config->virq_table[virq-1].handle);
+	gpiolib_irq_mask(priv->config->virq_table[virq-1].handle);
 
 	/* Mark IRQ was received */
 	old_irq_mask = priv->irq_mask;
@@ -252,8 +256,7 @@ void spwbus_task(rtems_task_argument argument)
 				}
 
 				/* Reenable the handled IRQ */
-				/*drvmgr_interrupt_unmask(priv->bus->dev, -irq);*/
-				gpiolib_irq_enable(priv->config->virq_table[virq-1].handle);
+				gpiolib_irq_unmask(priv->config->virq_table[virq-1].handle);
 
 				virq++;
 				mask = mask >> 1;
@@ -469,41 +472,44 @@ int spw_bus_int_register(
 	/* Get IRQ number from index and device information */
 	virq = spw_bus_int_get(dev, index);
 	if ( virq <= 0 )
-		return -1;
+		return DRVMGR_FAIL;
 
 	bus = dev->parent;
 	priv = bus->priv;
-	
+
 	DBG("SpW-BUS: Register ISR for VIRQ%d\n", virq);
 
 	handle = priv->config->virq_table[virq-1].handle;
 	if ( handle == NULL )
-		return -1;
+		return DRVMGR_FAIL;
 
 	rtems_semaphore_obtain(priv->irqlock, RTEMS_WAIT, RTEMS_NO_TIMEOUT);
 
 	status = genirq_register(priv->genirq, virq, handler, arg);
-	if ( status == 0 ) {
-		/* Register a ISR for the first registered handler */
+	if ( status >= 0 ) {
+		status = genirq_enable(priv->genirq, virq, handler, arg);
+		if ( status == 0 ) {
+			/* Enable IRQ for first enabled handler only */
 
-		/* Unmask the GPIO IRQ at the source (at the GPIO core), it is still masked by the IRQ
-		 * controller, it will be enabled later.
-		 */
-		struct gpiolib_config gpiocfg;
-		gpiocfg.mask = 1;
-		gpiocfg.irq_level = GPIOLIB_IRQ_LEVEL;
-		gpiocfg.irq_polarity = GPIOLIB_IRQ_POL_HIGH;
-		gpiolib_set_config(handle, &gpiocfg);
+			/* Unmask the GPIO IRQ at the source (at the GPIO core),
+			 * and at the IRQ controller
+			 */
+			struct gpiolib_config gpiocfg;
+			gpiocfg.mask = 1;
+			gpiocfg.irq_level = GPIOLIB_IRQ_LEVEL;
+			gpiocfg.irq_polarity = GPIOLIB_IRQ_POL_HIGH;
+			gpiolib_set_config(handle, &gpiocfg);
 
-		/* Already done 
-		gpioLib_ (priv->virq_table[virq].fd, 
-		drvmgr_interrupt_register(bus->dev, -irq, spw_bus_isr, priv);
-		*/
+			gpiolib_irq_enable(handle);
+		}
 	}
 
 	rtems_semaphore_release(priv->irqlock);
 
-	return 0;
+	if (status < 0)
+		return DRVMGR_FAIL;
+	else
+		return DRVMGR_OK;
 }
 
 int spw_bus_int_unregister(struct drvmgr_dev *dev, int index, drvmgr_isr isr, void *arg)
@@ -516,108 +522,112 @@ int spw_bus_int_unregister(struct drvmgr_dev *dev, int index, drvmgr_isr isr, vo
 	/* Get IRQ number from index and device information */
 	virq = spw_bus_int_get(dev, index);
 	if ( virq <= 0 )
-		return -1;
+		return DRVMGR_FAIL;
 
 	DBG("SpW-BUS: unregister ISR for VIRQ%d\n", virq);
 
 	bus = dev->parent;
 	priv = bus->priv;
-	
-	handle = priv->config->virq_table[virq-1].handle;
-	if ( handle == NULL )
-		return -1;
-
-	rtems_semaphore_obtain(priv->irqlock, RTEMS_WAIT, RTEMS_NO_TIMEOUT);
-
-	status = genirq_unregister(priv->genirq, virq, isr, arg);
-	if ( status == 0 ) {
-		/* Register a ISR for the first registered handler */
-		/*drvmgr_interrupt_unregister(bus->dev, -irq, spw_bus_isr, priv);*/
-	}
-
-	rtems_semaphore_release(priv->irqlock);
-
-	return 0;
-}
-
-#warning FIX SPW-BUS IRQ ENABLING/DISABLING
-#if 0
-/* Enable interrupt */
-int spw_bus_int_enable(struct drvmgr_dev *dev, int index, drvmgr_isr isr, void *arg)
-{
-	struct drvmgr_bus *bus;
-	struct spw_bus_priv *priv;
-	int virq, status;
-	void *handle;
-
-	/* Get IRQ number from index and device information */
-	virq = spw_bus_int_get(dev, index);
-	if ( virq <= 0 )
-		return -1;
-
-	bus = dev->parent;
-	priv = bus->priv;
-	
-	DBG("SpW-BUS: Enable IRQ for VIRQ%d\n", virq);
 
 	handle = priv->config->virq_table[virq-1].handle;
 	if ( handle == NULL )
-		return -1;
-
-	rtems_semaphore_obtain(priv->irqlock, RTEMS_WAIT, RTEMS_NO_TIMEOUT);
-
-	status = genirq_enable(priv->genirq, virq, isr, arg);
-	if ( status == 0 ) {
-		/* Register a ISR for the first registered handler */
-		if ( gpiolib_irq_enable(handle) ) {
-			DBG("SpW-BUS: Failed to Enable IRQ for VIRQ%d\n", virq);
-		}
-		/*
-		drvmgr_interrupt_enable(bus->dev, -irq, spw_bus_isr, priv);
-		*/
-	}
-
-	rtems_semaphore_release(priv->irqlock);
-
-	return 0;
-}
-
-/* Disable interrupt */
-int spw_bus_int_disable(struct drvmgr_dev *dev, int index, drvmgr_isr isr, void *arg)
-{
-	struct drvmgr_bus *bus;
-	struct spw_bus_priv *priv;
-	int virq, status;
-	void *handle;
-
-	/* Get IRQ number from index and device information */
-	virq = spw_bus_int_get(dev, index);
-	if ( virq <= 0 )
-		return -1;
-
-	bus = dev->parent;
-	priv = bus->priv;
-
-	handle = priv->config->virq_table[virq-1].handle;
-	if ( handle == NULL )
-		return -1;
+		return DRVMGR_FAIL;
 
 	rtems_semaphore_obtain(priv->irqlock, RTEMS_WAIT, RTEMS_NO_TIMEOUT);
 
 	status = genirq_disable(priv->genirq, virq, isr, arg);
-	if ( status == 0 ) {
-		/* Register a ISR for the first registered handler */
-		if ( gpiolib_irq_disable(handle) ) {
-			DBG("SpW-BUS: Failed to Disable IRQ for VIRQ%d\n", virq);
+	if ( status >= 0 ) {
+		if ( status == 0 ) {
+			/* Disable IRQ only when no other handler is enabled */
+
+			/* Mask the GPIO IRQ at the source (at the GPIO core),
+			 * disable the IRQ at the interrupt controller.
+			 */
+			struct gpiolib_config gpiocfg;
+			gpiocfg.mask = 0;
+			gpiocfg.irq_level = GPIOLIB_IRQ_LEVEL;
+			gpiocfg.irq_polarity = GPIOLIB_IRQ_POL_HIGH;
+			gpiolib_set_config(handle, &gpiocfg);
+
+			gpiolib_irq_disable(handle);
 		}
-		/*drvmgr_interrupt_disable(bus->dev, -irq, spw_bus_isr, priv);*/
+		status = genirq_unregister(priv->genirq, virq, isr, arg);
 	}
 
 	rtems_semaphore_release(priv->irqlock);
 
-	return 0;
+	if (status < 0)
+		return DRVMGR_FAIL;
+	else
+		return DRVMGR_OK;
 }
-#endif
+
+/* Unmask interrupt */
+int spw_bus_int_unmask(struct drvmgr_dev *dev, int index)
+{
+	struct drvmgr_bus *bus;
+	struct spw_bus_priv *priv;
+	int virq;
+	void *handle;
+
+	/* Get IRQ number from index and device information */
+	virq = spw_bus_int_get(dev, index);
+	if ( virq <= 0 )
+		return DRVMGR_FAIL;
+
+	bus = dev->parent;
+	priv = bus->priv;
+
+	DBG("SpW-BUS: unmask IRQ for VIRQ%d\n", virq);
+
+	handle = priv->config->virq_table[virq-1].handle;
+	if ( handle == NULL )
+		return DRVMGR_FAIL;
+
+	if ( genirq_check(priv->genirq, virq) )
+		return DRVMGR_FAIL;
+
+	rtems_semaphore_obtain(priv->irqlock, RTEMS_WAIT, RTEMS_NO_TIMEOUT);
+
+	gpiolib_irq_unmask(handle);
+
+	rtems_semaphore_release(priv->irqlock);
+
+	return DRVMGR_OK;
+}
+
+/* mask interrupt */
+int spw_bus_int_mask(struct drvmgr_dev *dev, int index)
+{
+	struct drvmgr_bus *bus;
+	struct spw_bus_priv *priv;
+	int virq;
+	void *handle;
+
+	/* Get IRQ number from index and device information */
+	virq = spw_bus_int_get(dev, index);
+	if ( virq <= 0 )
+		return DRVMGR_FAIL;
+
+	bus = dev->parent;
+	priv = bus->priv;
+
+	handle = priv->config->virq_table[virq-1].handle;
+	if ( handle == NULL )
+		return DRVMGR_FAIL;
+
+	if ( genirq_check(priv->genirq, virq) )
+		return DRVMGR_FAIL;
+
+	rtems_semaphore_obtain(priv->irqlock, RTEMS_WAIT, RTEMS_NO_TIMEOUT);
+
+	/* Register a ISR for the first registered handler */
+	gpiolib_irq_mask(handle);
+
+	rtems_semaphore_release(priv->irqlock);
+
+	return DRVMGR_OK;
+}
 
 int spw_bus_int_clear(struct drvmgr_dev *dev, int index)
 {
@@ -629,14 +639,14 @@ int spw_bus_int_clear(struct drvmgr_dev *dev, int index)
 	/* Get IRQ number from index and device information */
 	virq = spw_bus_int_get(dev, index);
 	if ( virq < 0 )
-		return -1;
+		return DRVMGR_FAIL;
 
 	bus = dev->parent;
 	priv = bus->priv;
 
 	handle = priv->config->virq_table[virq-1].handle;
 	if ( handle == NULL )
-		return -1;
+		return DRVMGR_FAIL;
 
 	/* Register a ISR for the first registered handler */
 	/*drvmgr_interrupt_clear(bus->dev, -irq, spw_bus_isr, priv);*/
@@ -644,7 +654,7 @@ int spw_bus_int_clear(struct drvmgr_dev *dev, int index)
 		DBG("SpW-BUS: Failed to Clear IRQ for VIRQ%d\n", virq);
 	}
 
-	return 0;
+	return DRVMGR_OK;
 }
 
 void *spw_bus_rw_arg(struct drvmgr_dev *dev)
