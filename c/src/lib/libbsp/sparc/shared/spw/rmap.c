@@ -476,7 +476,7 @@ int rmap_send(void *cookie, struct rmap_command *cmd)
 
 	/*** Determine if stack must wait for response to arrive after transmission ***/
 	wait_response = 0;
-	if (	(cmd->type & RMAP_CMD_WRITE == 0) ||	/* READ ALWAYS RETURNS DATA */
+	if (	((cmd->type & RMAP_CMD_WRITE) == 0) ||	/* READ ALWAYS RETURNS DATA */
 		(cmd->type & RMAP_CMD_ACKNOWLEDGE)	/* WAIT FOR ACK */
 	   )
 		wait_response = 1;
