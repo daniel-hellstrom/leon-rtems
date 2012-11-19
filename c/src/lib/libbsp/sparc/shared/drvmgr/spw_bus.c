@@ -740,7 +740,7 @@ int spw_bus_write_mem(void *dest, const void *src, int n, struct drvmgr_rw_arg *
 	struct spw_bus_priv *priv = (struct spw_bus_priv *)dev->parent->priv;
 
 	/* Use Verify Write when accessing registers (length 1,2,4). */
-	if ( n <= 4 ) {
+	if ( n <= 4 && n != 3) {
 		writecmd.type = RMAP_CMD_WIV;
 	} else {
 		writecmd.type = RMAP_CMD_WI;
