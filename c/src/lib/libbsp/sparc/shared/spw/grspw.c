@@ -1182,7 +1182,7 @@ static rtems_device_driver grspw_control(
 			if ((unsigned int)ioarg->buffer > 1) {
 				return RTEMS_INVALID_NAME;
 			}
-			SPW_CTRL_WRITE(pDev, (SPW_STATUS_READ(pDev) & 0xFFFEFFFF) | ((unsigned int)ioarg->buffer << 16));
+			SPW_CTRL_WRITE(pDev, (SPW_CTRL_READ(pDev) & 0xFFFEFFFF) | ((unsigned int)ioarg->buffer << 16));
 			if (((SPW_CTRL_READ(pDev) >> 16) & 1) != (unsigned int)ioarg->buffer) {
 				return RTEMS_IO_ERROR;
 			}
@@ -1193,7 +1193,7 @@ static rtems_device_driver grspw_control(
 			if ((unsigned int)ioarg->buffer > 1) {
 				return RTEMS_INVALID_NAME;
 			}
-			SPW_CTRL_WRITE(pDev, (SPW_STATUS_READ(pDev) & 0xFFFDFFFF) | ((unsigned int)ioarg->buffer << 17));
+			SPW_CTRL_WRITE(pDev, (SPW_CTRL_READ(pDev) & 0xFFFDFFFF) | ((unsigned int)ioarg->buffer << 17));
 			if (((SPW_CTRL_READ(pDev) >> 17) & 1) != (unsigned int)ioarg->buffer) {
 				return RTEMS_IO_ERROR;
 			}
