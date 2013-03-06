@@ -1317,6 +1317,7 @@ void gr1553bc_close(void *bc)
 
 	/* Free device */
 	gr1553_bc_close(priv->pdev);
+	free(priv->irq_log_p);
 	free(priv);
 }
 
