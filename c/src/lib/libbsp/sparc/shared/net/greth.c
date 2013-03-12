@@ -1038,6 +1038,7 @@ greth_init (void *arg)
 {
     struct greth_softc *sc = arg;
     struct ifnet *ifp = &sc->arpcom.ac_if;
+    char name[4] = {'E', 'T', 'H', '0'};
 
     if (sc->daemonTid == 0)
       {
@@ -1045,7 +1046,8 @@ greth_init (void *arg)
 	  /*
 	   * Start driver tasks
 	   */
-	  sc->daemonTid = rtems_bsdnet_newproc ("DCrxtx", 4096,
+	  name[3] += sc->minor;
+	  sc->daemonTid = rtems_bsdnet_newproc (name, 4096,
 						  greth_Daemon, sc);
 
 	  /*
