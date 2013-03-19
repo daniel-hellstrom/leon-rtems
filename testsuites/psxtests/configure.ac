@@ -74,6 +74,7 @@ psx11/Makefile
 psx12/Makefile
 psx13/Makefile
 psx14/Makefile
+psx16/Makefile
 psxalarm01/Makefile
 psxautoinit01/Makefile
 psxautoinit02/Makefile
@@ -85,6 +86,7 @@ psxcleanup/Makefile
 psxcleanup01/Makefile
 psxclock/Makefile
 psxcond01/Makefile
+psxeintr_join/Makefile
 psxenosys/Makefile
 psxfatal01/Makefile
 psxfatal02/Makefile

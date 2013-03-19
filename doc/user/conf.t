@@ -237,6 +237,7 @@ RTEMS "unlimited" objects option.  You will be able to create objects
 until you run out of all available memory rather then just until you
 run out of RTEMS Workspace.
 
+@findex CONFIGURE_MICROSECONDS_PER_TICK
 @item @code{CONFIGURE_MICROSECONDS_PER_TICK} is the length
 of time between clock ticks.  By default, this is set to
 10000 microseconds.
@@ -258,9 +259,8 @@ system reduces the amount of memory allocated from the RTEMS Workspace.
 By default, RTEMS supports 256 priority levels ranging from 0 to 255 so
 the default value for this field is 255.
 
-@findex CONFIGURE_MICROSECONDS_PER_TICK
-@fnindex CONFIGURE_MINIMUM_STACK_SIZE
-@item @code{CONFIGURE_MINIMUM_STACK_SIZE} is set to the number of bytes
+@fnindex CONFIGURE_MINIMUM_TASK_STACK_SIZE
+@item @code{CONFIGURE_MINIMUM_TASK_STACK_SIZE} is set to the number of bytes
 the application wants the minimum stack size to be for every task or 
 thread in the system.  By default, this is set to the recommended minimum
 stack size for this processor.
@@ -328,7 +328,7 @@ by the type @code{other_message_type}.
 
 @example
 
-#define CONFIGURE_MESSAGE_BUFFERS_FOR_QUEUE \
+#define CONFIGURE_MESSAGE_BUFFER_MEMORY \
  (CONFIGURE_MESSAGE_BUFFERS_FOR_QUEUE( \
     24, sizeof(one_message_type) + \
   CONFIGURE_MESSAGE_BUFFERS_FOR_QUEUE( \
@@ -719,9 +719,32 @@ The default is 0.
 POSIX API message queues that can be concurrently active.
 The default is 0.
 
+@findex CONFIGURE_MAXIMUM_POSIX_MESSAGE_QUEUE_DESCRIPTORS
+@item @code{CONFIGURE_MAXIMUM_POSIX_MESSAGE_QUEUE_DESCRIPTORS}
+is the maximum number of POSIX API message
+queue descriptors that can be concurrently
+active. @code{CONFIGURE_MAXIMUM_POSIX_MESSAGE_QUEUE_DESCRIPTORS}
+should be greater than or equal to
+@code{CONFIGURE_MAXIMUM_POSIX_MESSAGE_QUEUES}. The default is 0.
+
 @findex CONFIGURE_MAXIMUM_POSIX_SEMAPHORES
 @item @code{CONFIGURE_MAXIMUM_POSIX_SEMAPHORES} is the maximum number of
 POSIX API semaphores that can be concurrently active.
+The default is 0.
+
+@findex CONFIGURE_MAXIMUM_POSIX_BARRIERS
+@item @code{CONFIGURE_MAXIMUM_POSIX_BARRIERS} is the maximum number of
+POSIX API barriers that can be concurrently active.
+The default is 0.
+
+@findex CONFIGURE_MAXIMUM_POSIX_SPINLOCKS
+@item @code{CONFIGURE_MAXIMUM_POSIX_SPINLOCKS} is the maximum number of
+POSIX API spinlocks that can be concurrently active.
+The default is 0.
+
+@findex CONFIGURE_MAXIMUM_POSIX_RWLOCKS
+@item @code{CONFIGURE_MAXIMUM_POSIX_RWLOCKS} is the maximum number of
+POSIX API read-write locks that can be concurrently active.
 The default is 0.
 
 @end itemize

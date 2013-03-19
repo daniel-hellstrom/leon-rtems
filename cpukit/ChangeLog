@@ -1,3 +1,88 @@
+2011-12-09	Chris Johns <chrisj@rtems.org>
+
+	PR 1968/filesystem
+	* libfs/src/rfs/rtems-rfs-file.c: Fix to the seek bug where a seek
+	to 0 after reading the end of the file did not point to the
+	correct block.
+	* libfs/src/rfs/rtems-rfs-rtems.h,
+	libfs/src/rfs/rtems-rfs-trace.c: Fix the trace flags. Used to fix
+	the bug.
+	
+2011-12-07	Ralf Corsépius <ralf.corsepius@rtems.org>
+
+	PR 1983/networking
+	* libnetworking/libc/gethostbyht.c (gethostent_r):
+	Abort if (!hostf).
+
+2011-11-30	Ralf Corsépius <ralf.corsepius@rtems.org>
+
+	* librpc/src/rpc/clnt_udp.c (struct cu_data):
+	Introduce unions _cu_inbuf, _cu_outbuf to avoid aliasing.
+
+2011-11-28	Werner Almesberger <werner@almesberger.net>
+
+	PR 1961/cpukit
+	* score/src/coremsgsubmit.c: Close window caused by using message
+	pending count rather than directly obtaining unused buffer.
+
+2011-11-07	Ralf Corsepius <ralf.corsepius@rtems.org>
+
+	PR 1952/cpukit
+	* libmisc/untar/untar.c: Add return code for failure when unable to
+	write file.
+
+2011-11-03	Chris Johns <chrisj@rtems.org>
+
+	PR 1948/filesystem
+	* libfs/src/rfs/rtems-rfs-file-system.c,
+	libfs/src/rfs/rtems-rfs-file-system.h,
+	libfs/src/rfs/rtems-rfs-format.c, libfs/src/rfs/rtems-rfs-rtems.c:
+	Add support for mount passing an ASCIIZ string containing
+	configuration options.
+	* libblock/src/bdbuf.c: Fix state labels in trace output.
+
+2011-10-09	Ralf Corsépius <ralf.corsepius@rtems.org>
+
+	* libmisc/serdbg/serdbg.h (putDebugChar, getDebugChar):
+	Remove duplicate decls.
+
+2011-09-01	Joel Sherrill <joel.sherrilL@OARcorp.com>
+
+	PR 1895/cpukit
+	* posix/src/mqueuerecvsupp.c, posix/src/pthreadjoin.c,
+	score/src/coretodmsecstoticks.c, score/src/coretodusectoticks.c,
+	score/src/timespectoticks.c: Ensure time conversions to ticks do not
+	ignore partial tick and return 1 less than desired.
+
+2011-07-31	Joel Sherrill <joel.sherrilL@OARcorp.com>
+
+	PR 1855/cpukit
+	* posix/src/psignal.c, posix/src/psignalunblockthread.c,
+	posix/src/pthread.c, posix/src/pthreadjoin.c: Correct signal
+	processing during pthread_join. We are supposed to unblock the thread
+	waiting on a pthread_join(), dispatch the signal handler, account for
+	it potentially overwriting errno, and then have the thread return to
+	blocking within pthread_join().
+
+2011-07-31	Joel Sherrill <joel.sherrilL@OARcorp.com>
+
+	PR 1867/cpukit
+	* posix/src/pthreadexit.c, posix/src/pthreadjoin.c: Correct
+	implementation of pthread_exit() and pthread_join() to support the
+	case where a thread is joinable but calls pthread_exit() before a
+	thread has attempted to join.
+
+2011-07-31	Joel Sherrill <joel.sherrilL@OARcorp.com>
+
+	PR 1839/filesystem
+	* libcsupport/include/rtems/libio_.h, libcsupport/src/fchdir.c,
+	libcsupport/src/fdatasync.c, libcsupport/src/fpathconf.c,
+	libcsupport/src/fsync.c, libcsupport/src/ftruncate.c,
+	libcsupport/src/read.c, libcsupport/src/readv.c,
+	libcsupport/src/write.c, libcsupport/src/writev.c: Some calls did not
+	return proper status for permission errors or incorrectly permissions
+	at all.
+
 2011-07-19	Joel Sherrill <joel.sherrilL@OARcorp.com>
 
 	PR 1838/filesystem

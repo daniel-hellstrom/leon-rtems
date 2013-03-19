@@ -1,15 +1,48 @@
-diff -Naur gcc-4.4.5.orig/ChangeLog.rtems gcc-4.4.5/ChangeLog.rtems
---- gcc-4.4.5.orig/ChangeLog.rtems	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/ChangeLog.rtems	2011-03-01 05:57:30.782523058 +0100
-@@ -0,0 +1,4 @@
+diff -Naur gcc-4.4.6.orig/ChangeLog.rtems gcc-4.4.6/ChangeLog.rtems
+--- gcc-4.4.6.orig/ChangeLog.rtems	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/ChangeLog.rtems	2011-08-29 07:16:18.126123562 +0200
+@@ -0,0 +1,9 @@
++2011-04-20	Ralf Corsépius <ralf.corsepius@rtems.org>
++
++	* configure, configure.ac (PPL): Merge gcc-4.6.0's ppl detection 
++	  (Work-around build breakdown on fedora 15).
++
 +		Ralf Corsépius <ralf.corsepius@rtems.org>
 +
 +	* configure, configure.ac (skipdirs): Add target-libiberty.
 +
-diff -Naur gcc-4.4.5.orig/configure gcc-4.4.5/configure
---- gcc-4.4.5.orig/configure	2010-06-07 22:10:41.000000000 +0200
-+++ gcc-4.4.5/configure	2011-03-01 05:57:30.791523182 +0100
-@@ -2267,6 +2267,7 @@
+diff -Naur gcc-4.4.6.orig/configure gcc-4.4.6/configure
+--- gcc-4.4.6.orig/configure	2010-10-02 13:40:32.000000000 +0200
++++ gcc-4.4.6/configure	2011-08-29 07:16:18.130123715 +0200
+@@ -935,7 +935,8 @@
+   --enable-gold           use gold instead of ld
+   --enable-libada         build libada directory
+   --enable-libssp         build libssp directory
+-  --disable-ppl-version-check    disable check for PPL version
++  --disable-ppl-version-check
++                          disable check for PPL version
+   --disable-cloog-version-check  disable check for CLooG version
+   --enable-stage1-languages[=all]   choose additional languages to build during
+                           stage1.  Mostly useful for compiler development.
+@@ -971,11 +972,12 @@
+   --with-gmp-lib=PATH     specify directory for the installed GMP library
+   --with-host-libstdcxx=L Use linker arguments L to link with libstdc++
+                           when linking with PPL
+-  --with-ppl=PATH         Specify prefix directory for the installed PPL package
+-                          Equivalent to --with-ppl-include=PATH/include
+-                          plus --with-ppl-lib=PATH/lib
+-  --with-ppl-include=PATH Specify directory for installed PPL include files
+-  --with-ppl-lib=PATH     Specify the directory for the installed PPL library
++  --with-ppl=PATH         specify prefix directory for the installed PPL
++                          package. Equivalent to
++                          --with-ppl-include=PATH/include plus
++                          --with-ppl-lib=PATH/lib
++  --with-ppl-include=PATH specify directory for installed PPL include files
++  --with-ppl-lib=PATH     specify directory for the installed PPL library
+   --with-cloog=PATH       Specify prefix directory for the installed CLooG-PPL package
+                           Equivalent to --with-cloog-include=PATH/include
+                           plus --with-cloog-lib=PATH/lib
+@@ -2267,6 +2269,7 @@
      noconfigdirs="$noconfigdirs target-newlib target-libiberty target-libgloss ${libgcj} target-libmudflap"
      ;;
    *-*-rtems*)
@@ -17,7 +50,216 @@ diff -Naur gcc-4.4.5.orig/configure gcc-4.4.5/configure
      noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
      ;;
      # The tpf target doesn't support gdb yet.
-@@ -6259,7 +6260,7 @@
+@@ -4829,10 +4832,9 @@
+ esac
+ 
+ # Check for PPL
+-ppl_major_version=0
+-ppl_minor_version=10
+-ppllibs=" -lppl_c -lppl -lgmpxx $with_host_libstdcxx "
++ppllibs=
+ pplinc=
++pwllib=
+ 
+ 
+ # Check whether --with-ppl or --without-ppl was given.
+@@ -4841,55 +4843,143 @@
+ 
+ fi;
+ 
+-# Check whether --with-ppl_include or --without-ppl_include was given.
++# Check whether --with-ppl-include or --without-ppl-include was given.
+ if test "${with_ppl_include+set}" = set; then
+   withval="$with_ppl_include"
+ 
+ fi;
+ 
+-# Check whether --with-ppl_lib or --without-ppl_lib was given.
++# Check whether --with-ppl-lib or --without-ppl-lib was given.
+ if test "${with_ppl_lib+set}" = set; then
+   withval="$with_ppl_lib"
+ 
+ fi;
+ 
++# Check whether --enable-ppl-version-check or --disable-ppl-version-check was given.
++if test "${enable_ppl_version_check+set}" = set; then
++  enableval="$enable_ppl_version_check"
++
++fi;
++
+ case $with_ppl in
+-  no)
+-    ppllibs=
++  yes | no | "")
+     ;;
+   *)
+-    ppllibs="-L$with_ppl/lib -lppl_c -lppl -lgmpxx $with_host_libstdcxx"
++    ppllibs="-L$with_ppl/lib"
+     pplinc="-I$with_ppl/include $pplinc"
+-    LIBS="$ppllibs $LIBS"
++    if test -d "$with_ppl/lib" && test -d "$with_ppl/include"; then
++      with_ppl=yes
++    else
++      { { echo "$as_me:$LINENO: error: cannot find directories \"$with_ppl/lib\" or \"$with_ppl/include\"" >&5
++echo "$as_me: error: cannot find directories \"$with_ppl/lib\" or \"$with_ppl/include\"" >&2;}
++   { (exit 1); exit 1; }; }
++    fi
+     ;;
+ esac
+-if test "x$with_ppl_include" != x; then
++
++if test x"$with_ppl_include" != x; then
+   pplinc="-I$with_ppl_include $pplinc"
++  with_ppl=yes
+ fi
++
+ if test "x$with_ppl_lib" != x; then
+-  ppllibs="-L$with_ppl_lib -lppl_c -lppl -lgmpxx $with_host_libstdcxx"
+-  LIBS="$ppllibs $LIBS"
++  ppllibs="-L$with_ppl_lib"
++  with_ppl=yes
+ fi
+-if test "x$with_ppl$with_ppl_include$with_ppl_lib" = x && test -d ${srcdir}/ppl; then
+-  ppllibs='-L$$r/$(HOST_SUBDIR)/ppl/.libs -L$$r/$(HOST_SUBDIR)/ppl/_libs -lppl_c -lppl -lgmpxx '"$with_host_libstdcxx "
+-  pplinc='-I$$r/$(HOST_SUBDIR)/ppl/include -I$$s/ppl/include '
+-  LIBS="$ppllibs $LIBS"
++
++if test x"$with_ppl$with_ppl_include$with_ppl_lib" = x && test -d ${srcdir}/ppl; then
++  if test x"$enable_watchdog" = xyes; then
++    pwllib="-lpwl"
++  fi
++  ppllibs='-L$$r/$(HOST_SUBDIR)/ppl/interfaces/C/'"$lt_cv_objdir"' -L$$r/$(HOST_SUBDIR)/ppl/src/'"$lt_cv_objdir"
++  pplinc='-I$$r/$(HOST_SUBDIR)/ppl/src -I$$r/$(HOST_SUBDIR)/ppl/interfaces/C '
++  enable_ppl_version_check=no
++  with_ppl=yes
+ fi
+ 
+-# Check whether --enable-ppl-version-check or --disable-ppl-version-check was given.
+-if test "${enable_ppl_version_check+set}" = set; then
+-  enableval="$enable_ppl_version_check"
+-  ENABLE_PPL_CHECK=$enableval
++if test "x$with_ppl" != xno; then
++  if test "x$pwllib" = x; then
++    saved_LDFLAGS="$LDFLAGS"
++    LDFLAGS="$LDFLAGS $ppllibs"
++    echo "$as_me:$LINENO: checking for PWL_handle_timeout in -lpwl" >&5
++echo $ECHO_N "checking for PWL_handle_timeout in -lpwl... $ECHO_C" >&6
++if test "${ac_cv_lib_pwl_PWL_handle_timeout+set}" = set; then
++  echo $ECHO_N "(cached) $ECHO_C" >&6
+ else
+-  ENABLE_PPL_CHECK=yes
+-fi;
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-lpwl  $LIBS"
++cat >conftest.$ac_ext <<_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h >>conftest.$ac_ext
++cat >>conftest.$ac_ext <<_ACEOF
++/* end confdefs.h.  */
+ 
+-if test "${ENABLE_PPL_CHECK}" = "yes"; then
+-  saved_CFLAGS="$CFLAGS"
+-  CFLAGS="$CFLAGS $pplinc $gmpinc"
+-  echo "$as_me:$LINENO: checking for version $ppl_major_version.$ppl_minor_version of PPL" >&5
+-echo $ECHO_N "checking for version $ppl_major_version.$ppl_minor_version of PPL... $ECHO_C" >&6
+-  cat >conftest.$ac_ext <<_ACEOF
++/* Override any gcc2 internal prototype to avoid an error.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++/* We use char because int might match the return type of a gcc2
++   builtin and then its argument prototype would still apply.  */
++char PWL_handle_timeout ();
++int
++main ()
++{
++PWL_handle_timeout ();
++  ;
++  return 0;
++}
++_ACEOF
++rm -f conftest.$ac_objext conftest$ac_exeext
++if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
++  (eval $ac_link) 2>conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 >conftest.err
++  rm -f conftest.er1
++  cat conftest.err >&5
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); } &&
++	 { ac_try='test -z "$ac_c_werror_flag"
++			 || test ! -s conftest.err'
++  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
++  (eval $ac_try) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; } &&
++	 { ac_try='test -s conftest$ac_exeext'
++  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
++  (eval $ac_try) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; }; then
++  ac_cv_lib_pwl_PWL_handle_timeout=yes
++else
++  echo "$as_me: failed program was:" >&5
++sed 's/^/| /' conftest.$ac_ext >&5
++
++ac_cv_lib_pwl_PWL_handle_timeout=no
++fi
++rm -f conftest.err conftest.$ac_objext \
++      conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++echo "$as_me:$LINENO: result: $ac_cv_lib_pwl_PWL_handle_timeout" >&5
++echo "${ECHO_T}$ac_cv_lib_pwl_PWL_handle_timeout" >&6
++if test $ac_cv_lib_pwl_PWL_handle_timeout = yes; then
++  pwllib="-lpwl"
++fi
++
++    LDFLAGS="$saved_LDFLAGS"
++  fi
++
++  ppllibs="$ppllibs -lppl_c -lppl $pwllib -lgmpxx"
++
++  if test "$enable_ppl_version_check" != no; then
++    saved_CFLAGS="$CFLAGS"
++    CFLAGS="$CFLAGS $pplinc $gmpinc"
++    echo "$as_me:$LINENO: checking for version 0.10 (revision 0 or later) of PPL" >&5
++echo $ECHO_N "checking for version 0.10 (revision 0 or later) of PPL... $ECHO_C" >&6
++    cat >conftest.$ac_ext <<_ACEOF
+ /* confdefs.h.  */
+ _ACEOF
+ cat confdefs.h >>conftest.$ac_ext
+@@ -4900,9 +4990,9 @@
+ main ()
+ {
+ 
+-  #if PPL_VERSION_MAJOR != $ppl_major_version || PPL_VERSION_MINOR != $ppl_minor_version
+-  choke me
+-  #endif
++    #if PPL_VERSION_MAJOR != 0 || PPL_VERSION_MINOR < 10
++    choke me
++    #endif
+ 
+   ;
+   return 0;
+@@ -4937,10 +5027,11 @@
+ sed 's/^/| /' conftest.$ac_ext >&5
+ 
+ echo "$as_me:$LINENO: result: no" >&5
+-echo "${ECHO_T}no" >&6; ppllibs= ; pplinc=
++echo "${ECHO_T}no" >&6; ppllibs= ; pplinc= ; with_ppl=no
+ fi
+ rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+-  CFLAGS="$saved_CFLAGS"
++    CFLAGS="$saved_CFLAGS"
++  fi
+ fi
+ 
+ # Flags needed for PPL
+@@ -6259,7 +6350,7 @@
         # to it.  This is right: we don't want to search that directory
         # for binaries, but we want the header files in there, so add
         # them explicitly.
@@ -26,9 +268,9 @@ diff -Naur gcc-4.4.5.orig/configure gcc-4.4.5/configure
  
         # Someone might think of using the pre-installed headers on
         # Canadian crosses, in case the installed compiler is not fully
-diff -Naur gcc-4.4.5.orig/configure.ac gcc-4.4.5/configure.ac
---- gcc-4.4.5.orig/configure.ac	2010-06-07 22:10:41.000000000 +0200
-+++ gcc-4.4.5/configure.ac	2011-03-01 05:57:30.792523196 +0100
+diff -Naur gcc-4.4.6.orig/configure.ac gcc-4.4.6/configure.ac
+--- gcc-4.4.6.orig/configure.ac	2010-10-02 13:40:32.000000000 +0200
++++ gcc-4.4.6/configure.ac	2011-08-29 07:16:18.131123743 +0200
 @@ -502,6 +502,7 @@
      noconfigdirs="$noconfigdirs target-newlib target-libiberty target-libgloss ${libgcj} target-libmudflap"
      ;;
@@ -37,7 +279,123 @@ diff -Naur gcc-4.4.5.orig/configure.ac gcc-4.4.5/configure.ac
      noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
      ;;
      # The tpf target doesn't support gdb yet.
-@@ -2560,7 +2561,7 @@
+@@ -1328,55 +1329,81 @@
+ esac
+ 
+ # Check for PPL
+-ppl_major_version=0
+-ppl_minor_version=10
+-ppllibs=" -lppl_c -lppl -lgmpxx $with_host_libstdcxx "
++ppllibs=
+ pplinc=
++pwllib=
+ 
+-AC_ARG_WITH(ppl, [  --with-ppl=PATH         Specify prefix directory for the installed PPL package
+-                          Equivalent to --with-ppl-include=PATH/include
+-                          plus --with-ppl-lib=PATH/lib])
+-AC_ARG_WITH(ppl_include, [  --with-ppl-include=PATH Specify directory for installed PPL include files])
+-AC_ARG_WITH(ppl_lib, [  --with-ppl-lib=PATH     Specify the directory for the installed PPL library])
++AC_ARG_WITH(ppl,
++[AS_HELP_STRING([--with-ppl=PATH],
++		[specify prefix directory for the installed PPL package.
++		 Equivalent to --with-ppl-include=PATH/include
++		 plus --with-ppl-lib=PATH/lib])])
++AC_ARG_WITH(ppl-include,
++[AS_HELP_STRING([--with-ppl-include=PATH],
++		[specify directory for installed PPL include files])])
++AC_ARG_WITH(ppl-lib,
++[AS_HELP_STRING([--with-ppl-lib=PATH],
++		[specify directory for the installed PPL library])])
+ 
+-case $with_ppl in 
+-  no)
+-    ppllibs=
++AC_ARG_ENABLE(ppl-version-check,
++[AS_HELP_STRING([--disable-ppl-version-check],
++		[disable check for PPL version])])
++
++case $with_ppl in
++  yes | no | "")
+     ;;
+   *)
+-    ppllibs="-L$with_ppl/lib -lppl_c -lppl -lgmpxx $with_host_libstdcxx"
++    ppllibs="-L$with_ppl/lib"
+     pplinc="-I$with_ppl/include $pplinc"
+-    LIBS="$ppllibs $LIBS"
++    if test -d "$with_ppl/lib" && test -d "$with_ppl/include"; then
++      with_ppl=yes
++    else
++      AC_MSG_ERROR([cannot find directories "$with_ppl/lib" or "$with_ppl/include"])
++    fi
+     ;;
+ esac
+-if test "x$with_ppl_include" != x; then
++
++if test x"$with_ppl_include" != x; then
+   pplinc="-I$with_ppl_include $pplinc"
++  with_ppl=yes
+ fi
++
+ if test "x$with_ppl_lib" != x; then
+-  ppllibs="-L$with_ppl_lib -lppl_c -lppl -lgmpxx $with_host_libstdcxx"
+-  LIBS="$ppllibs $LIBS"
++  ppllibs="-L$with_ppl_lib"
++  with_ppl=yes
+ fi
+-if test "x$with_ppl$with_ppl_include$with_ppl_lib" = x && test -d ${srcdir}/ppl; then
+-  ppllibs='-L$$r/$(HOST_SUBDIR)/ppl/.libs -L$$r/$(HOST_SUBDIR)/ppl/_libs -lppl_c -lppl -lgmpxx '"$with_host_libstdcxx "
+-  pplinc='-I$$r/$(HOST_SUBDIR)/ppl/include -I$$s/ppl/include '
+-  LIBS="$ppllibs $LIBS"
++
++if test x"$with_ppl$with_ppl_include$with_ppl_lib" = x && test -d ${srcdir}/ppl; then
++  if test x"$enable_watchdog" = xyes; then
++    pwllib="-lpwl"
++  fi
++  ppllibs='-L$$r/$(HOST_SUBDIR)/ppl/interfaces/C/'"$lt_cv_objdir"' -L$$r/$(HOST_SUBDIR)/ppl/src/'"$lt_cv_objdir"
++  pplinc='-I$$r/$(HOST_SUBDIR)/ppl/src -I$$r/$(HOST_SUBDIR)/ppl/interfaces/C '
++  enable_ppl_version_check=no
++  with_ppl=yes
+ fi
+ 
+-AC_ARG_ENABLE(ppl-version-check,
+-[  --disable-ppl-version-check    disable check for PPL version],
+-ENABLE_PPL_CHECK=$enableval,
+-ENABLE_PPL_CHECK=yes)
++if test "x$with_ppl" != xno; then
++  if test "x$pwllib" = x; then
++    saved_LDFLAGS="$LDFLAGS"
++    LDFLAGS="$LDFLAGS $ppllibs"
++    AC_CHECK_LIB(pwl,PWL_handle_timeout,[pwllib="-lpwl"])
++    LDFLAGS="$saved_LDFLAGS"
++  fi
+ 
+-if test "${ENABLE_PPL_CHECK}" = "yes"; then
+-  saved_CFLAGS="$CFLAGS"
+-  CFLAGS="$CFLAGS $pplinc $gmpinc"
+-  AC_MSG_CHECKING([for version $ppl_major_version.$ppl_minor_version of PPL])
+-  AC_TRY_COMPILE([#include "ppl_c.h"],[
+-  #if PPL_VERSION_MAJOR != $ppl_major_version || PPL_VERSION_MINOR != $ppl_minor_version
+-  choke me
+-  #endif
+-  ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); ppllibs= ; pplinc= ])
+-  CFLAGS="$saved_CFLAGS"
++  ppllibs="$ppllibs -lppl_c -lppl $pwllib -lgmpxx"
++
++  if test "$enable_ppl_version_check" != no; then
++    saved_CFLAGS="$CFLAGS"
++    CFLAGS="$CFLAGS $pplinc $gmpinc"
++    AC_MSG_CHECKING([for version 0.10 (revision 0 or later) of PPL])
++    AC_TRY_COMPILE([#include "ppl_c.h"],[
++    #if PPL_VERSION_MAJOR != 0 || PPL_VERSION_MINOR < 10
++    choke me
++    #endif
++    ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); ppllibs= ; pplinc= ; with_ppl=no ])
++    CFLAGS="$saved_CFLAGS"
++  fi
+ fi
+ 
+ # Flags needed for PPL
+@@ -2560,7 +2587,7 @@
         # to it.  This is right: we don't want to search that directory
         # for binaries, but we want the header files in there, so add
         # them explicitly.
@@ -46,10 +404,16 @@ diff -Naur gcc-4.4.5.orig/configure.ac gcc-4.4.5/configure.ac
  
         # Someone might think of using the pre-installed headers on
         # Canadian crosses, in case the installed compiler is not fully
-diff -Naur gcc-4.4.5.orig/gcc/ChangeLog.rtems gcc-4.4.5/gcc/ChangeLog.rtems
---- gcc-4.4.5.orig/gcc/ChangeLog.rtems	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/ChangeLog.rtems	2011-03-01 06:11:33.826203883 +0100
-@@ -0,0 +1,54 @@
+diff -Naur gcc-4.4.6.orig/gcc/ChangeLog.rtems gcc-4.4.6/gcc/ChangeLog.rtems
+--- gcc-4.4.6.orig/gcc/ChangeLog.rtems	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/ChangeLog.rtems	2011-08-29 07:16:18.132123787 +0200
+@@ -0,0 +1,60 @@
++2011-08-29	Ralf Corsépius <ralf.corsepius@rtems.org> 
++	and Eric Norum <wenorum@lbl.gov>
++
++	Fix bootstrap breakdowns on OS X 10.7.1 (Lion):
++	* toplev.h, toplev.c: Switch-off "extern inline" if using clang.
++
 +2011-02-20	Ralf Corsépius <ralf.corsepius@rtems.org>
 +
 +	* config/rs6000/t-rtems: Remove -mcpu=601 multilib.
@@ -105,9 +469,9 @@ diff -Naur gcc-4.4.5.orig/gcc/ChangeLog.rtems gcc-4.4.5/gcc/ChangeLog.rtems
 +	* config/mips/elf.h: Remove NO_IMPLICIT_EXTERN_C.
 +	
 \ No newline at end of file
-diff -Naur gcc-4.4.5.orig/gcc/config/arm/rtems-elf.h gcc-4.4.5/gcc/config/arm/rtems-elf.h
---- gcc-4.4.5.orig/gcc/config/arm/rtems-elf.h	2009-03-25 13:54:16.000000000 +0100
-+++ gcc-4.4.5/gcc/config/arm/rtems-elf.h	2011-03-01 05:57:30.792523196 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/arm/rtems-elf.h gcc-4.4.6/gcc/config/arm/rtems-elf.h
+--- gcc-4.4.6.orig/gcc/config/arm/rtems-elf.h	2009-03-25 13:54:16.000000000 +0100
++++ gcc-4.4.6/gcc/config/arm/rtems-elf.h	2011-08-29 07:16:18.132123787 +0200
 @@ -36,7 +36,7 @@
   */
  #undef SUBTARGET_EXTRA_ASM_SPEC
@@ -117,9 +481,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/arm/rtems-elf.h gcc-4.4.5/gcc/config/arm/rt
  
  /*
   *  The default includes --start-group and --end-group which conflicts
-diff -Naur gcc-4.4.5.orig/gcc/config/arm/t-rtems gcc-4.4.5/gcc/config/arm/t-rtems
---- gcc-4.4.5.orig/gcc/config/arm/t-rtems	2004-11-23 06:30:32.000000000 +0100
-+++ gcc-4.4.5/gcc/config/arm/t-rtems	2011-03-01 05:57:30.792523196 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/arm/t-rtems gcc-4.4.6/gcc/config/arm/t-rtems
+--- gcc-4.4.6.orig/gcc/config/arm/t-rtems	2004-11-23 06:30:32.000000000 +0100
++++ gcc-4.4.6/gcc/config/arm/t-rtems	2011-08-29 07:16:18.133123835 +0200
 @@ -5,6 +5,41 @@
  MULTILIB_EXCEPTIONS  = 
  MULTILIB_MATCHES     = marm=mno-thumb
@@ -165,9 +529,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/arm/t-rtems gcc-4.4.5/gcc/config/arm/t-rtem
 +#/fpu        -> arm/hard/fpa
 +#/fpa        -> arm/soft/fpa
 +#.           -> arm/soft/fpa
-diff -Naur gcc-4.4.5.orig/gcc/config/avr/avr.h gcc-4.4.5/gcc/config/avr/avr.h
---- gcc-4.4.5.orig/gcc/config/avr/avr.h	2009-03-28 22:09:50.000000000 +0100
-+++ gcc-4.4.5/gcc/config/avr/avr.h	2011-03-01 05:57:30.793523210 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/avr/avr.h gcc-4.4.6/gcc/config/avr/avr.h
+--- gcc-4.4.6.orig/gcc/config/avr/avr.h	2009-03-28 22:09:50.000000000 +0100
++++ gcc-4.4.6/gcc/config/avr/avr.h	2011-08-29 07:16:18.133123835 +0200
 @@ -811,12 +811,15 @@
                                 mmcu=at90can64*|\
                                 mmcu=at90usb64*:--pmem-wrap-around=64k}}}\
@@ -228,18 +592,18 @@ diff -Naur gcc-4.4.5.orig/gcc/config/avr/avr.h gcc-4.4.5/gcc/config/avr/avr.h
  %{mmcu=atmega324*|\
    mmcu=atmega325*|\
    mmcu=atmega328p|\
-diff -Naur gcc-4.4.5.orig/gcc/config/avr/t-rtems gcc-4.4.5/gcc/config/avr/t-rtems
---- gcc-4.4.5.orig/gcc/config/avr/t-rtems	2004-11-23 04:44:03.000000000 +0100
-+++ gcc-4.4.5/gcc/config/avr/t-rtems	2011-03-01 05:57:30.793523210 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/avr/t-rtems gcc-4.4.6/gcc/config/avr/t-rtems
+--- gcc-4.4.6.orig/gcc/config/avr/t-rtems	2004-11-23 04:44:03.000000000 +0100
++++ gcc-4.4.6/gcc/config/avr/t-rtems	2011-08-29 07:16:18.133123835 +0200
 @@ -1,3 +1,4 @@
  # Multilibs for avr RTEMS targets.
  
 -# ATM, this is just a stub
 +# RTEMS uses _exit from newlib
 +LIB1ASMFUNCS := $(filter-out _exit,$(LIB1ASMFUNCS))
-diff -Naur gcc-4.4.5.orig/gcc/config/lm32/arithmetic.c gcc-4.4.5/gcc/config/lm32/arithmetic.c
---- gcc-4.4.5.orig/gcc/config/lm32/arithmetic.c	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/config/lm32/arithmetic.c	2011-03-01 05:57:30.847523953 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/lm32/arithmetic.c gcc-4.4.6/gcc/config/lm32/arithmetic.c
+--- gcc-4.4.6.orig/gcc/config/lm32/arithmetic.c	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/config/lm32/arithmetic.c	2011-08-29 07:16:18.133123835 +0200
 @@ -0,0 +1,305 @@
 +/* Fixed-point arithmetic for Lattice Mico32.
 +   Contributed by Jon Beniston <jon@beniston.com> 
@@ -546,9 +910,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/lm32/arithmetic.c gcc-4.4.5/gcc/config/lm32
 +#endif
 +
 +#endif 
-diff -Naur gcc-4.4.5.orig/gcc/config/lm32/crti.S gcc-4.4.5/gcc/config/lm32/crti.S
---- gcc-4.4.5.orig/gcc/config/lm32/crti.S	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/config/lm32/crti.S	2011-03-01 05:57:30.847523953 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/lm32/crti.S gcc-4.4.6/gcc/config/lm32/crti.S
+--- gcc-4.4.6.orig/gcc/config/lm32/crti.S	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/config/lm32/crti.S	2011-08-29 07:16:18.133123835 +0200
 @@ -0,0 +1,45 @@
 +# crti.S for Lattice Mico32 
 +# Contributed by Jon Beniston <jon@beniston.com>
@@ -595,9 +959,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/lm32/crti.S gcc-4.4.5/gcc/config/lm32/crti.
 +_fini:        
 +        addi    sp, sp, -4        
 +        sw      (sp+4), ra
-diff -Naur gcc-4.4.5.orig/gcc/config/lm32/crtn.S gcc-4.4.5/gcc/config/lm32/crtn.S
---- gcc-4.4.5.orig/gcc/config/lm32/crtn.S	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/config/lm32/crtn.S	2011-03-01 05:57:30.848523967 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/lm32/crtn.S gcc-4.4.6/gcc/config/lm32/crtn.S
+--- gcc-4.4.6.orig/gcc/config/lm32/crtn.S	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/config/lm32/crtn.S	2011-08-29 07:16:18.134123880 +0200
 @@ -0,0 +1,42 @@
 +# crtn.S for Lattice Mico32
 +# Contributed by Jon Beniston <jon@beniston.com>
@@ -641,9 +1005,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/lm32/crtn.S gcc-4.4.5/gcc/config/lm32/crtn.
 +        addi    sp, sp, 4
 +        ret
 +        
-diff -Naur gcc-4.4.5.orig/gcc/config/lm32/lib1funcs.S gcc-4.4.5/gcc/config/lm32/lib1funcs.S
---- gcc-4.4.5.orig/gcc/config/lm32/lib1funcs.S	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/config/lm32/lib1funcs.S	2011-03-01 05:57:30.848523967 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/lm32/lib1funcs.S gcc-4.4.6/gcc/config/lm32/lib1funcs.S
+--- gcc-4.4.6.orig/gcc/config/lm32/lib1funcs.S	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/config/lm32/lib1funcs.S	2011-08-29 07:16:18.134123880 +0200
 @@ -0,0 +1,429 @@
 +# lib1funcs.S for Lattice Mico32 
 +# Contributed by Jon Beniston <jon@beniston.com>
@@ -1074,9 +1438,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/lm32/lib1funcs.S gcc-4.4.5/gcc/config/lm32/
 +        .word   __ashrsi3_30
 +        .word   __ashrsi3_31
 +        
-diff -Naur gcc-4.4.5.orig/gcc/config/lm32/lm32.c gcc-4.4.5/gcc/config/lm32/lm32.c
---- gcc-4.4.5.orig/gcc/config/lm32/lm32.c	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/config/lm32/lm32.c	2011-03-01 05:57:30.849523981 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/lm32/lm32.c gcc-4.4.6/gcc/config/lm32/lm32.c
+--- gcc-4.4.6.orig/gcc/config/lm32/lm32.c	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/config/lm32/lm32.c	2011-08-29 07:16:18.135123923 +0200
 @@ -0,0 +1,869 @@
 +/* Subroutines used for code generation on the Lattice Mico32 architecture.
 +   Contributed by Jon Beniston <jon@beniston.com>
@@ -1947,9 +2311,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/lm32/lm32.c gcc-4.4.5/gcc/config/lm32/lm32.
 +
 +  return 0;
 +}
-diff -Naur gcc-4.4.5.orig/gcc/config/lm32/lm32.h gcc-4.4.5/gcc/config/lm32/lm32.h
---- gcc-4.4.5.orig/gcc/config/lm32/lm32.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/config/lm32/lm32.h	2011-03-01 05:57:30.850523995 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/lm32/lm32.h gcc-4.4.6/gcc/config/lm32/lm32.h
+--- gcc-4.4.6.orig/gcc/config/lm32/lm32.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/config/lm32/lm32.h	2011-08-29 07:16:18.135123923 +0200
 @@ -0,0 +1,657 @@
 +/* Definitions of target machine for GNU compiler, Lattice Mico32 architecture.
 +   Contributed by Jon Beniston <jon@beniston.com>
@@ -2608,9 +2972,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/lm32/lm32.h gcc-4.4.5/gcc/config/lm32/lm32.
 +#endif
 +
 +#define STORE_FLAG_VALUE 1
-diff -Naur gcc-4.4.5.orig/gcc/config/lm32/lm32.md gcc-4.4.5/gcc/config/lm32/lm32.md
---- gcc-4.4.5.orig/gcc/config/lm32/lm32.md	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/config/lm32/lm32.md	2011-03-01 05:57:30.851524009 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/lm32/lm32.md gcc-4.4.6/gcc/config/lm32/lm32.md
+--- gcc-4.4.6.orig/gcc/config/lm32/lm32.md	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/config/lm32/lm32.md	2011-08-29 07:16:18.136123965 +0200
 @@ -0,0 +1,1233 @@
 +;; Machine description of the Lattice Mico32 architecture for GNU C compiler.
 +;; Contributed by Jon Beniston <jon@beniston.com>
@@ -3845,9 +4209,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/lm32/lm32.md gcc-4.4.5/gcc/config/lm32/lm32
 +  [(set_attr "length" "0")]
 +)
 +
-diff -Naur gcc-4.4.5.orig/gcc/config/lm32/lm32.opt gcc-4.4.5/gcc/config/lm32/lm32.opt
---- gcc-4.4.5.orig/gcc/config/lm32/lm32.opt	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/config/lm32/lm32.opt	2011-03-01 05:57:30.851524009 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/lm32/lm32.opt gcc-4.4.6/gcc/config/lm32/lm32.opt
+--- gcc-4.4.6.orig/gcc/config/lm32/lm32.opt	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/config/lm32/lm32.opt	2011-08-29 07:16:18.136123965 +0200
 @@ -0,0 +1,40 @@
 +; Options for the Lattice Mico32 port of the compiler.
 +; Contributed by Jon Beniston <jon@beniston.com>
@@ -3889,9 +4253,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/lm32/lm32.opt gcc-4.4.5/gcc/config/lm32/lm3
 +muser-enabled
 +Target Report Mask(USER_ENABLED)
 +Enable user-defined instructions
-diff -Naur gcc-4.4.5.orig/gcc/config/lm32/lm32-protos.h gcc-4.4.5/gcc/config/lm32/lm32-protos.h
---- gcc-4.4.5.orig/gcc/config/lm32/lm32-protos.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/config/lm32/lm32-protos.h	2011-03-01 05:57:30.851524009 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/lm32/lm32-protos.h gcc-4.4.6/gcc/config/lm32/lm32-protos.h
+--- gcc-4.4.6.orig/gcc/config/lm32/lm32-protos.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/config/lm32/lm32-protos.h	2011-08-29 07:16:18.134123880 +0200
 @@ -0,0 +1,52 @@
 +/* Prototypes of target machine functions, Lattice Mico32 architecture.
 +   Contributed by Jon Beniston <jon@beniston.com>
@@ -3945,9 +4309,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/lm32/lm32-protos.h gcc-4.4.5/gcc/config/lm3
 +extern int lm32_expand_block_move (rtx *);
 +extern int nonpic_symbol_mentioned_p (rtx);
 +extern rtx lm32_legitimize_pic_address (rtx, enum machine_mode, rtx);
-diff -Naur gcc-4.4.5.orig/gcc/config/lm32/predicates.md gcc-4.4.5/gcc/config/lm32/predicates.md
---- gcc-4.4.5.orig/gcc/config/lm32/predicates.md	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/config/lm32/predicates.md	2011-03-01 05:57:30.851524009 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/lm32/predicates.md gcc-4.4.6/gcc/config/lm32/predicates.md
+--- gcc-4.4.6.orig/gcc/config/lm32/predicates.md	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/config/lm32/predicates.md	2011-08-29 07:16:18.136123965 +0200
 @@ -0,0 +1,58 @@
 +;; Predicate definitions for Lattice Mico32.
 +;; Contributed by Jon Beniston <jon@beniston.com>
@@ -4007,9 +4371,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/lm32/predicates.md gcc-4.4.5/gcc/config/lm3
 +  (ior (match_code "label_ref")
 +       (match_code "symbol_ref")))
 +       
-diff -Naur gcc-4.4.5.orig/gcc/config/lm32/rtems.h gcc-4.4.5/gcc/config/lm32/rtems.h
---- gcc-4.4.5.orig/gcc/config/lm32/rtems.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/config/lm32/rtems.h	2011-03-01 05:57:30.851524009 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/lm32/rtems.h gcc-4.4.6/gcc/config/lm32/rtems.h
+--- gcc-4.4.6.orig/gcc/config/lm32/rtems.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/config/lm32/rtems.h	2011-08-29 07:16:18.136123965 +0200
 @@ -0,0 +1,32 @@
 +/* Definitions for rtems targeting a lm32 using ELF.
 +   Copyright (C) 2009, Free Software Foundation, Inc.
@@ -4043,9 +4407,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/lm32/rtems.h gcc-4.4.5/gcc/config/lm32/rtem
 +
 +/* Use the default */
 +#undef LINK_GCC_C_SEQUENCE_SPEC
-diff -Naur gcc-4.4.5.orig/gcc/config/lm32/sfp-machine.h gcc-4.4.5/gcc/config/lm32/sfp-machine.h
---- gcc-4.4.5.orig/gcc/config/lm32/sfp-machine.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/config/lm32/sfp-machine.h	2011-03-01 05:57:30.851524009 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/lm32/sfp-machine.h gcc-4.4.6/gcc/config/lm32/sfp-machine.h
+--- gcc-4.4.6.orig/gcc/config/lm32/sfp-machine.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/config/lm32/sfp-machine.h	2011-08-29 07:16:18.136123965 +0200
 @@ -0,0 +1,51 @@
 +#define _FP_W_TYPE_SIZE		32
 +#define _FP_W_TYPE		unsigned long
@@ -4098,18 +4462,18 @@ diff -Naur gcc-4.4.5.orig/gcc/config/lm32/sfp-machine.h gcc-4.4.5/gcc/config/lm3
 +# define strong_alias(name, aliasname) _strong_alias(name, aliasname)
 +# define _strong_alias(name, aliasname) \
 +  extern __typeof (name) aliasname __attribute__ ((alias (#name)));
-diff -Naur gcc-4.4.5.orig/gcc/config/lm32/t-fprules-softfp gcc-4.4.5/gcc/config/lm32/t-fprules-softfp
---- gcc-4.4.5.orig/gcc/config/lm32/t-fprules-softfp	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/config/lm32/t-fprules-softfp	2011-03-01 05:57:30.852524023 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/lm32/t-fprules-softfp gcc-4.4.6/gcc/config/lm32/t-fprules-softfp
+--- gcc-4.4.6.orig/gcc/config/lm32/t-fprules-softfp	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/config/lm32/t-fprules-softfp	2011-08-29 07:16:18.136123965 +0200
 @@ -0,0 +1,5 @@
 +softfp_float_modes := sf df
 +softfp_int_modes := si di
 +softfp_extensions := sfdf
 +softfp_truncations := dfsf
 +softfp_machine_header := lm32/sfp-machine.h
-diff -Naur gcc-4.4.5.orig/gcc/config/lm32/t-lm32 gcc-4.4.5/gcc/config/lm32/t-lm32
---- gcc-4.4.5.orig/gcc/config/lm32/t-lm32	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/config/lm32/t-lm32	2011-03-01 05:57:30.852524023 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/lm32/t-lm32 gcc-4.4.6/gcc/config/lm32/t-lm32
+--- gcc-4.4.6.orig/gcc/config/lm32/t-lm32	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/config/lm32/t-lm32	2011-08-29 07:16:18.136123965 +0200
 @@ -0,0 +1,19 @@
 +LIB1ASMSRC = lm32/lib1funcs.S
 +LIB1ASMFUNCS = _ashlsi3 _ashrsi3 _lshrsi3
@@ -4130,9 +4494,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/lm32/t-lm32 gcc-4.4.5/gcc/config/lm32/t-lm3
 +
 +MULTILIB_OPTIONS = mmultiply-enabled mbarrel-shift-enabled 
 +# Don't bother building multilib with mdivide-enabled, not much of a gain
-diff -Naur gcc-4.4.5.orig/gcc/config/lm32/uclinux-elf.h gcc-4.4.5/gcc/config/lm32/uclinux-elf.h
---- gcc-4.4.5.orig/gcc/config/lm32/uclinux-elf.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/gcc/config/lm32/uclinux-elf.h	2011-03-01 05:57:30.852524023 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/lm32/uclinux-elf.h gcc-4.4.6/gcc/config/lm32/uclinux-elf.h
+--- gcc-4.4.6.orig/gcc/config/lm32/uclinux-elf.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/gcc/config/lm32/uclinux-elf.h	2011-08-29 07:16:18.137124000 +0200
 @@ -0,0 +1,85 @@
 +/* Definitions for LM32 running Linux-based GNU systems using ELF
 +   Copyright (C) 1993, 1994, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
@@ -4219,9 +4583,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/lm32/uclinux-elf.h gcc-4.4.5/gcc/config/lm3
 +#undef  CC1_SPEC
 +#define CC1_SPEC "%{G*} %{!fno-PIC:-fPIC}"
 +
-diff -Naur gcc-4.4.5.orig/gcc/config/m32c/rtems.h gcc-4.4.5/gcc/config/m32c/rtems.h
---- gcc-4.4.5.orig/gcc/config/m32c/rtems.h	2008-12-01 17:34:42.000000000 +0100
-+++ gcc-4.4.5/gcc/config/m32c/rtems.h	2011-03-01 05:57:30.852524023 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/m32c/rtems.h gcc-4.4.6/gcc/config/m32c/rtems.h
+--- gcc-4.4.6.orig/gcc/config/m32c/rtems.h	2008-12-01 17:34:42.000000000 +0100
++++ gcc-4.4.6/gcc/config/m32c/rtems.h	2011-08-29 07:16:18.137124000 +0200
 @@ -29,5 +29,9 @@
      }						\
    while (0)
@@ -4233,9 +4597,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/m32c/rtems.h gcc-4.4.5/gcc/config/m32c/rtem
 +#undef WCHAR_TYPE
 +
 +#undef WCHAR_TYPE_SIZE
-diff -Naur gcc-4.4.5.orig/gcc/config/m68k/rtemself.h gcc-4.4.5/gcc/config/m68k/rtemself.h
---- gcc-4.4.5.orig/gcc/config/m68k/rtemself.h	2007-08-02 12:49:31.000000000 +0200
-+++ gcc-4.4.5/gcc/config/m68k/rtemself.h	2011-03-01 05:57:30.852524023 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/m68k/rtemself.h gcc-4.4.6/gcc/config/m68k/rtemself.h
+--- gcc-4.4.6.orig/gcc/config/m68k/rtemself.h	2007-08-02 12:49:31.000000000 +0200
++++ gcc-4.4.6/gcc/config/m68k/rtemself.h	2011-08-29 07:16:18.137124000 +0200
 @@ -31,3 +31,8 @@
  	builtin_assert ("system=rtems");	\
      }						\
@@ -4245,9 +4609,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/m68k/rtemself.h gcc-4.4.5/gcc/config/m68k/r
 +#undef WCHAR_TYPE
 +
 +#undef WCHAR_TYPE_SIZE
-diff -Naur gcc-4.4.5.orig/gcc/config/mips/elf.h gcc-4.4.5/gcc/config/mips/elf.h
---- gcc-4.4.5.orig/gcc/config/mips/elf.h	2007-08-02 12:49:31.000000000 +0200
-+++ gcc-4.4.5/gcc/config/mips/elf.h	2011-03-01 05:57:30.853524036 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/mips/elf.h gcc-4.4.6/gcc/config/mips/elf.h
+--- gcc-4.4.6.orig/gcc/config/mips/elf.h	2007-08-02 12:49:31.000000000 +0200
++++ gcc-4.4.6/gcc/config/mips/elf.h	2011-08-29 07:16:18.137124000 +0200
 @@ -48,6 +48,4 @@
  #undef  ENDFILE_SPEC
  #define ENDFILE_SPEC "crtend%O%s crtn%O%s"
@@ -4255,9 +4619,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/mips/elf.h gcc-4.4.5/gcc/config/mips/elf.h
 -#define NO_IMPLICIT_EXTERN_C 1
 -
  #define HANDLE_PRAGMA_PACK_PUSH_POP 1
-diff -Naur gcc-4.4.5.orig/gcc/config/rs6000/rtems.h gcc-4.4.5/gcc/config/rs6000/rtems.h
---- gcc-4.4.5.orig/gcc/config/rs6000/rtems.h	2007-08-02 12:49:31.000000000 +0200
-+++ gcc-4.4.5/gcc/config/rs6000/rtems.h	2011-03-01 05:57:30.853524036 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/rs6000/rtems.h gcc-4.4.6/gcc/config/rs6000/rtems.h
+--- gcc-4.4.6.orig/gcc/config/rs6000/rtems.h	2007-08-02 12:49:31.000000000 +0200
++++ gcc-4.4.6/gcc/config/rs6000/rtems.h	2011-08-29 07:16:18.137124000 +0200
 @@ -49,8 +49,22 @@
  %{mcpu=604:  %{!Dppc*: %{!Dmpc*: -Dmpc604}  } } \
  %{mcpu=750:  %{!Dppc*: %{!Dmpc*: -Dmpc750}  } } \
@@ -4282,9 +4646,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/rs6000/rtems.h gcc-4.4.5/gcc/config/rs6000/
 +#undef WCHAR_TYPE
 +
 +#undef WCHAR_TYPE_SIZE
-diff -Naur gcc-4.4.5.orig/gcc/config/rs6000/t-rtems gcc-4.4.5/gcc/config/rs6000/t-rtems
---- gcc-4.4.5.orig/gcc/config/rs6000/t-rtems	2009-03-25 13:54:16.000000000 +0100
-+++ gcc-4.4.5/gcc/config/rs6000/t-rtems	2011-03-01 06:06:18.706820035 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/rs6000/t-rtems gcc-4.4.6/gcc/config/rs6000/t-rtems
+--- gcc-4.4.6.orig/gcc/config/rs6000/t-rtems	2009-03-25 13:54:16.000000000 +0100
++++ gcc-4.4.6/gcc/config/rs6000/t-rtems	2011-08-29 07:16:18.137124000 +0200
 @@ -1,13 +1,29 @@
  # Multilibs for powerpc RTEMS targets.
 +#
@@ -4340,9 +4704,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/rs6000/t-rtems gcc-4.4.5/gcc/config/rs6000/
 -MULTILIB_EXCEPTIONS += *mcpu=750/Dmpc*
 -MULTILIB_EXCEPTIONS += *mcpu=860/Dmpc*
 -MULTILIB_EXCEPTIONS += *mcpu=7400/Dmpc*
-diff -Naur gcc-4.4.5.orig/gcc/config/rtems.h gcc-4.4.5/gcc/config/rtems.h
---- gcc-4.4.5.orig/gcc/config/rtems.h	2007-08-02 12:49:31.000000000 +0200
-+++ gcc-4.4.5/gcc/config/rtems.h	2011-03-01 05:57:30.853524036 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/rtems.h gcc-4.4.6/gcc/config/rtems.h
+--- gcc-4.4.6.orig/gcc/config/rtems.h	2007-08-02 12:49:31.000000000 +0200
++++ gcc-4.4.6/gcc/config/rtems.h	2011-08-29 07:16:18.138124032 +0200
 @@ -38,6 +38,5 @@
  #undef LIB_SPEC
  #define LIB_SPEC "%{!qrtems: " STD_LIB_SPEC "} " \
@@ -4351,9 +4715,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/rtems.h gcc-4.4.5/gcc/config/rtems.h
 - %{qrtems_debug: -lrtemsbsp_g -lrtemscpu_g} \
 + -lrtemsbsp -lrtemscpu \
   -lc -lgcc --end-group %{!qnolinkcmds: -T linkcmds%s}}}"
-diff -Naur gcc-4.4.5.orig/gcc/config/sh/rtemself.h gcc-4.4.5/gcc/config/sh/rtemself.h
---- gcc-4.4.5.orig/gcc/config/sh/rtemself.h	2007-08-02 12:49:31.000000000 +0200
-+++ gcc-4.4.5/gcc/config/sh/rtemself.h	2011-03-01 05:57:30.853524036 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/sh/rtemself.h gcc-4.4.6/gcc/config/sh/rtemself.h
+--- gcc-4.4.6.orig/gcc/config/sh/rtemself.h	2007-08-02 12:49:31.000000000 +0200
++++ gcc-4.4.6/gcc/config/sh/rtemself.h	2011-08-29 07:16:18.138124032 +0200
 @@ -24,3 +24,8 @@
    builtin_define( "__rtems__" );		\
    builtin_assert( "system=rtems" );		\
@@ -4363,9 +4727,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config/sh/rtemself.h gcc-4.4.5/gcc/config/sh/rtems
 +#undef WCHAR_TYPE
 +
 +#undef WCHAR_TYPE_SIZE
-diff -Naur gcc-4.4.5.orig/gcc/config/sparc/rtemself.h gcc-4.4.5/gcc/config/sparc/rtemself.h
---- gcc-4.4.5.orig/gcc/config/sparc/rtemself.h	2007-08-02 12:49:31.000000000 +0200
-+++ gcc-4.4.5/gcc/config/sparc/rtemself.h	2011-03-01 05:57:30.854524049 +0100
+diff -Naur gcc-4.4.6.orig/gcc/config/sparc/rtemself.h gcc-4.4.6/gcc/config/sparc/rtemself.h
+--- gcc-4.4.6.orig/gcc/config/sparc/rtemself.h	2007-08-02 12:49:31.000000000 +0200
++++ gcc-4.4.6/gcc/config/sparc/rtemself.h	2011-08-29 07:16:18.138124032 +0200
 @@ -29,5 +29,9 @@
      }						\
    while (0)
@@ -4377,10 +4741,10 @@ diff -Naur gcc-4.4.5.orig/gcc/config/sparc/rtemself.h gcc-4.4.5/gcc/config/sparc
 +#undef WCHAR_TYPE
 +
 +#undef WCHAR_TYPE_SIZE
-diff -Naur gcc-4.4.5.orig/gcc/config.gcc gcc-4.4.5/gcc/config.gcc
---- gcc-4.4.5.orig/gcc/config.gcc	2010-06-14 00:16:50.000000000 +0200
-+++ gcc-4.4.5/gcc/config.gcc	2011-03-01 05:57:30.855524063 +0100
-@@ -1376,6 +1376,23 @@
+diff -Naur gcc-4.4.6.orig/gcc/config.gcc gcc-4.4.6/gcc/config.gcc
+--- gcc-4.4.6.orig/gcc/config.gcc	2011-02-18 22:39:51.000000000 +0100
++++ gcc-4.4.6/gcc/config.gcc	2011-08-29 07:16:18.132123787 +0200
+@@ -1377,6 +1377,23 @@
          out_file=iq2000/iq2000.c
          md_file=iq2000/iq2000.md
          ;;
@@ -4404,9 +4768,9 @@ diff -Naur gcc-4.4.5.orig/gcc/config.gcc gcc-4.4.5/gcc/config.gcc
  m32r-*-elf*)
  	tm_file="dbxelf.h elfos.h svr4.h ${tm_file}"
  	extra_parts="crtinit.o crtfini.o"
-diff -Naur gcc-4.4.5.orig/gcc/doc/contrib.texi gcc-4.4.5/gcc/doc/contrib.texi
---- gcc-4.4.5.orig/gcc/doc/contrib.texi	2009-02-20 16:20:38.000000000 +0100
-+++ gcc-4.4.5/gcc/doc/contrib.texi	2011-03-01 05:57:30.855524063 +0100
+diff -Naur gcc-4.4.6.orig/gcc/doc/contrib.texi gcc-4.4.6/gcc/doc/contrib.texi
+--- gcc-4.4.6.orig/gcc/doc/contrib.texi	2009-02-20 16:20:38.000000000 +0100
++++ gcc-4.4.6/gcc/doc/contrib.texi	2011-08-29 07:16:21.941181976 +0200
 @@ -55,7 +55,7 @@
  Wolfgang Bangerth for processing tons of bug reports.
  
@@ -4416,9 +4780,9 @@ diff -Naur gcc-4.4.5.orig/gcc/doc/contrib.texi gcc-4.4.5/gcc/doc/contrib.texi
  
  @item
  Daniel Berlin for better DWARF2 support, faster/better optimizations,
-diff -Naur gcc-4.4.5.orig/gcc/doc/install.texi gcc-4.4.5/gcc/doc/install.texi
---- gcc-4.4.5.orig/gcc/doc/install.texi	2010-07-15 11:26:30.000000000 +0200
-+++ gcc-4.4.5/gcc/doc/install.texi	2011-03-01 05:57:30.856524077 +0100
+diff -Naur gcc-4.4.6.orig/gcc/doc/install.texi gcc-4.4.6/gcc/doc/install.texi
+--- gcc-4.4.6.orig/gcc/doc/install.texi	2010-07-15 11:26:30.000000000 +0200
++++ gcc-4.4.6/gcc/doc/install.texi	2011-08-29 07:16:21.942182004 +0200
 @@ -2660,6 +2660,10 @@
  @item
  @uref{#iq2000-x-elf,,iq2000-*-elf}
@@ -4451,10 +4815,10 @@ diff -Naur gcc-4.4.5.orig/gcc/doc/install.texi gcc-4.4.5/gcc/doc/install.texi
  @heading @anchor{m32c-x-elf}m32c-*-elf
  Renesas M32C processor.
  This configuration is intended for embedded systems.
-diff -Naur gcc-4.4.5.orig/gcc/doc/invoke.texi gcc-4.4.5/gcc/doc/invoke.texi
---- gcc-4.4.5.orig/gcc/doc/invoke.texi	2010-09-08 20:13:03.000000000 +0200
-+++ gcc-4.4.5/gcc/doc/invoke.texi	2011-03-01 05:57:30.861524147 +0100
-@@ -606,6 +606,10 @@
+diff -Naur gcc-4.4.6.orig/gcc/doc/invoke.texi gcc-4.4.6/gcc/doc/invoke.texi
+--- gcc-4.4.6.orig/gcc/doc/invoke.texi	2011-03-23 23:02:12.000000000 +0100
++++ gcc-4.4.6/gcc/doc/invoke.texi	2011-08-29 07:16:21.948182208 +0200
+@@ -610,6 +610,10 @@
  -mno-sched-prefer-non-control-spec-insns @gol
  -mno-sched-count-spec-in-critical-path}
  
@@ -4473,7 +4837,7 @@ diff -Naur gcc-4.4.5.orig/gcc/doc/invoke.texi gcc-4.4.5/gcc/doc/invoke.texi
  * M32C Options::
  * M32R/D Options::
  * M680x0 Options::
-@@ -11842,6 +11847,35 @@
+@@ -11907,6 +11912,35 @@
  
  @end table
  
@@ -4509,18 +4873,42 @@ diff -Naur gcc-4.4.5.orig/gcc/doc/invoke.texi gcc-4.4.5/gcc/doc/invoke.texi
  @node M32R/D Options
  @subsection M32R/D Options
  @cindex M32R/D options
-diff -Naur gcc-4.4.5.orig/libgcc/ChangeLog.rtems gcc-4.4.5/libgcc/ChangeLog.rtems
---- gcc-4.4.5.orig/libgcc/ChangeLog.rtems	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/libgcc/ChangeLog.rtems	2011-03-01 05:57:30.861524147 +0100
+diff -Naur gcc-4.4.6.orig/gcc/toplev.c gcc-4.4.6/gcc/toplev.c
+--- gcc-4.4.6.orig/gcc/toplev.c	2010-03-31 04:51:31.000000000 +0200
++++ gcc-4.4.6/gcc/toplev.c	2011-08-29 07:16:21.949182232 +0200
+@@ -527,7 +527,7 @@
+    for floor_log2 and exact_log2; see toplev.h.  That construct, however,
+    conflicts with the ISO C++ One Definition Rule.   */
+ 
+-#if GCC_VERSION < 3004 || !defined (__cplusplus)
++#if ((GCC_VERSION < 3004) || defined(__clang__)) || !defined (__cplusplus)
+ 
+ /* Given X, an unsigned number, return the largest int Y such that 2**Y <= X.
+    If X is 0, return -1.  */
+diff -Naur gcc-4.4.6.orig/gcc/toplev.h gcc-4.4.6/gcc/toplev.h
+--- gcc-4.4.6.orig/gcc/toplev.h	2009-02-20 16:20:38.000000000 +0100
++++ gcc-4.4.6/gcc/toplev.h	2011-08-29 07:16:21.949182232 +0200
+@@ -174,7 +174,7 @@
+ extern int floor_log2                  (unsigned HOST_WIDE_INT);
+ 
+ /* Inline versions of the above for speed.  */
+-#if GCC_VERSION >= 3004
++#if (GCC_VERSION >= 3004) && !defined(__clang__)
+ # if HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONG
+ #  define CLZ_HWI __builtin_clzl
+ #  define CTZ_HWI __builtin_ctzl
+diff -Naur gcc-4.4.6.orig/libgcc/ChangeLog.rtems gcc-4.4.6/libgcc/ChangeLog.rtems
+--- gcc-4.4.6.orig/libgcc/ChangeLog.rtems	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/libgcc/ChangeLog.rtems	2011-08-29 07:16:21.949182232 +0200
 @@ -0,0 +1,5 @@
 +		Jon Beniston <jon@beniston.com>
 +
 +	* libgcc/config/lm32/t-elf, libgcc/config/lm32/t-uclinux,
 +	libgcc/config/lm32/t-uclinux: New (lm32 port).
 +	* libgcc/config.host: Add lm32* targets.
-diff -Naur gcc-4.4.5.orig/libgcc/config/lm32/t-elf gcc-4.4.5/libgcc/config/lm32/t-elf
---- gcc-4.4.5.orig/libgcc/config/lm32/t-elf	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/libgcc/config/lm32/t-elf	2011-03-01 05:57:30.861524147 +0100
+diff -Naur gcc-4.4.6.orig/libgcc/config/lm32/t-elf gcc-4.4.6/libgcc/config/lm32/t-elf
+--- gcc-4.4.6.orig/libgcc/config/lm32/t-elf	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/libgcc/config/lm32/t-elf	2011-08-29 07:16:21.950182265 +0200
 @@ -0,0 +1,12 @@
 +# Assemble startup files.
 +
@@ -4534,15 +4922,15 @@ diff -Naur gcc-4.4.5.orig/libgcc/config/lm32/t-elf gcc-4.4.5/libgcc/config/lm32/
 +
 +CRTSTUFF_T_CFLAGS = -G 0
 +TARGET_LIBGCC2_CFLAGS = -G 0
-diff -Naur gcc-4.4.5.orig/libgcc/config/lm32/t-uclinux gcc-4.4.5/libgcc/config/lm32/t-uclinux
---- gcc-4.4.5.orig/libgcc/config/lm32/t-uclinux	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.4.5/libgcc/config/lm32/t-uclinux	2011-03-01 05:57:30.861524147 +0100
+diff -Naur gcc-4.4.6.orig/libgcc/config/lm32/t-uclinux gcc-4.4.6/libgcc/config/lm32/t-uclinux
+--- gcc-4.4.6.orig/libgcc/config/lm32/t-uclinux	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.4.6/libgcc/config/lm32/t-uclinux	2011-08-29 07:16:21.950182265 +0200
 @@ -0,0 +1,2 @@
 +CRTSTUFF_T_CFLAGS = -fPIC
 +TARGET_LIBGCC2_CFLAGS = -fPIC
-diff -Naur gcc-4.4.5.orig/libgcc/config.host gcc-4.4.5/libgcc/config.host
---- gcc-4.4.5.orig/libgcc/config.host	2009-04-17 13:58:41.000000000 +0200
-+++ gcc-4.4.5/libgcc/config.host	2011-03-01 05:57:30.862524160 +0100
+diff -Naur gcc-4.4.6.orig/libgcc/config.host gcc-4.4.6/libgcc/config.host
+--- gcc-4.4.6.orig/libgcc/config.host	2009-04-17 13:58:41.000000000 +0200
++++ gcc-4.4.6/libgcc/config.host	2011-08-29 07:16:21.949182232 +0200
 @@ -95,6 +95,9 @@
  hppa*-*-*)
  	cpu_type=pa

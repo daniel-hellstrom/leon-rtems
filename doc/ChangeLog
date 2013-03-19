@@ -1,3 +1,22 @@
+2011-12-07	Joel Sherrill <joel.sherrilL@OARcorp.com>
+
+	PR 1984/doc
+	* user/conf.t: Change CONFIGURE_MINIMUM_STACK_SIZE to
+	CONFIGURE_MINIMUM_TASK_STACK_SIZE.
+
+2011-07-29	Joel Sherrill <joel.sherrilL@OARcorp.com>
+
+	PR 1864/doc
+	* user/conf.t: Add missing documentation for
+	CONFIGURE_MAXIMUM_POSIX_MESSAGE_QUEUE_DESCRIPTORS,
+	CONFIGURE_MAXIMUM_POSIX_BARRIERS , CONFIGURE_MAXIMUM_POSIX_SPINLOCKS,
+	CONFIGURE_MAXIMUM_POSIX_RWLOCKS.
+
+2011-07-26	Joel Sherrill <joel.sherrilL@OARcorp.com>
+
+	PR 1851/doc
+	* user/conf.t: Fix typo in CONFIGURE_MESSAGE_BUFFER_MEMORY example.
+
 2011-03-04	Joel Sherrill <joel.sherrilL@OARcorp.com>
 
 	PR 1744/doc

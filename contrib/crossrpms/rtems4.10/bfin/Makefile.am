@@ -12,15 +12,15 @@ BINUTILS_OPTS +=
 
 GCC_VERS = 4.4.6
 GCC_PKGVERS = $(GCC_VERS)
-GCC_RPMREL = 2
+GCC_RPMREL = 4
 NEWLIB_VERS = 1.18.0
 NEWLIB_PKGVERS = $(NEWLIB_VERS)
 NEWLIB_RPMREL = `expr $(GCC_RPMREL) + 23`
 include ../gcc.am
 GCC_OPTS += --languages=cxx
 
-GDB_VERS = 6.5
+GDB_VERS = 7.3.1
 GDB_PKGVERS = $(GDB_VERS)
-GDB_RPMREL = 12
+GDB_RPMREL = 2
 include ../gdb.am
 GDB_OPTS += --disable-infos
