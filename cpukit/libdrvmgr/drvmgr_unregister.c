@@ -22,11 +22,14 @@
  */
 int drvmgr_children_unregister(struct drvmgr_bus *bus)
 {
+	int err;
+
 	while (bus->children != NULL) {
-		bus->children->error = drvmgr_dev_unregister(bus->children);
-		if (bus->children->error != DRVMGR_OK) {
+		err = drvmgr_dev_unregister(bus->children);
+		if (err != DRVMGR_OK) {
 			/* An error occured */
-			return bus->children->error;
+			bus->children->error = err;
+			return err;
 		}
 	}
 
