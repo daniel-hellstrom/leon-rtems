@@ -882,6 +882,9 @@ extern struct drvmgr_drv *drvmgr_drv_by_id(uint64_t id);
 /*! Get Driver by Driver Name */
 extern struct drvmgr_drv *drvmgr_drv_by_name(const char *name);
 
+/*! Get Device by Device Name */
+extern struct drvmgr_dev *drvmgr_dev_by_name(const char *name);
+
 #ifdef __cplusplus
 }
 #endif
