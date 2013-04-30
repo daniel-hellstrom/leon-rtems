@@ -656,7 +656,7 @@ int grpci2_hw_init(struct grpci2_priv *priv)
 	if (capptr == 0)
 		return -1;
 
-	/* Limit the preFix for GRPCI2 version 0. */
+	/* Limit the prefetch for GRPCI2 version 0. */
 	if (priv->ver == 0)
 		grpci2_cfg_w32(host, capptr+CAP9_AHBPREF_OFS, 0);
 
