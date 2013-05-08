@@ -147,6 +147,9 @@ extern void gr_tmtc_1553_register_drv(void);
 #define DRIVER_PCI_GR_RASTA_SPW_ROUTER {gr_rasta_spw_router_register_drv}
 extern void gr_rasta_spw_router_register_drv(void);
 
+#define DRIVER_PCI_GR_LEON4_N2X {gr_cpci_leon4_n2x_register_drv}
+extern void gr_cpci_leon4_n2x_register_drv(void);
+
 /*** SpaceWire Node Drivers ***/
 #define DRIVER_SPW_RMAP_AMBAPP {ambapp_rmap_register}
 extern void ambapp_rmap_register(void);
@@ -283,6 +286,9 @@ struct drvmgr_drv_reg_func drvmgr_drivers[] = {
 #endif
 #ifdef CONFIGURE_DRIVER_PCI_GR_RASTA_SPW_ROUTER
 	DRIVER_PCI_GR_RASTA_SPW_ROUTER,
+#endif
+#ifdef CONFIGURE_DRIVER_PCI_GR_LEON4_N2X
+	DRIVER_PCI_GR_LEON4_N2X,
 #endif
 
 	/*** SpaceWire Node Drivers ***/
