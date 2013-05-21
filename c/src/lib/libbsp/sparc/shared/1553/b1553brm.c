@@ -424,7 +424,8 @@ int b1553brm_device_init(brm_priv *pDev)
 	struct amba_dev_info *ambadev;
 	struct ambapp_core *pnpinfo;
 	union drvmgr_key_value *value;
-	char *mem;
+	unsigned int mem;
+	int size;
 
 	/* Get device information from AMBA PnP information */
 	ambadev = (struct amba_dev_info *)pDev->dev->businfo;
@@ -449,43 +450,56 @@ int b1553brm_device_init(brm_priv *pDev)
 	memset(pDev->log,0,sizeof(pDev->log));
 #endif
 
-	/* Get memory configuration from bus resources */
-	value = drvmgr_dev_key_get(pDev->dev, "dmaBaseAdr", KEY_TYPE_POINTER);
-	if ( value ) {
-		mem = value->ptr;
-		if ( (unsigned int)mem & 1 ) {
-			/* Remote address, address as BRM looks at it. */
-
-			/* Translate the base address into an address that the the CPU can understand */
-			mem = (char *)((unsigned int)mem & ~1);
-			drvmgr_translate(pDev->dev, 1, 1, (void *)mem, (void **)&mem);
-		}
-	} else {
-		/* Use dynamically allocated memory */
-		mem = (char *)malloc(128 * 1024 * 2); /* 128k DMA memory + 128k for alignment */
-		if ( !mem ){
-			printk("BRM: Failed to allocate HW memory\n\r");
-			return -1;
-		}
-	}
-	/* align memory to 128k boundary */
-	mem = (char *)(((unsigned int)mem+0x1ffff) & ~0x1ffff);
-
-	/* clear the used memory */
 #ifdef DMA_MEM_128K
-	memset(mem, 0, (128 * 1024));
+	size = 128 * 1024;
 #else
-	memset(mem, 0, (16 * 1024));
+	size = 16 * 1024;
 #endif
 
+	/* Get memory configuration from bus resources */
+	value = drvmgr_dev_key_get(pDev->dev, "dmaBaseAdr", KEY_TYPE_POINTER);
+	if (value)
+		mem = (unsigned int)value->ptr;
+
+	if (value && (mem & 1)) {
+		/* Remote address, address as BRM looks at it. */
+
+		/* Translate the base address into an address that the the CPU can understand */
+		pDev->memarea_base_remote = mem & ~1;
+		drvmgr_translate_check(pDev->dev, DMAMEM_TO_CPU,
+					(void *)pDev->memarea_base_remote,
+					(void **)&pDev->memarea_base,
+					size);
+	} else {
+		if (!value) {
+			/* Use dynamically allocated memory + 128k for
+			 * alignment
+			 */
+			mem = (unsigned int)malloc(size + 128 * 1024);
+			if (!mem){
+				printk("BRM: Failed to allocate HW memory\n\r");
+				return -1;
+			}
+			/* align memory to 128k boundary */
+			pDev->memarea_base = (mem + 0x1ffff) & ~0x1ffff;
+		} else {
+			pDev->memarea_base = mem;
+		}
+
+		/* Translate the base address into an address that the BRM core can understand */
+		drvmgr_translate_check(pDev->dev, CPUMEM_TO_DMA,
+					(void *)pDev->memarea_base,
+					(void **)&pDev->memarea_base_remote,
+					size);
+	}
+
+	/* clear the used memory */
+	memset((char *)pDev->memarea_base, 0, size);
+
 	/* Set base address of all descriptors */
-	pDev->memarea_base = (unsigned int)mem;
 	pDev->desc = (struct desc_table *) pDev->memarea_base;
 	pDev->mem = (volatile unsigned short *) pDev->memarea_base;
 	pDev->irq_log	= (struct irq_log_list *)(pDev->memarea_base + (0xFFE0<<1)); /* last 64byte */
-
-	/* Translate the base address into an address that the BRM core can understand */
-	drvmgr_translate(pDev->dev, 0, 0, (void *)mem, (void **)&pDev->memarea_base_remote);
 
 	pDev->bm_event = NULL;
 	pDev->rt_event = NULL;

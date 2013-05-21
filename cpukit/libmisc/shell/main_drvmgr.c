@@ -279,7 +279,7 @@ int shell_drvmgr_mem(int argc, char *argv[])
 
 int shell_drvmgr_translate(int argc, char *argv[])
 {
-  int rc, cpu, up, obj_type;
+  int rc, rev, up, obj_type;
   void *obj, *dst;
   unsigned long src, tmp;
 
@@ -301,8 +301,8 @@ int shell_drvmgr_translate(int argc, char *argv[])
     puts(" Not a valid option OPT, only [0..3] is valid");
     return 0;
   }
-  cpu = tmp & 1;
-  up = (tmp >> 1) & 1;
+  rev = tmp & DRVMGR_TR_REVERSE;
+  up = tmp & DRVMGR_TR_PATH;
 
   src = strtoul(argv[4], NULL, 0);
   if (src == ULONG_MAX && errno == ERANGE) {
@@ -310,11 +310,13 @@ int shell_drvmgr_translate(int argc, char *argv[])
     return 0;
   }
 
-  rc = drvmgr_translate((struct drvmgr_dev *)obj, cpu, up, (void *)src, &dst);
-  if (rc != 0)
+  rc = drvmgr_translate((struct drvmgr_dev *)obj, up | rev, (void *)src, &dst);
+  if (rc == 0)
     printf(" Address %p could not be translated\n", (void *)src);
+  else if (rc == 0xffffffff)
+    printf(" %p => %p  (no translation required)\n", (void *)src, dst);
   else
-    printf(" %p => %p\n", (void *)src, dst);
+    printf(" %p => %p  (map size 0x%x)\n", (void *)src, dst, rc);
 
   return 0;
 }
@@ -334,8 +336,8 @@ const char drvmgr_usage_str[] =
  "  drvmgr short [ID]    Short info about all devices/buses or one\n"
  "                       device/bus\n"
  "  drvmgr topo          Show bus topology with all devices\n"
- "  drvmgr tr ID OPT ADR Translate hw(0)/cpu(1) (OPT bit0) address ADR\n"
- "                       down(0)/up(1) streams (OPT bit1) for device\n"
+ "  drvmgr tr ID OPT ADR Translate ADR down(0)/up(1) -streams (OPT bit 1) in\n"
+ "                       std(0)/reverse(1) (OPT bit 0) direction for device\n"
  "  drvmgr --help\n";
 
 static void usage(void)

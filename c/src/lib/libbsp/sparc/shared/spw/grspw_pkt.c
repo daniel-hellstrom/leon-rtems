@@ -483,6 +483,7 @@ void *grspw_open(int dev_no)
 	 *  - 128 RX descriptors per DMA Channel
 	 *  - 64 TX descriptors per DMA Channel
  	 */
+	bdtabsize = 2 * BDTAB_SIZE * priv->hwsup.ndma_chans;
 	value = drvmgr_dev_key_get(priv->dev, "bdDmaArea", KEY_TYPE_INT);
 	if (value) {
 		priv->bd_mem = value->i;
@@ -494,7 +495,6 @@ void *grspw_open(int dev_no)
 			goto out;
 		}
 	} else {
-		bdtabsize = 2 * BDTAB_SIZE * priv->hwsup.ndma_chans;
 		priv->bd_mem_alloced = (unsigned int)malloc(bdtabsize + BDTAB_ALIGN - 1);
 		if (priv->bd_mem_alloced == 0) {
 			priv = NULL;
@@ -508,7 +508,12 @@ void *grspw_open(int dev_no)
 	/* Translate into DMA address that HW can use to access DMA
 	 * descriptors
 	 */
-	drvmgr_translate(priv->dev, 0, 0, (void *)priv->bd_mem, (void **)&hwa);
+	drvmgr_translate_check(
+		priv->dev,
+		CPUMEM_TO_DMA,
+		(void *)priv->bd_mem,
+		(void **)&hwa,
+		bdtabsize);
 
 	GRSPW_DBG("GRSPW%d DMA descriptor table setup: (alloced:%p, bd_mem:%p, size: %d)\n",
 		priv->index, priv->bd_mem_alloced, priv->bd_mem, bdtabsize + BDTAB_ALIGN - 1);
@@ -968,7 +973,8 @@ STATIC int grspw_rx_schedule_ready(struct grspw_dma_priv *dma)
 		/* Prepare descriptor address. */
 		hwaddr = curr_pkt->data;
 		if (curr_pkt->flags & PKT_FLAG_TR_DATA) {
-			drvmgr_translate(dma->core->dev, 0, 0, hwaddr, &hwaddr);
+			drvmgr_translate(dma->core->dev, CPUMEM_TO_DMA,
+					 hwaddr, &hwaddr);
 			if (curr_pkt->data == hwaddr) /* translation needed? */
 				curr_pkt->flags &= ~PKT_FLAG_TR_DATA;
 		}
@@ -1182,7 +1188,8 @@ STATIC int grspw_tx_schedule_send(struct grspw_dma_priv *dma)
 		if (curr_pkt->hdr && curr_pkt->hlen) {
 			hwaddr = curr_pkt->hdr;
 			if (curr_pkt->flags & PKT_FLAG_TR_HDR) {
-				drvmgr_translate(dma->core->dev, 0, 0, hwaddr, &hwaddr);
+				drvmgr_translate(dma->core->dev, CPUMEM_TO_DMA,
+						 hwaddr, &hwaddr);
 				/* translation needed? */
 				if (curr_pkt->hdr == hwaddr)
 					curr_pkt->flags &= ~PKT_FLAG_TR_HDR;
@@ -1221,7 +1228,8 @@ STATIC int grspw_tx_schedule_send(struct grspw_dma_priv *dma)
 		if (curr_pkt->data && curr_pkt->dlen) {
 			hwaddr = curr_pkt->data;
 			if (curr_pkt->flags & PKT_FLAG_TR_DATA) {
-				drvmgr_translate(dma->core->dev, 0, 0, hwaddr, &hwaddr);
+				drvmgr_translate(dma->core->dev, CPUMEM_TO_DMA,
+						 hwaddr, &hwaddr);
 				/* translation needed? */
 				if (curr_pkt->data == hwaddr)
 					curr_pkt->flags &= ~PKT_FLAG_TR_DATA;

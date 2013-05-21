@@ -282,7 +282,7 @@ int b1553rt_device_init(rt_priv *pDev)
     struct amba_dev_info *ambadev;
     struct ambapp_core *pnpinfo;
     union drvmgr_key_value *value;
-    char *mem;
+    unsigned int mem;
     unsigned int sys_freq_hz;
 
     /* Get device information from AMBA PnP information */
@@ -304,36 +304,47 @@ int b1553rt_device_init(rt_priv *pDev)
 
     /* Get memory configuration from bus resources */
     value = drvmgr_dev_key_get(pDev->dev, "dmaBaseAdr", KEY_TYPE_POINTER);
-    if ( value ) {
-        mem = value->ptr;
-        if ( (unsigned int)mem & 1 ) {
-            /* Remote address, address as RT looks at it. */
+    if (value)
+        mem = (unsigned int)value->ptr;
 
-            /* Translate the base address into an address that the the CPU can understand */
-            mem = (char *)((unsigned int)mem & ~1);
-	    drvmgr_translate(pDev->dev, 1, 1, (void *)mem, (void **)&mem);
-        }
+    if (value && (mem & 1)) {
+        /* Remote address, address as RT looks at it. */
+
+        /* Translate the base address into an address that the the CPU can understand */
+        pDev->memarea_base = mem & ~1;
+        drvmgr_translate_check(pDev->dev, DMAMEM_TO_CPU,
+                                (void *)pDev->memarea_base_remote,
+                                (void **)&pDev->memarea_base,
+                                4 * 1024);
     } else {
-        /* Use dynamically allocated memory */
-        mem = (char *)malloc(4 * 1024 * 2); /* 4k DMA memory + 4k for alignment */
-        if ( !mem ){
-            printk("RT: Failed to allocate HW memory\n\r");
-            return -1;
+        if (!value) {
+            /* Use dynamically allocated memory,
+             * 4k DMA memory + 4k for alignment 
+             */
+            mem = (char *)malloc(4 * 1024 * 2);
+            if ( !mem ){
+                printk("RT: Failed to allocate HW memory\n\r");
+                return -1;
+            }
+            /* align memory to 4k boundary */
+            pDev->memarea_base = (mem + 0xfff) & ~0xfff;
+        } else {
+            pDev->memarea_base = mem;
         }
+
+        /* Translate the base address into an address that the RT core can understand */
+        drvmgr_translate_check(pDev->dev, CPUMEM_TO_DMA,
+                               (void *)pDev->memarea_base,
+                               (void **)&pDev->memarea_base_remote,
+                               4 * 1024);
     }
 
-    /* align memory to 4k boundary */
-    mem = (char *)(((unsigned int)mem+0xfff) & ~0xfff);
-
     /* clear the used memory */
-    memset(mem, 0, (4 * 1024));
+    memset((char *)pDev->memarea_base, 0, 4 * 1024);
 
     /* Set base address of all descriptors */
     pDev->memarea_base = (unsigned int)mem;
-    pDev->mem = (volatile unsigned short *) pDev->memarea_base;
-
-    /* Translate the base address into an address that the RT core can understand */
-    drvmgr_translate(pDev->dev, 0, 0, (void *)mem, (void **)&pDev->memarea_base_remote);
+    pDev->mem = (volatile unsigned short *)pDev->memarea_base;
 
     pDev->rt_event = NULL;
 

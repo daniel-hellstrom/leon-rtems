@@ -28,7 +28,7 @@
 #include <drvmgr/drvmgr.h>
 #include "drvmgr_internal.h"
 
-int drvmgr_translate_bus(
+unsigned int drvmgr_translate_bus(
 	struct drvmgr_bus *from,
 	struct drvmgr_bus *to,
 	int reverse,
@@ -36,61 +36,61 @@ int drvmgr_translate_bus(
 	void **dst_address)
 {
 	struct drvmgr_bus *path[16];
-	int upstream, ret, depth, i;
+	int dir, levels, i;
 	void *dst, *from_adr, *to_adr;
 	struct drvmgr_map_entry *map;
 	struct drvmgr_bus *bus;
+	unsigned int sz;
+	struct drvmgr_bus *bus_bot, *bus_top;
 
 	dst = src_address;
-	ret = 0;
+	sz = 0xffffffff;
 
-	if (from == to) /* no need traslating addresses when on same bus */
+	if (from == to) /* no need translating addresses when on same bus */
 		goto out;
 
+	/* Always find translation path from remote bus towards root bus. All
+	 * buses have root bus has parent at some level
+	 */
 	if (from->depth > to->depth) {
-		/* up-streams */
-		upstream = 1;
-		depth = from->depth - to->depth;
-		if (depth >= 16)
-			return -1; /* Does not support such a big depth */
-
-		/* Intensionally we skip the last bus since its bridge is
-		 * not used in this translation
-		 */
-		path[0] = from;
-		for (i=1; i < depth; i++)
-			path[i] = path[i-1]->dev->parent;
+		bus_bot = from;
+		bus_top = to;
+		dir = 0;
 	} else {
-		/* down-streams */
-		upstream = 0;
-		depth = to->depth - from->depth;
-		if (depth >= 16)
-			return -1; /* Does not support such a big depth */
-
-		/* Intensionally we skip the last bus since its bridge is
-		 * not used in this translation
-		 */
-		path[depth-1] = to;
-		for (i=depth-1; i > 0; i--)
-			path[i-1] = path[i]->dev->parent;
+		bus_bot = to;
+		bus_top = from;
+		dir = 1;
 	}
+	levels = bus_bot->depth - bus_top->depth;
+	if (levels >= 16)
+		return 0; /* Does not support such a big depth */
+	i = 0;
+	while ((bus_bot != NULL) && bus_bot != bus_top) {
+		if (dir)
+			path[(levels - 1) - i] = bus_bot;
+		else
+			path[i] = bus_bot;
+		i++;
+		bus_bot = bus_bot->dev->parent;
+	}
+	if (bus_bot == NULL)
+		return 0; /* from -> to is not linearly connected */
 
-	/* Translate address */
-	for (i=0; i < depth && ret == 0; i++) {
+	for (i = 0; i < levels; i++) {
 		bus = path[i];
 
-		if ((upstream && reverse) || (!upstream && !reverse))
-			map = bus->maps_down;
-		else
+		if ((dir && reverse) || (!dir && !reverse))
 			map = bus->maps_up;
+		else
+			map = bus->maps_down;
 
 		if (map == NULL)
 			continue; /* No translation needed - 1:1 mapping */
 
-		ret = -1;
-
-		if (map == DRVMGR_TRANSLATE_NO_BRIDGE)
+		if (map == DRVMGR_TRANSLATE_NO_BRIDGE) {
+			sz = 0;
 			break; /* No bridge interface in this direction */
+		}
 
 		while (map->size != 0) {
 			if (reverse) {
@@ -104,11 +104,17 @@ int drvmgr_translate_bus(
 
 			if ((dst >= from_adr) &&
 			    (dst <= (from_adr + (map->size - 1)))) {
+				if (((from_adr + (map->size - 1)) - dst) < sz)
+					sz = (from_adr + (map->size - 1)) - dst;
 				dst = (dst - from_adr) + to_adr;
-				ret = 0;
 				break;
 			}
 			map++;
+		}
+		/* quit if no matching translation information */
+		if (map->size == 0) {
+			sz = 0;
+			break;
 		}
 	}
 
@@ -116,37 +122,26 @@ out:
 	if (dst_address)
 		*dst_address = dst;
 
-	return ret;
+	return sz;
 }
 
-/* Translate Address, used by drivers when an address need to be
- * converted in order to access a remote address or for a remote
- * hardware to access (DMA) to access CPU local RAM.
- *  - from remote address to CPU local
- *  - from CPU local to remote
- */
-int drvmgr_translate(
+unsigned int drvmgr_translate(
 	struct drvmgr_dev *dev,
-	int cpu_addresses,
-	int upstream,
+	unsigned int options,
 	void *src_address,
 	void **dst_address)
 {
 	struct drvmgr_bus *to, *from;
-	int rev;
+	int rev = 0;
 
-	if (upstream) {
-		from = dev->parent;
-		to = drv_mgr.root_dev.bus;
-	} else {
+	rev = (~options) & 1;
+	if ((options == CPUMEM_TO_DMA) || (options == DMAMEM_FROM_CPU)) {
 		from = drv_mgr.root_dev.bus;
 		to = dev->parent;
+	} else { /* CPUMEM_FROM_DMA || DMAMEM_TO_CPU */
+		from = dev->parent;
+		to = drv_mgr.root_dev.bus;
 	}
-
-	if (cpu_addresses)
-		rev = upstream;
-	else
-		rev = !upstream;
 
 	return drvmgr_translate_bus(from, to, rev, src_address, dst_address);
 }

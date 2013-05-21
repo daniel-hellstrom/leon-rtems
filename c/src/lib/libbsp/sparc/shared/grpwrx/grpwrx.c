@@ -530,7 +530,12 @@ static int grpwrx_start(struct grpwrx_priv *pDev)
 	regs->dma_status = GRPWRX_DMA_STS_ALL;
 
 	/* Set Descriptor Pointer Base register to point to first descriptor */
-	drvmgr_translate(pDev->dev, 0, 0, (void *)pDev->bds, (void **)&transaddr);
+	drvmgr_translate_check(
+		pDev->dev,
+		CPUMEM_TO_DMA,
+		(void *)pDev->bds,
+		(void **)&transaddr,
+		GRPWRX_BDAR_SIZE);
 	regs->dma_bd = transaddr;
 
 	DBG("GRPWRX: set bd to 0x%08x\n",transaddr);
@@ -789,7 +794,7 @@ static int grpwrx_schedule_ready(struct grpwrx_priv *pDev, int ints_off)
 		 */
 		if ( curr_frm->flags & (GRPWRX_FLAGS_TRANSLATE|GRPWRX_FLAGS_TRANSLATE_AND_REMEMBER) ) {
 			/* Do translation */
-			drvmgr_translate(pDev->dev, 0, 0, (void *)curr_frm->payload, (void **)&transaddr);
+			drvmgr_translate(pDev->dev, CPUMEM_TO_DMA, (void *)curr_frm->payload, (void **)&transaddr);
 			curr_bd->bd->address = transaddr;
 			if ( curr_frm->flags & GRPWRX_FLAGS_TRANSLATE_AND_REMEMBER ) {
 				if ( curr_frm->payload != curr_bd->bd->address ) {

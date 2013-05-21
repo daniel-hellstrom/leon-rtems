@@ -613,44 +613,86 @@ extern int drvmgr_interrupt_mask(
 	struct drvmgr_dev *dev,
 	int index);
 
+/*! drvmgr_translate() translation options */
+enum drvmgr_tr_opts {
+	/* Translate CPU RAM Address (input) to DMA unit accessible address
+	 * (output), this is an upstreams translation in reverse order.
+	 *
+	 * Typical Usage:
+	 * It is common to translate a CPU accessible RAM address to an
+	 * address that DMA units can access over bridges.
+	 */
+	CPUMEM_TO_DMA = 0x0,
+
+	/* Translate DMA Unit Accessible address mapped to CPU RAM (input) to
+	 * CPU accessible address (output). This is an upstreams translation.
+	 *
+	 * Typical Usage (not often used):
+	 * The DMA unit descriptors contain pointers to DMA buffers located at
+	 * CPU RAM addresses that the DMA unit can access, the CPU processes
+	 * the descriptors and want to access the data but a translation back
+	 * to CPU address is required.
+	 */
+	CPUMEM_FROM_DMA = 0x1,
+
+	/* Translate DMA Memory Address (input) to CPU accessible address
+	 * (output), this is a downstreams translation in reverse order.
+	 *
+	 * Typical Usage:
+	 * A PCI network card puts packets into its memory not doing DMA over
+	 * PCI, in order for the CPU to access them the PCI address must be
+	 * translated.
+	 */
+	DMAMEM_TO_CPU = 0x2,
+
+	/* Translate CPU accessible address (input) mapped to DMA Memory Address
+	 * to DMA Unit accessible address (output). This is a downstreams
+	 * translation.
+	 */
+	DMAMEM_FROM_CPU = 0x3,
+};
+#define DRVMGR_TR_REVERSE 0x1	/* do reverse translation direction order */
+#define DRVMGR_TR_PATH 0x2	/* 0x0=down-stream 0x2=up-stream address path */
+ 
 /*! Translate an address on one bus to an address on another bus.
  *
  *  The device determines source or destination bus, the root bus is always
  *  the other bus. It is assumed that the CPU is located on the root bus or
- *  that it can access it without address translation (mapped 1:1).
+ *  that it can access it without address translation (mapped 1:1). The CPU
+ *  is thus assumed to be located on level 0 top most in the bus hierarchy.
  *
- *  cpu_addresses determines if the address is targeted for the CPU (1) or
- *  hardware (0) doing DMA.
+ *  If no map is present in the bus driver src_address is translated 1:1
+ *  (just copied).
  *
- *  The address conversion can be done up-streams (towards the CPU) or down-
- *  streams (towards DMA hardware) the bus architecture. The CPU is assumed
- *  to be located on level 0 top most in the bus hierarchy.
+ *  Addresses are typically converted up-streams from the DMA unit towards the
+ *  CPU (DMAMEM_TO_CPU) or down-streams towards DMA hardware from the CPU
+ *  (CPUMEM_TO_DMA) over one or multiple bridges depending on bus architecture.
+ *  See 'enum drvmgr_tr_opts' for other translation direction options.
+ *  For example:
+ *  Two common operations is to translate a CPU accessible RAM address to an
+ *  address that DMA units can access (dev=DMA-unit, CPUMEM_TO_DMA,
+ *  src_address=CPU-RAM-ADR) and to translate an address of a PCI resource for
+ *  example RAM mapped into a PCI BAR to an CPU accessible address
+ *  (dev=PCI-device, DMAMEM_TO_CPU, src_address=PCI-BAR-ADR).
  *
  *  Source address is translated and the result is put into *dst_address, if
  *  the address is not accessible on the other bus -1 is returned.
  *
- *  Two common operations is to translate a CPU accessible RAM address to an
- *  address that DMA units can access (dev=DMA-unit, cpu_address=0, upstream=0,
- *  src_address=CPU-RAM-ADR) and to translate an address of a PCI resource for
- *  example RAM mapped into a PCI BAR to an CPU accessible address
- *  (dev=PCI-device, cpu_address=1, upstream=1, src_address=PCI-BAR-ADR).
- *
  *  \param dev             Device to translate addresses for
- *  \param cpu_addresses   Addresses are inteded for CPU(1) or DMA-Hardware(0)
- *  \param upsteam         Select translation direction (0=towards hardware,
- *                         1=towards CPU) and thereby which bus src_address is
- *                         valid for
+ *  \param options         Tanslation direction options, see enum drvmgr_tr_opts
  *  \param src_address     Address to translate
  *  \param dst_address     Location where translated address is stored
  *
- *  Returns -1 if unable to translate. If no map is present src_address is
- *  translated 1:1 (just copied). If dev is on root-bus no translation is
- *  performed 0 is returned and src_address is stored in *dst_address.
+ *  Returns 0 if unable to translate. The remaining length from the given
+ *  address of the map is returned on success, for example if a map starts
+ *  at 0x40000000 of size 0x100000 the result will be 0x40000 if the address
+ *  was translated into 0x400C0000.
+ *  If dev is on root-bus no translation is performed 0xffffffff is returned
+ *  and src_address is stored in *dst_address.
  */
-extern int drvmgr_translate(
+extern unsigned int drvmgr_translate(
 	struct drvmgr_dev *dev,
-	int cpu_addresses,
-	int upstream,
+	unsigned int options,
 	void *src_address,
 	void **dst_address);
 
@@ -666,15 +708,34 @@ extern int drvmgr_translate(
  * \param src_address  Address to be translated
  * \param dst_address  Translated address is stored here on success (return=0)
  *
- * Returns -1 if failed to translate address between buses. 0 successfully
- * translated, reuslt is in *dst_address
+ *  Returns 0 if unable to translate. The remaining length from the given
+ *  address of the map is returned on success and the result is stored into
+ *  *dst_address. For example if a map starts at 0x40000000 of size 0x100000
+ *  the result will be 0x40000 if the address was translated into 0x400C0000.
+ *  If dev is on root-bus no translation is performed 0xffffffff is returned.
+ *  and src_address is stored in *dst_address.
  */
-extern int drvmgr_translate_bus(
+extern unsigned int drvmgr_translate_bus(
 	struct drvmgr_bus *from,
 	struct drvmgr_bus *to,
 	int reverse,
 	void *src_address,
 	void **dst_address);
+
+/* Calls drvmgr_translate() to translate an address range and checks the result,
+ * a printout is generated if the check fails. All parameters are passed on to
+ * drvmgr_translate() except for size, see paramters of drvmgr_translate().
+ *
+ * If size=0 only the starting address is not checked.
+ *
+ * If mapping failes a non-zero result is returned.
+ */
+extern int drvmgr_translate_check(
+	struct drvmgr_dev *dev,
+	unsigned int options,
+	void *src_address,
+	void **dst_address,
+	unsigned int size);
 
 /*! Get function pointer from Device Driver or Bus Driver.
  *

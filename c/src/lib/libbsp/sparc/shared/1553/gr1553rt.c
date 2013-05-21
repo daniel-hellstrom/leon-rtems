@@ -207,7 +207,7 @@ int gr1553rt_bd_alloc(void *rt, struct gr1553rt_sw_bd **bd, int cnt)
 	struct gr1553rt_sw_bd *curr;
 	int i;
 
-	if ( priv->swbd_free_cnt < cnt ) {
+	if ((priv->swbd_free_cnt < cnt) || (cnt <= 0)) {
 		*bd = NULL;
 		return -1;
 	}
@@ -352,8 +352,7 @@ int gr1553rt_bd_init(
 		dataptr &= ~1;
 		drvmgr_translate(
 			*priv->pdev,
-			0,
-			0,
+			CPUMEM_TO_DMA,
 			(void *)dataptr,
 			(void **)&dataptr
 			);
@@ -399,8 +398,7 @@ int gr1553rt_bd_update(
 			dataptr &= ~1;
 			drvmgr_translate(
 				*priv->pdev,
-				0,
-				0,
+				CPUMEM_TO_DMA,
 				(void *)dataptr,
 				(void **)&dataptr
 				);
@@ -832,38 +830,78 @@ int gr1553rt_sw_alloc(struct gr1553rt_priv *priv)
 	int size;
 
 	/* Allocate Event log */
-	if ( priv->cfg.evlog_buffer == NULL ) {
-		priv->evlog_buffer = malloc(priv->cfg.evlog_size * 2);
-	} else if ( (unsigned int)priv->cfg.evlog_buffer & 1 ) {
+	if ((unsigned int)priv->cfg.evlog_buffer & 1) {
 		/* Translate Address from HARDWARE (REMOTE) to CPU-LOCAL */
-		drvmgr_translate(
+		priv->evlog_hw_base = (unsigned int *)
+			((unsigned int)priv->cfg.evlog_buffer & ~0x1);
+		priv->evlog_buffer = priv->cfg.evlog_buffer;
+		drvmgr_translate_check(
 			*priv->pdev,
-			1,
-			1,
-			(void *)((unsigned int)priv->cfg.evlog_buffer & ~0x1),
-			(void **)&priv->evlog_buffer
+			DMAMEM_TO_CPU,
+			(void *)priv->evlog_hw_base,
+			(void **)&priv->evlog_cpu_base,
+			priv->cfg.evlog_size
 			);
 	} else {
-		/* Addess already CPU-LOCAL */
-		priv->evlog_buffer = priv->cfg.evlog_buffer;
+		if (priv->cfg.evlog_buffer == NULL) {
+			priv->evlog_buffer = malloc(priv->cfg.evlog_size * 2);
+			if (priv->evlog_buffer == NULL)
+				return -1;
+		} else {
+			/* Addess already CPU-LOCAL */
+			priv->evlog_buffer = priv->cfg.evlog_buffer;
+		}
+		/* Align to SIZE bytes boundary */
+		priv->evlog_cpu_base = (unsigned int *)
+			(((unsigned int)priv->evlog_buffer +
+			(priv->cfg.evlog_size-1)) & ~(priv->cfg.evlog_size-1));
+
+		drvmgr_translate_check(
+			*priv->pdev,
+			CPUMEM_TO_DMA,
+			(void *)priv->evlog_cpu_base,
+			(void **)&priv->evlog_hw_base,
+			priv->cfg.evlog_size
+			);
 	}
+	priv->evlog_cpu_end = priv->evlog_cpu_base +
+				priv->cfg.evlog_size/sizeof(unsigned int *);
 
 	/* Allocate Transfer Descriptors */
-	if ( priv->cfg.bd_buffer == NULL ) {
-		size = priv->cfg.bd_count * sizeof(struct gr1553rt_bd) + 0xf;
-		priv->bd_buffer = malloc(size);
-	} else if ( (unsigned int)priv->cfg.bd_buffer & 1 ) {
+	priv->bds_cnt = priv->cfg.bd_count;
+	size = priv->bds_cnt * sizeof(struct gr1553rt_bd);
+	if ((unsigned int)priv->cfg.bd_buffer & 1) {
 		/* Translate Address from HARDWARE (REMOTE) to CPU-LOCAL */
-		drvmgr_translate(
+		priv->bds_hw = (unsigned int)priv->cfg.bd_buffer & ~0x1;
+		priv->bd_buffer = priv->cfg.bd_buffer;
+		drvmgr_translate_check(
 			*priv->pdev,
-			1,
-			1,
-			(void *)((unsigned int)priv->cfg.bd_buffer & ~0x1),
-			(void **)&priv->bd_buffer
+			DMAMEM_TO_CPU,
+			(void *)priv->bds_hw,
+			(void **)&priv->bds_cpu,
+			size
 			);
 	} else {
-		/* Addess already CPU-LOCAL */
-		priv->bd_buffer = priv->cfg.bd_buffer;
+		if ( priv->cfg.bd_buffer == NULL ) {
+			priv->bd_buffer = malloc(size + 0xf);
+			if (priv->bd_buffer == NULL)
+				return -1;
+		} else {
+			/* Addess already CPU-LOCAL */
+			priv->bd_buffer	= priv->cfg.bd_buffer;
+		}
+		/* Align to 16 bytes boundary */
+		priv->bds_cpu = (struct gr1553rt_bd *)
+				(((unsigned int)priv->bd_buffer + 0xf) & ~0xf);
+
+		/* Translate from CPU address to hardware address */
+		drvmgr_translate_check(
+			*priv->pdev,
+			CPUMEM_TO_DMA,
+			(void *)priv->bds_cpu,
+			(void **)&priv->bds_hw,
+			size
+			);
 	}
 
 #if (RTBD_MAX == 0)
@@ -875,76 +913,53 @@ int gr1553rt_sw_alloc(struct gr1553rt_priv *priv)
 #endif
 
 	/* Allocate Sub address table */
-	if ( priv->cfg.satab_buffer == NULL ) {
-		priv->satab_buffer = malloc((16 * 32) * 2);
-	} else if ( (unsigned int)priv->cfg.satab_buffer & 1 ) {
+	if ((unsigned int)priv->cfg.satab_buffer & 1) {
 		/* Translate Address from HARDWARE (REMOTE) to CPU-LOCAL */
-		drvmgr_translate(
-			*priv->pdev,
-			1,
-			1,
-			(void *)((unsigned int)priv->cfg.satab_buffer & ~0x1),
-			(void **)&priv->satab_buffer
-			);
-	} else {
-		/* Addess already CPU-LOCAL */
+		priv->sas_hw = (unsigned int)priv->cfg.satab_buffer & ~0x1;
 		priv->satab_buffer = priv->cfg.satab_buffer;
-	}
+		drvmgr_translate_check(
+			*priv->pdev,
+			DMAMEM_TO_CPU,
+			(void *)priv->sas_hw,
+			(void **)&priv->sas_cpu,
+			16 * 32);
+	} else {
+		if (priv->cfg.satab_buffer == NULL) {
+			priv->satab_buffer = malloc((16 * 32) * 2);
+			if (priv->satab_buffer == NULL)
+				return -1;
+		} else {
+			/* Addess already CPU-LOCAL */
+			priv->satab_buffer = priv->cfg.satab_buffer;
+		}
+		/* Align to 512 bytes boundary */
+		priv->sas_cpu = (struct gr1553rt_sa *)
+				(((unsigned int)priv->satab_buffer + 0x1ff) &
+				~0x1ff);
 
-	if ( !priv->evlog_buffer || !priv->bd_buffer || !priv->satab_buffer )
-		return -1;
+		/* Translate Address from CPU-LOCAL to HARDWARE (REMOTE) */
+		drvmgr_translate_check(
+			*priv->pdev,
+			CPUMEM_TO_DMA,
+			(void *)priv->sas_cpu,
+			(void **)&priv->sas_hw,
+			16 * 32);
+	}
 
 	return 0;
 }
 
 void gr1553rt_sw_init(struct gr1553rt_priv *priv)
 {
-	unsigned int buf;
 	int i;
 
-	/* Align to 512 bytes boundary */
-	buf = (unsigned int)priv->satab_buffer;
-	buf = (buf + 0x1ff) & ~0x1ff;
-	priv->sas_cpu = (struct gr1553rt_sa *)buf;
-	/* Translate Address from CPU-LOCAL to HARDWARE (REMOTE) */
-	drvmgr_translate(
-		*priv->pdev,
-		0,
-		0,
-		(void *)buf,
-		(void **)&priv->sas_hw
-		);
+	/* Clear Sub Address table */
 	memset(priv->sas_cpu, 0, 512);
 
-	/* Align to 16 bytes boundary */
-	buf = (unsigned int)priv->bd_buffer;
-	buf = (buf + 0xf) & ~0xf;
-	priv->bds_cpu = (struct gr1553rt_bd *)buf;
-	/* Translate from CPU address to hardware address */
-	drvmgr_translate(
-		*priv->pdev,
-		0,
-		0,
-		(void *)buf,
-		(void **)&priv->bds_hw
-		);
-	priv->bds_cnt = priv->cfg.bd_count;
+	/* Clear Transfer descriptors */
 	memset(priv->bds_cpu, 0, priv->bds_cnt * 16);
 
-	/* Align to SIZE bytes boundary */
-	buf = (unsigned int)priv->evlog_buffer;
-	buf = (buf + (priv->cfg.evlog_size-1)) & ~(priv->cfg.evlog_size-1);
-	priv->evlog_cpu_base = (unsigned int *)buf;
-	/* Translate from CPU address to hardware address */
-	drvmgr_translate(
-		*priv->pdev,
-		0,
-		0,
-		(void *)buf,
-		(void **)&priv->evlog_hw_base
-		);
-	priv->evlog_cpu_end = priv->evlog_cpu_base +
-			priv->cfg.evlog_size/sizeof(unsigned int *);
+	/* Clear the Event log */
 	memset(priv->evlog_cpu_base, 0, priv->cfg.evlog_size);
 
 	/* Init descriptor allocation algorithm */

@@ -1629,22 +1629,26 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 		pDev->buf = NULL;
 		pDev->len = buf_arg->length*1024;
 
-		if ( pDev->len > 0 ){
-			if ( buf_arg->custom_buffer ){
-				if ( (unsigned int)buf_arg->custom_buffer & 1 ) {
-					/* Remote address given, the address is as the GRTC core looks at it */
-					
-					/* Translate the base address into an address that the the CPU can understand */
-					mem = ((unsigned int)buf_arg->custom_buffer & ~1);
-					drvmgr_translate(pDev->dev, 1, 1, (void *)mem, (void **)&pDev->buf);
-				} else {
-					pDev->buf = buf_arg->custom_buffer;
-				}
-				pDev->buf_custom = 1;
-			}else{
+		if (pDev->len <= 0)
+			break;
+		mem = (unsigned int)buf_arg->custom_buffer;
+		pDev->buf_custom = mem;
+
+		if (mem & 1) {
+			/* Remote address given, the address is as the GRTC
+			 * core looks at it. Translate the base address into
+			 * an address that the CPU can understand.
+			 */
+			pDev->buf_remote = (void *)(mem & ~0x1);
+			drvmgr_translate_check(pDev->dev, DMAMEM_TO_CPU,
+						(void *)pDev->buf_remote,
+						(void **)&pDev->buf,
+						pDev->len);
+		} else {
+			if (mem == 0) {
 				pDev->buf = grtc_memalign((~GRTC_ASR_BUFST)+1,pDev->len,&pDev->_buf);
 				DBG("grtc_ioctl: SETBUF: new buf: 0x%x(0x%x), Len: %d\n",pDev->buf,pDev->_buf,pDev->len);
-				if ( !pDev->buf ){
+				if (!pDev->buf){
 					pDev->len = 0;
 					pDev->buf_custom = 0;
 					pDev->_buf = NULL;
@@ -1652,10 +1656,19 @@ static rtems_device_driver grtc_ioctl(rtems_device_major_number major, rtems_dev
 					DBG("GRTC: Failed to allocate memory\n");
 					return RTEMS_NO_MEMORY;
 				}
+			} else{
+				pDev->buf = buf_arg->custom_buffer;
 			}
+
+			/* Translate into a remote address so that GRTC core
+			 * on a remote AMBA bus (for example over the PCI bus)
+			 * gets a valid address
+			 */
+			drvmgr_translate_check(pDev->dev, CPUMEM_TO_DMA,
+						(void *)pDev->buf,
+						(void **)&pDev->buf_remote,
+						pDev->len);
 		}
-		/* Translate into a remote address so that GRTC core on a remote AMBA bus (for example over the PCI bus) gets a valid address */
-		drvmgr_translate(pDev->dev, 0, 0, (void *)pDev->buf, (void **)&pDev->buf_remote);
 		break;
 
 		case GRTC_IOC_GET_BUF_PARAM:

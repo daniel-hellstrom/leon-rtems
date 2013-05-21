@@ -309,47 +309,51 @@ int gr1553bc_list_table_alloc
 	/* Remember user's settings for uninitialization */
 	list->_table_custom = bdtab_custom;
 
-	if ( bdtab_custom == NULL ) {
-		/* Get Size required for descriptors */
-		size = gr1553bc_list_table_size(list);
+	/* Get Size required for descriptors */
+	size = gr1553bc_list_table_size(list);
 
-		/* Allocate descriptors */
-		list->_table = malloc(size + (GR1553BC_BD_ALIGN-1));
-		if ( list->_table == NULL )
-			return -1;
-	} else if ( (unsigned int)bdtab_custom & 0x1 ) {
+	if ((unsigned int)bdtab_custom & 0x1) {
 		/* Address given in Hardware accessible address, we
 		 * convert it into CPU-accessible address.
 		 */
-		drvmgr_translate(
-			*bcpriv->pdev,
-			1,
-			1,
-			(void *)((unsigned int)bdtab_custom & ~0x1),
-			(void **)&list->_table
-			);
-	} else {
-		/* Custom address, given in CPU-accessible address */
+		list->table_hw = (unsigned int)bdtab_custom & ~0x1;
 		list->_table = bdtab_custom;
-	}
-
-	/* 128-bit Alignment required by HW */
-	table = (unsigned int)list->_table;
-	table = (table + (GR1553BC_BD_ALIGN-1)) & ~(GR1553BC_BD_ALIGN-1);
-	list->table_cpu = table;
-	list->table_hw = table;
-
-	/* We got CPU accessible descriptor table address, now we translate
-	 * that into an address which the Hardware can understand
-	 */
-	if ( bcpriv ) {
-		drvmgr_translate(
+		drvmgr_translate_check(
 			*bcpriv->pdev,
-			0,
-			0,
-			(void *)list->table_cpu,
-			(void **)&list->table_hw
-			);
+			DMAMEM_TO_CPU,
+			(void *)list->table_hw,
+			(void **)&list->table_cpu,
+			size);
+	} else {
+		if (bdtab_custom == NULL) {
+			/* Allocate descriptors */
+			list->_table = malloc(size + (GR1553BC_BD_ALIGN-1));
+			if ( list->_table == NULL )
+				return -1;
+		} else {
+			/* Custom address, given in CPU-accessible address */
+			list->_table = bdtab_custom;
+		}
+		/* 128-bit Alignment required by HW */
+		list->table_cpu =
+			(((unsigned int)list->_table + (GR1553BC_BD_ALIGN-1)) &
+			~(GR1553BC_BD_ALIGN-1));
+
+		/* We got CPU accessible descriptor table address, now we
+		 * translate that into an address that the Hardware can
+		 * understand
+		 */
+		if (bcpriv) {
+			drvmgr_translate_check(
+				*bcpriv->pdev,
+				CPUMEM_TO_DMA,
+				(void *)list->table_cpu,
+				(void **)&list->table_hw,
+				size
+				);
+		} else {
+			list->table_hw = list->table_cpu;
+		}
 	}
 
 	/* Write End-Of-List all over the descriptor table here,
@@ -359,6 +363,7 @@ int gr1553bc_list_table_alloc
 	/* Assign descriptors to all minor frames. The addresses is
 	 * CPU-accessible addresses.
 	 */
+	table = list->table_cpu;
 	for (i=0; i<list->major_cnt; i++) {
 		major = list->majors[i];
 		minor_cnt = major->cfg->minor_cnt;
@@ -1039,11 +1044,9 @@ int gr1553bc_slot_transfer(
 
 		drvmgr_translate(
 			*bcpriv->pdev,
-			0,
-			0,
+			CPUMEM_TO_DMA,
 			(void *)((unsigned int)dptr & ~0x1),
-			(void **)&dptr
-			);
+			(void **)&dptr);
 	}
 
 	/* It is assumed that the descriptor has already been initialized
@@ -1113,8 +1116,7 @@ int gr1553bc_slot_update
 		if ( dataptr & 0x1 ) {
 			drvmgr_translate(
 				*bcpriv->pdev,
-				0,
-				0,
+				CPUMEM_TO_DMA,
 				(void *)(dataptr & ~0x1),
 				(void **)&dptr
 				);
@@ -1478,13 +1480,12 @@ void gr1553bc_device_init(struct gr1553bc_priv *priv)
 		(((uint32_t)priv->irq_log_p + (GR1553BC_IRQLOG_SIZE-1)) & 
 		~(GR1553BC_IRQLOG_SIZE-1));
 	/* Translate into a hardware accessible address */
-	drvmgr_translate(
+	drvmgr_translate_check(
 		*priv->pdev,
-		0,
-		0,
+		CPUMEM_TO_DMA,
 		(void *)priv->irq_log_base,
-		(void **)&priv->irq_log_base_hw
-		);
+		(void **)&priv->irq_log_base_hw,
+		GR1553BC_IRQLOG_SIZE);
 	priv->irq_log_curr = priv->irq_log_base;
 	priv->irq_log_end = &priv->irq_log_base[GR1553BC_IRQLOG_CNT-1];
 	priv->irq_func = gr1553bc_isr_std;

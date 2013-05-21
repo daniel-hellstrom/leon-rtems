@@ -209,45 +209,45 @@ int gr1553bm_config(void *bm, struct gr1553bm_config *cfg)
 		priv->buffer = NULL;
 	}
 	priv->buffer_size = cfg->buffer_size & ~0x7; /* on 8 byte bounadry */
-	if ( cfg->buffer_custom == NULL ) {
-		/* Allocate new buffer dynamically */
-		priv->buffer = malloc(priv->buffer_size + 8);
-		if ( priv->buffer == NULL )
-			return -1;
+	if ((unsigned int)cfg->buffer_custom & 1) {
+		/* Custom Address Given in Remote address. We need
+		 * to convert it intoTranslate into Hardware a
+		 * hardware accessible address
+		 */
+		priv->buffer_base_hw = (unsigned int)cfg->buffer_custom & ~1;
+		priv->buffer = cfg->buffer_custom;
+		drvmgr_translate_check(
+			*priv->pdev,
+			DMAMEM_TO_CPU,
+			(void *)priv->buffer_base_hw,
+			(void **)&priv->buffer_base,
+			priv->buffer_size);
 	} else {
-		if ( (unsigned int)cfg->buffer_custom & 1 ) {
-			/* Custom Address Given in Remote address. We need
-			 * to convert it intoTranslate into Hardware a
-			 * hardware accessible address
-			 */
-			drvmgr_translate(
-				*priv->pdev,
-				1,
-				1,
-				(void *)((unsigned int)cfg->buffer_custom & ~1),
-				(void **)&priv->buffer
-				);
+		if (cfg->buffer_custom == NULL) {
+			/* Allocate new buffer dynamically */
+			priv->buffer = malloc(priv->buffer_size + 8);
+			if (priv->buffer == NULL)
+				return -1;
 		} else {
 			/* Address given in CPU accessible address, no
 			 * translation required.
 			 */
 			priv->buffer = cfg->buffer_custom;
 		}
+		/* Align to 16 bytes */
+		priv->buffer_base = ((unsigned int)priv->buffer + (8-1)) &
+					~(8-1);
+		/* Translate address of buffer base into address that Hardware must
+		 * use to access the buffer.
+		 */
+		drvmgr_translate_check(
+			*priv->pdev,
+			CPUMEM_TO_DMA,
+			(void *)priv->buffer_base,
+			(void **)&priv->buffer_base_hw,
+			priv->buffer_size);
+		
 	}
-
-	/* Align to 16 bytes */
-	priv->buffer_base = ((unsigned int)priv->buffer + (8-1)) & ~(8-1);
-
-	/* Translate address of buffer base into address that Hardware must
-	 * use to access the buffer.
-	 */
-	drvmgr_translate(
-		*priv->pdev,
-		0,
-		0,
-		(void *)priv->buffer_base,
-		(void **)&priv->buffer_base_hw
-		);
 
 	/* Copy valid config */
 	priv->cfg = *cfg;

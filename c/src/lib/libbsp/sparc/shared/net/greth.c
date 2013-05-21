@@ -203,11 +203,11 @@ struct greth_softc
 int greth_process_tx_gbit(struct greth_softc *sc);
 int greth_process_tx(struct greth_softc *sc);
 
-static char *almalloc(int sz)
+static char *almalloc(int sz, int alignment)
 {
         char *tmp;
-        tmp = calloc(1,2*sz);
-        tmp = (char *) (((int)tmp+sz) & ~(sz -1));
+        tmp = calloc(1, sz + (alignment-1));
+        tmp = (char *) (((int)tmp+alignment) & ~(alignment -1));
         return(tmp);
 }
 
@@ -490,17 +490,26 @@ auto_neg_done:
         ;
     regs->ctrl = GRETH_CTRL_DD;
 
-    /* Initialize rx/tx descriptor pointers */
-    sc->txdesc = (greth_rxtxdesc *) almalloc(1024);
-    sc->rxdesc = (greth_rxtxdesc *) almalloc(1024);
+    /* Initialize rx/tx descriptor table pointers. Due to alignment we 
+     * always allocate maximum table size.
+     */
+    sc->txdesc = (greth_rxtxdesc *) almalloc(0x800, 0x400);
+    sc->rxdesc = (greth_rxtxdesc *) &sc->txdesc[128];
     sc->tx_ptr = 0;
     sc->tx_dptr = 0;
     sc->tx_cnt = 0;
     sc->rx_ptr = 0;
 
-    /* Translate the base address into an address that the GRETH core can understand */
-    drvmgr_translate(sc->dev, 0, 0, (void *)sc->txdesc, (void **)&sc->txdesc_remote);
-    drvmgr_translate(sc->dev, 0, 0, (void *)sc->rxdesc, (void **)&sc->rxdesc_remote);
+    /* Translate the Descriptor DMA table base address into an address that
+     * the GRETH core can understand
+     */
+    drvmgr_translate_check(
+        sc->dev,
+        CPUMEM_TO_DMA,
+        (void *)sc->txdesc,
+        (void **)&sc->txdesc_remote,
+        0x800);
+    sc->rxdesc_remote = sc->txdesc_remote + 0x400;
     regs->txdesc = (int) sc->txdesc_remote;
     regs->rxdesc = (int) sc->rxdesc_remote;
 
@@ -509,10 +518,15 @@ auto_neg_done:
 
     for (i = 0; i < sc->txbufs; i++)
       {
-              sc->txdesc[i].ctrl = 0;
-              if (!(sc->gbit_mac)) {
-                      drvmgr_translate(sc->dev, 0, 0, (void *)malloc(GRETH_MAXBUF_LEN), (void **)&sc->txdesc[i].addr);
-              }
+        sc->txdesc[i].ctrl = 0;
+        if (!(sc->gbit_mac)) {
+            drvmgr_translate_check(
+                sc->dev, 
+                CPUMEM_TO_DMA,
+                (void *)malloc(GRETH_MAXBUF_LEN),
+                (void **)&sc->txdesc[i].addr,
+                GRETH_MAXBUF_LEN);
+        }
 #ifdef GRETH_DEBUG
               /* printf("TXBUF: %08x\n", (int) sc->txdesc[i].addr); */
 #endif
@@ -525,7 +539,12 @@ auto_neg_done:
                   m->m_data += 2;
 	  m->m_pkthdr.rcvif = &sc->arpcom.ac_if;
           sc->rxmbuf[i] = m;
-          drvmgr_translate(sc->dev, 0, 0, (void *)mtod(m, uint32_t *), (void **)&sc->rxdesc[i].addr);
+          drvmgr_translate_check(
+            sc->dev,
+            CPUMEM_TO_DMA,
+            (void *)mtod(m, uint32_t *),
+            (void **)&sc->rxdesc[i].addr,
+            GRETH_MAXBUF_LEN);
           sc->rxdesc[i].ctrl = GRETH_RXD_ENABLE | GRETH_RXD_IRQ;
 #ifdef GRETH_DEBUG
 /* 	  printf("RXBUF: %08x\n", (int) sc->rxdesc[i].addr); */
@@ -718,7 +737,12 @@ again:
                                     m->m_data += 2;
                             dp->rxmbuf[dp->rx_ptr] = m;
                             m->m_pkthdr.rcvif = ifp;
-                            drvmgr_translate(dp->dev, 0, 0, (void *)mtod (m, uint32_t *), (void **)&dp->rxdesc[dp->rx_ptr].addr);
+                            drvmgr_translate_check(
+                                dp->dev,
+                                CPUMEM_TO_DMA,
+                                (void *)mtod (m, uint32_t *),
+                                (void **)&dp->rxdesc[dp->rx_ptr].addr,
+                                GRETH_MAXBUF_LEN);
                             dp->rxPackets++;
                     }
                     if (dp->rx_ptr == dp->rxbufs - 1) {
@@ -773,7 +797,7 @@ sendpacket (struct ifnet *ifp, struct mbuf *m)
 
     len = 0;
     temp = (unsigned char *) GRETH_MEM_LOAD(&dp->txdesc[dp->tx_ptr].addr);
-    drvmgr_translate(dp->dev, 1, 1, (void *)temp, (void **)&temp);
+    drvmgr_translate(dp->dev, CPUMEM_FROM_DMA, (void *)temp, (void **)&temp);
 #ifdef GRETH_DEBUG
     printf("TXD: 0x%08x : BUF: 0x%08x\n", (int) m->m_data, (int) temp);
 #endif
@@ -887,7 +911,12 @@ sendpacket_gbit (struct ifnet *ifp, struct mbuf *m)
             printf("\n");
 #endif
             len += m->m_len;
-            drvmgr_translate(dp->dev, 0, 0, (void *)(uint32_t *)m->m_data, (void **)&dp->txdesc[dp->tx_ptr].addr);
+            drvmgr_translate_check(
+                dp->dev,
+                CPUMEM_TO_DMA,
+                (void *)(uint32_t *)m->m_data,
+                (void **)&dp->txdesc[dp->tx_ptr].addr,
+                m->m_len);
 
             /* Wrap around? */
             if (dp->tx_ptr < dp->txbufs-1) {

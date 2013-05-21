@@ -123,8 +123,8 @@ struct grcan_priv {
 	unsigned int corefreq_hz;
 
 	/* Circular DMA buffers */
-	void *_rx;
-	void *_tx;
+	void *_rx, *_rx_hw;
+	void *_tx, *_tx_hw;
 	void *txbuf_adr;
 	void *rxbuf_adr;
 	struct grcan_msg *rx;
@@ -456,13 +456,11 @@ static rtems_device_driver grcan_start(struct grcan_priv *pDev)
   }
 
   /* Setup receiver */
-  drvmgr_translate(pDev->dev, 0, 0, (void *)pDev->rx, (void **)&pDev->regs->rx0addr);
-  /*pDev->regs->rx0addr = MEMAREA_TO_HW((unsigned int)pDev->rx);*/
+  pDev->regs->rx0addr = (unsigned int)pDev->_rx_hw;
   pDev->regs->rx0size = pDev->rxbuf_size;
 
   /* Setup Transmitter */
-  drvmgr_translate(pDev->dev, 0, 0, (void *)pDev->tx, (void **)&pDev->regs->tx0addr);
-  /*pDev->regs->tx0addr = MEMAREA_TO_HW((unsigned int)pDev->tx);*/
+  pDev->regs->tx0addr = (unsigned int)pDev->_tx_hw;
   pDev->regs->tx0size = pDev->txbuf_size;
 
   /* Setup acceptance filters */
@@ -1106,38 +1104,95 @@ static int grcan_tx_flush(struct grcan_priv *pDev)
 
 static int grcan_alloc_buffers(struct grcan_priv *pDev, int rx, int tx)
 {
+	unsigned int adr;
 	FUNCDBG();
 
 	if ( tx ) {
-		if ( pDev->txbuf_adr ) {
-			/* User defined address */
-			pDev->_tx = pDev->txbuf_adr;
+		adr = (unsigned int)pDev->txbuf_adr;
+		if (adr & 0x1) {
+			/* User defined "remote" address. Translate it into
+			 * a CPU accessible address
+			 */
+			pDev->_tx_hw = (void *)(adr & ~0x1);
+			drvmgr_translate_check(
+				pDev->dev,
+				DMAMEM_TO_CPU,
+				(void *)pDev->_tx_hw,
+				(void **)&pDev->_tx,
+				pDev->txbuf_size);
+			pDev->tx = (struct grcan_msg *)pDev->_tx;
 		} else {
-			pDev->_tx = malloc(pDev->txbuf_size + BUFFER_ALIGNMENT_NEEDS);
-			if ( !pDev->_tx )
-				return -1;
-		}
+			if (adr == 0) {
+				pDev->_tx = malloc(pDev->txbuf_size +
+				                   BUFFER_ALIGNMENT_NEEDS);
+				if (!pDev->_tx)
+					return -1;
+			} else {
+				/* User defined "cou-local" address. Translate
+				 * it into a CPU accessible address
+				 */
+				pDev->_tx = (void *)adr;
+			}
+			/* Align TX buffer */
+			pDev->tx = (struct grcan_msg *)
+			           (((unsigned int)pDev->_tx +
+				   (BUFFER_ALIGNMENT_NEEDS-1)) &
+			           ~(BUFFER_ALIGNMENT_NEEDS-1));
 
-		/* Align TX buffer */
-		pDev->tx = (struct grcan_msg *)
-		       (((unsigned int)pDev->_tx + (BUFFER_ALIGNMENT_NEEDS-1)) &
-		       ~(BUFFER_ALIGNMENT_NEEDS-1));
+			/* Translate address into an hardware accessible
+			 * address
+			 */
+			drvmgr_translate_check(
+				pDev->dev,
+				CPUMEM_TO_DMA,
+				(void *)pDev->tx,
+				(void **)&pDev->_tx_hw,
+				pDev->txbuf_size);
+		}
 	}
 
 	if ( rx ) {
-		if ( pDev->rxbuf_adr ) {
-			/* User defined address */
-			pDev->_rx = pDev->rxbuf_adr;
+		adr = (unsigned int)pDev->rxbuf_adr;
+		if (adr & 0x1) {
+			/* User defined "remote" address. Translate it into
+			 * a CPU accessible address
+			 */
+			pDev->_rx_hw = (void *)(adr & ~0x1);
+			drvmgr_translate_check(
+				pDev->dev,
+				DMAMEM_TO_CPU,
+				(void *)pDev->_rx_hw,
+				(void **)&pDev->_rx,
+				pDev->rxbuf_size);
+			pDev->rx = (struct grcan_msg *)pDev->_rx;
 		} else {
-			pDev->_rx = malloc(pDev->rxbuf_size + BUFFER_ALIGNMENT_NEEDS);
-			if ( !pDev->_rx )
-				return -1;
-		}
+			if (adr == 0) {
+				pDev->_rx = malloc(pDev->rxbuf_size +
+				                   BUFFER_ALIGNMENT_NEEDS);
+				if (!pDev->_rx)
+					return -1;
+			} else {
+				/* User defined "cou-local" address. Translate
+				 * it into a CPU accessible address
+				 */
+				pDev->_rx = (void *)adr;
+			}
+			/* Align RX buffer */
+			pDev->rx = (struct grcan_msg *)
+			           (((unsigned int)pDev->_rx +
+				   (BUFFER_ALIGNMENT_NEEDS-1)) &
+			           ~(BUFFER_ALIGNMENT_NEEDS-1));
 
-		/* Align RX buffer */
-		pDev->rx = (struct grcan_msg *)
-		       (((unsigned int)pDev->_rx + (BUFFER_ALIGNMENT_NEEDS-1)) &
-		       ~(BUFFER_ALIGNMENT_NEEDS-1));
+			/* Translate address into an hardware accessible
+			 * address
+			 */
+			drvmgr_translate_check(
+				pDev->dev,
+				CPUMEM_TO_DMA,
+				(void *)pDev->rx,
+				(void **)&pDev->_rx_hw,
+				pDev->rxbuf_size);
+		}
 	}
 	return 0;
 }

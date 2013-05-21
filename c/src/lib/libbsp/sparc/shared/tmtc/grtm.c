@@ -810,8 +810,8 @@ static int grtm_start(struct grtm_priv *pDev)
 	regs->dma_status = GRTM_DMA_STS_ALL;
 
 	/* Set Descriptor Pointer Base register to point to first descriptor */
-	drvmgr_translate(pDev->dev, 0, 0, (void *)pDev->bds, (void **)&regs->dma_bd);
-	/*regs->dma_bd = (unsigned int)pDev->bds;*/
+	drvmgr_translate_check(pDev->dev, CPUMEM_TO_DMA, (void *)pDev->bds,
+				(void **)&regs->dma_bd, 0x400);
 
 	/* Set hardware options as defined by config */
 	if ( grtm_hw_set_config(pDev, cfg, &pDev->hw_avail) ) {
@@ -1103,7 +1103,7 @@ static int grtm_schedule_ready(struct grtm_priv *pDev, int ints_off)
 		 */
 		if ( curr_frm->flags & (GRTM_FLAGS_TRANSLATE|GRTM_FLAGS_TRANSLATE_AND_REMEMBER) ) {
 			/* Do translation */
-			drvmgr_translate(pDev->dev, 0, 0, (void *)curr_frm->payload, (void **)&curr_bd->bd->address);
+			drvmgr_translate(pDev->dev, CPUMEM_TO_DMA, (void *)curr_frm->payload, (void **)&curr_bd->bd->address);
 			if ( curr_frm->flags & GRTM_FLAGS_TRANSLATE_AND_REMEMBER ) {
 				if ( curr_frm->payload != curr_bd->bd->address ) {
 					/* Translation needed */
