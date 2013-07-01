@@ -43,6 +43,8 @@
  *         B. Static Config (not implemented yet)
  *     - Interrupt Library (shared interrupt support rely on BSP)
  *   Added CHANGES file
+ *  2013-06-31, Daniel Hellstrom <daniel@gaisler.com>
+ *   Make sure that interrupt pin is rerouted on bus0 also
  */
 
 #include <rtems.h>
@@ -849,7 +851,7 @@ int pci_route_irq(pci_dev_t dev, int irq_pin)
  * configuration space later on.
  *
  * 1. Get Interrupt PIN
- * 2. Route PIN to bus 0, if not on root PCI bus
+ * 2. Route PIN to host bridge
  * 3. Get System interrupt number assignment for PIN
  * 4. Set Interrupt LINE
  */
@@ -863,14 +865,14 @@ int pci_set_irq_dev(struct pci_dev *dev, void *cfg)
 	pcidev = dev->busdevfun;
 	PCI_CFG_R8(pcidev, PCI_INTERRUPT_PIN, &irq_pin);
 
-	/* If behind bridge, perform IRQ routing */
-	while (dev->bus->dev.bus && irq_pin != 0) {
+	/* perform IRQ routing until we reach host bridge */
+	while (dev->bus && irq_pin != 0) {
 		irq_pin = autocfg->irq_route(dev->busdevfun, irq_pin);
 		dev = &dev->bus->dev;
 	}
 
 	/* Get IRQ from PIN on PCI bus0 */
-	if (irq_pin != 0)
+	if (irq_pin != 0 && autocfg->irq_map)
 		irq_line = autocfg->irq_map(dev->busdevfun, irq_pin);
 	else
 		irq_line = 0;
@@ -1019,8 +1021,8 @@ int pci_config_auto(void)
 
 	/* Initialize IRQs of all devices. According to the PCI-PCI bridge
 	 * specification the IRQs are routed differently depending on slot
-	 * number. On bus 0 PCI IRQs are routed 1:1. Drivers can override
-	 * the default routing if a motherboard requires it.
+	 * number. Drivers can override the default routing if a motherboard
+	 * requires it.
 	 */
 	if ((autocfg->options & CFGOPT_NOSETUP_IRQ) == 0) {
 		if (autocfg->irq_route == NULL) /* use standard irq routing */
