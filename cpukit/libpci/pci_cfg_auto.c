@@ -45,6 +45,8 @@
  *   Added CHANGES file
  *  2013-06-31, Daniel Hellstrom <daniel@gaisler.com>
  *   Make sure that interrupt pin is rerouted on bus0 also
+ *  2013-06-31, Daniel Hellstrom <daniel@gaisler.com>
+ *   First device (dev0 = AD16) must also be probed
  */
 
 #include <rtems.h>
@@ -340,10 +342,7 @@ void pci_find_devs(struct pci_bus *bus)
 	DBG("Scanning bus %d\n", bus->num);
 
 	listptr = &bus->devs;
-	slot = 0;
-	if (bus->num == 0)
-		slot = 1;   /* Skip PCI HOST BRIDGE */
-	for (; slot < PCI_MAX_DEVICES; slot++) {
+	for (slot = 0; slot < PCI_MAX_DEVICES; slot++) {
 
 		/* Slot address */
 		pcidev = PCI_DEV(bus->num, slot, 0);

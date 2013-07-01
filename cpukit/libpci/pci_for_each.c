@@ -9,6 +9,8 @@
  *
  *  2011-02-11, Daniel Hellstrom <daniel@gaisler.com>
  *    created from pci_bus.c
+ *  2013-06-31, Daniel Hellstrom <daniel@gaisler.com>
+ *   First device (dev0 = AD16) must also be probed
  */
 
 #include <pci.h>
@@ -32,10 +34,7 @@ int pci_for_each(int (*func)(pci_dev_t, void*), void *arg)
 	pci_dev_t pcidev;
 
 	for (bus = 0; bus < maxbus ; bus++) {
-		dev = 0;
-		if (bus == 0)
-			dev = 1; /* Skip PCI host bridge */
-		for (; dev < PCI_MAX_DEVICES; dev++) {
+		for (dev = 0; dev < PCI_MAX_DEVICES; dev++) {
 			pcidev = PCI_DEV(bus, dev, 0);
 
 			for (fun = 0; fun < PCI_MAX_FUNCTIONS; fun++, pcidev++) {
