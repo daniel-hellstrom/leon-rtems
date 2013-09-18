@@ -29,6 +29,7 @@ int devFS_mknod(
 {
   int                       i;
   int                       slot;
+  int                       len;
   rtems_device_name_t      *device_name_table;
   rtems_device_major_number major;
   rtems_device_minor_number minor;
@@ -69,8 +70,12 @@ int devFS_mknod(
       rtems_set_errno_and_return_minus_one( ENOMEM );
 
   _ISR_Disable(level);
-  device_name_table[slot].device_name  = (char *)path;
-  device_name_table[slot].device_name_length = strlen(path);
+  len = strlen(path);
+  device_name_table[slot].device_name  = (char *)malloc(len);
+  if (!device_name_table[slot].device_name)
+      rtems_set_errno_and_return_minus_one(ENOMEM);
+  strcpy(device_name_table[slot].device_name, (char *)path);
+  device_name_table[slot].device_name_length = len;
   device_name_table[slot].major = major;
   device_name_table[slot].minor = minor;
   device_name_table[slot].mode  = mode;
