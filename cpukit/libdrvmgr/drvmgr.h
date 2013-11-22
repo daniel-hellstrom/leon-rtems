@@ -313,15 +313,15 @@ struct drvmgr_drv_reg_func {
 
 /* Return Codes */
 enum {
-	DRVMGR_OK = 0,
-	DRVMGR_NOMEM = 1,
-	DRVMGR_EIO = 2,
-	DRVMGR_EINVAL = 3,
+	DRVMGR_OK = 0,		/* Sucess */
+	DRVMGR_NOMEM = 1,	/* Memory allocation error */
+	DRVMGR_EIO = 2,		/* I/O error */
+	DRVMGR_EINVAL = 3,	/* Invalid parameter */
 	DRVMGR_ENOSYS = 4,
-	DRVMGR_TIMEDOUT = 5,
+	DRVMGR_TIMEDOUT = 5,	/* Operation timeout error */
 	DRVMGR_EBUSY = 6,
 	DRVMGR_ENORES = 7,	/* Not enough resources */
-	DRVMGR_FAIL = -1
+	DRVMGR_FAIL = -1	/* Unspecified failure */
 };
 
 /*! Initialize data structures of the driver management system.
