@@ -122,8 +122,10 @@ EXTRA_DIST += shared/include/spictrl.h
 
 # TIME
 EXTRA_DIST += shared/time/spwcuc.c
+EXTRA_DIST += shared/time/spwtdp.c
 EXTRA_DIST += shared/time/grctm.c
 EXTRA_DIST += shared/include/spwcuc.h
+EXTRA_DIST += shared/include/spwtdp.h
 EXTRA_DIST += shared/include/grctm.h
 
 # GPIO

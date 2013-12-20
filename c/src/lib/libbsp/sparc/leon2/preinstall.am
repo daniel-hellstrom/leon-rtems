@@ -205,6 +205,10 @@ $(PROJECT_INCLUDE)/spwcuc.h: ../../sparc/shared/include/spwcuc.h $(PROJECT_INCLU
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/spwcuc.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/spwcuc.h
 
+$(PROJECT_INCLUDE)/spwtdp.h: ../../sparc/shared/include/spwtdp.h $(PROJECT_INCLUDE)/$(dirstamp)
+	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/spwtdp.h
+PREINSTALL_FILES += $(PROJECT_INCLUDE)/spwtdp.h
+
 $(PROJECT_INCLUDE)/grctm.h: ../../sparc/shared/include/grctm.h $(PROJECT_INCLUDE)/$(dirstamp)
 	$(INSTALL_DATA) $< $(PROJECT_INCLUDE)/grctm.h
 PREINSTALL_FILES += $(PROJECT_INCLUDE)/grctm.h

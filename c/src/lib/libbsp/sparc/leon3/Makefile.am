@@ -171,8 +171,10 @@ libbsp_a_SOURCES += ../../sparc/shared/spi/spictrl.c
 
 # TIME
 include_HEADERS += ../../sparc/shared/include/spwcuc.h
+include_HEADERS += ../../sparc/shared/include/spwtdp.h
 include_HEADERS += ../../sparc/shared/include/grctm.h
 libbsp_a_SOURCES += ../../sparc/shared/time/spwcuc.c
+libbsp_a_SOURCES += ../../sparc/shared/time/spwtdp.c
 libbsp_a_SOURCES += ../../sparc/shared/time/grctm.c
 
 # GPIO
