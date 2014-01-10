@@ -98,7 +98,7 @@ int pci_read_addressable(struct pci_dev *dev, struct pci_res *res)
 
 void pci_read_bar(struct pci_dev *dev, int bar)
 {
-	uint32_t orig, size, disable, mask;
+	uint32_t orig, size, mask;
 	struct pci_res *res = &dev->resources[bar];
 	char *str;
 	pci_dev_t pcidev = dev->busdevfun;
@@ -113,10 +113,8 @@ void pci_read_bar(struct pci_dev *dev, int bar)
 			ofs = PCI_ROM_ADDRESS1;
 		else
 			ofs = PCI_ROM_ADDRESS;
-		disable = 0; /* ROM BARs have a unique enable bit per BAR */
 	} else {
 		ofs = PCI_BASE_ADDRESS_0 + (bar << 2);
-		disable = pci_invalid_address;
 	}
 
 	PCI_CFG_R32(pcidev, ofs, &orig);
