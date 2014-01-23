@@ -163,21 +163,23 @@ void spwtdp_isr(void *data)
 	struct spwtdp_stats *stats = &priv->stats;
 	unsigned int ists = priv->regs->ists;
 
+	/* Return if the SPWTDP didn't generate the IRQ */
+	if (ists == 0)
+		return;
+
 	stats->nirqs++;
 
-	if (ists & SPWTDP_IRQ_TX)
-		stats->tx++;
-	if (ists & SPWTDP_IRQ_RX)
-		stats->rx++;
-	if (ists & SPWTDP_IRQ_TICKTX)
-		stats->tick_tx++;
-	if (ists & SPWTDP_IRQ_TIME_MSG_TX)
-		stats->time_msg_tx++;
-	if (ists & SPWTDP_IRQ_TICKRX)
-		stats->tick_rx++;
-	if (ists & SPWTDP_IRQ_TICKRX_ERR)
-		stats->tick_rx_err++;
-	if (ists & SPWTDP_IRQ_SYNC)
+	if (ists & SPWTDP_IRQ_DIT)
+		stats->irq_tx++;
+	if (ists & SPWTDP_IRQ_DIR)
+		stats->irq_rx++;
+	if (ists & SPWTDP_IRQ_TT)
+		stats->tc_tx++;
+	if (ists & SPWTDP_IRQ_TM)
+		stats->time_ccsds_tx++;
+	if (ists & SPWTDP_IRQ_TR)
+		stats->tc_rx++;
+	if (ists & SPWTDP_IRQ_S)
 		stats->sync++;
 
 	/* Let user Handle Interrupt */

@@ -13,13 +13,12 @@
 #ifndef __SPWTDP_H__
 #define __SPWTDP_H__
 
-#define SPWTDP_IRQ_SYNC		0x01
-#define SPWTDP_IRQ_TICKRX_ERR	0x02
-#define SPWTDP_IRQ_TICKRX	0x04
-#define SPWTDP_IRQ_TIME_MSG_TX	0x08
-#define SPWTDP_IRQ_TICKTX	0x10
-#define SPWTDP_IRQ_RX		0x20
-#define SPWTDP_IRQ_TX		0x40
+#define SPWTDP_IRQ_S		0x01
+#define SPWTDP_IRQ_TR		0x02
+#define SPWTDP_IRQ_TM		0x04
+#define SPWTDP_IRQ_TT		0x08
+#define SPWTDP_IRQ_DIR		0x10
+#define SPWTDP_IRQ_DIT		0x20
 
 /* SPWTDP Register layout */
 struct spwtdp_regs {
@@ -31,11 +30,11 @@ struct spwtdp_regs {
 	volatile unsigned int dat_ctrl;      /* 40 */
 	volatile unsigned int dat_et[5];     /* 44 */
 	volatile unsigned int resv2[2];      /* 58 */
-	volatile unsigned int ts_tx_ctrl;    /* 60 */
-	volatile unsigned int ts_tx_et[5];   /* 64 */
+	volatile unsigned int ts_rx_ctrl;    /* 60 */
+	volatile unsigned int ts_rx_et[5];   /* 64 */
 	volatile unsigned int resv3[2];      /* 78 */
-	volatile unsigned int ts_rx_ctrl;    /* 80 */
-	volatile unsigned int ts_rx_et[5];   /* 84 */
+	volatile unsigned int ts_tx_ctrl;    /* 80 */
+	volatile unsigned int ts_tx_et[5];   /* 84 */
 	volatile unsigned int resv4[2];      /* 98 */
 	volatile unsigned int lat_ctrl;      /* A0 */
 	volatile unsigned int lat_et[5];     /* A4 */
@@ -49,12 +48,11 @@ struct spwtdp_stats {
 
 	/* IRQ Stats */
 	unsigned int nirqs;
-	unsigned int tx;
-	unsigned int rx;
-	unsigned int tick_tx;
-	unsigned int time_msg_tx;
-	unsigned int tick_rx;
-	unsigned int tick_rx_err;
+	unsigned int irq_tx;
+	unsigned int irq_rx;
+	unsigned int time_ccsds_tx;
+	unsigned int tc_tx;
+	unsigned int tc_rx;
 	unsigned int sync;
 };
 
