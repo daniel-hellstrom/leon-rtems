@@ -12,6 +12,8 @@
 #ifndef __RMAP_H__
 #define __RMAP_H__
 
+#include <rtems.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -85,17 +87,18 @@ typedef int (*rmap_route_t)(void *cookie, int dir, int srcadr, int dstadr, void 
 
 struct rmap_config {
 	rmap_route_t	route_func;	/* Function that will generate path addressing */
-	int		tid_msb;	/* 8 most significant bits in TID.
+	unsigned short	spw_adr;	/* The SpW Address of the SpW interface used */
+	unsigned char	tid_msb;	/* 8 most significant bits in TID.
 					 * Set to -1 for normal operation using
 					 * all bits in TID for sequence counting.
 					 */
-	int		spw_adr;	/* The SpW Address of the SpW interface used */
+	unsigned char	drv_cap;	/* Driver capabilities */
+	char		thread_safe;	/* Set this to non-zero to enable the RMAP stack to create a
+					 * semaphore used to protect from multiple tasks entering the
+					 * transfer function(s) of the stack at the same time */
 	struct rmap_drv	*drv;		/* Driver used for transmission */
 	int		max_rx_len;	/* Maximum data length of received packets */
 	int		max_tx_len;	/* Maximum data length of transmitted packets */
-	int		thread_safe;	/* Set this to non-zero to enable the RMAP stack to create a
-					 * semaphore used to protect from multiple tasks entering the
-					 * transfer function(s) of the stack at the same time */
 };
 
 struct rmap_command {
@@ -274,8 +277,6 @@ extern int rmap_resp_poll(void *cookie, struct rmap_command *resp, unsigned int 
 
 /*** RMAP Stack help interface ***/
 
-/* Parse a Write command */
-
 /* Return the CRC of a RMAP data buffer of length len */
 extern unsigned char rmap_crc_calc(unsigned char *data, unsigned int len);
 
@@ -285,6 +286,37 @@ extern int rmap_write(void *cookie, void *dst, void *buf, int length, int dstadr
 /* A handy read function using the RMAP stack */
 extern int rmap_read(void *cookie, void *src, void *buf, int length, int dstadr, int dstkey);
 
+/*** Asynchronous interface ***/
+
+/* Initilaize Asynchonous RMAP Stack */
+void *rmap_async_init(struct rmap_config *config, int response_array_length);
+
+/* Reset internal states of the asynchonous RMAP stack */
+void rmap_async_reset(void *cookie);
+
+/* Initilize packet buffer according to cmd. If cmd is a cmd will be  */
+int rmap_send_async(void *cookie,
+		    struct rmap_command *cmd,
+		    struct rmap_spw_pkt *pkt);
+
+/* Process received RMAP response packet buffer and find request cmd */
+int rmap_recv_async(void *cookie, struct rmap_spw_pkt *pkt, struct rmap_command **pcmd);
+
+/* If a RMAP command is canceled */
+int rmap_cancel_async(void *cookie, struct rmap_command *cmd);
+
+/*** below here is only used internally to implement RMAP stack ***/
+struct rmap_common_priv {
+	struct rmap_config	*config;		/* Configuration */
+	unsigned short		tid;			/* Current TID */
+	unsigned char		drv_cap;		/* Driver capabilities */
+	rtems_id		lock;			/* Optional Semaphore protection against multiple threads (thread-safe) */
+};
+
+extern int rmap_stack_count;
+
+extern int rmap_build(struct rmap_common_priv *priv, struct rmap_command *cmd, struct rmap_spw_pkt *txpkt);
+extern int rmap_parse(struct rmap_common_priv *priv, struct rmap_command *cmd, struct rmap_spw_pkt *rxpkt);
 #ifdef __cplusplus
 }
 #endif

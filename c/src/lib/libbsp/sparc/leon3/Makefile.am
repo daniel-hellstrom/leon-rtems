@@ -155,6 +155,8 @@ libbsp_a_SOURCES += ../../sparc/shared/spw/grspw.c
 libbsp_a_SOURCES += ../../sparc/shared/spw/grspw_pkt.c
 libbsp_a_SOURCES += ../../sparc/shared/spw/grspw_router.c
 libbsp_a_SOURCES += ../../sparc/shared/spw/rmap.c
+libbsp_a_SOURCES += ../../sparc/shared/spw/rmap_async.c
+libbsp_a_SOURCES += ../../sparc/shared/spw/rmap_common.c
 libbsp_a_SOURCES += ../../sparc/shared/spw/rmap_drv_grspw.c
 
 # UART
