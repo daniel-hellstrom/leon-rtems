@@ -169,11 +169,7 @@ void pci_print(void)
 
     printf("\nPCI devices found and configured:\n");
     for (bus = 0; bus < pci_bus_count(); bus++) {
-        slot = 0;
-        if (bus == 0)
-            slot = 1;
-        for (; slot < PCI_MAX_DEVICES; slot++) {
-
+        for (slot = 0; slot < PCI_MAX_DEVICES; slot++) {
             for (func=0; func < PCI_MAX_FUNCTIONS; func++) {
 
                 dev = PCI_DEV(bus, slot, func);
