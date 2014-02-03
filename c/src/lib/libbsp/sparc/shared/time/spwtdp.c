@@ -248,7 +248,7 @@ struct amba_drv_info spwtdp_drv_info =
 };
 
 /* Register the SPWTDP Driver */
-void spwtdp_register(void)
+void spwtdp_register_drv(void)
 {
 	drvmgr_drv_register(&spwtdp_drv_info.general);
 }

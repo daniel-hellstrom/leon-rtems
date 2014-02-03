@@ -107,6 +107,6 @@ extern void spwtdp_enable_irqs(void *spwtdp, int irqs);
 extern struct spwtdp_regs *spwtdp_get_regs(void *spwtdp);
 
 /* Register the SPWTDP Driver to the Driver Manager */
-extern void spwtdp_register(void);
+extern void spwtdp_register_drv(void);
 
 #endif
