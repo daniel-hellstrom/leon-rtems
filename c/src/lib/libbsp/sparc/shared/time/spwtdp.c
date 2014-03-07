@@ -167,6 +167,7 @@ void spwtdp_isr(void *data)
 	if (ists == 0)
 		return;
 
+	priv->regs->ists = ists; /* clear handled interrupt events */
 	stats->nirqs++;
 
 	if (ists & SPWTDP_IRQ_DIT)
